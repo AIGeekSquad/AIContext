@@ -11,7 +11,15 @@ dotnet_csproj:
   assembly_version: '{version}'
   file_version: '{version}'
   informational_version: '{version}'
+before_build:
+  - cmd: dotnet --version
+  - cmd: dotnet restore AiContext.slnx --verbosity q
+
 build_script:
-  - dotnet restore AiContext.sln
-  - dotnet build AiContext.sln --configuration Release --no-restore
-  - dotnet pack AiContext.sln --configuration Release --no-build --output nupkg --include-symbols --include-source
+  - cmd: dotnet build AiContext.slnx --configuration Release --no-restore
+after_build:
+  # For once the build has completed
+  - cmd: dotnet pack AiContext.slnx --configuration Release --no-build --output nupkg --include-symbols --include-source
+artifacts:
+  - path: "src/**/*.nupkg"
+    name: NugetPacakges
