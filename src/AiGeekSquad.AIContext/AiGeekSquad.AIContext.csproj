@@ -28,6 +28,12 @@
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="1.0.2" />
+    <PackageReference Include="Microsoft.ML.Tokenizers.Data.Cl100kBase" Version="1.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Chunking\" />
   </ItemGroup>
 
 </Project>

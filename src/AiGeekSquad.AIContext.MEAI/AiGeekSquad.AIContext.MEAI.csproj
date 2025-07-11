@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+	  <Nullable>enable</Nullable>
+	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <IsPackable>true</IsPackable>
+
+	  <!-- NuGet Package Metadata -->
+	  <PackageId>AiGeekSquad.AIContext.MEAI</PackageId>
+	  <Version>1.0.0</Version>
+	  <Description>A comprehensive toolkit for .NET and C# developers working with AI applications. This library provides essential tools and algorithms for processing, transforming, and optimizing AI context, including functionality for reranking, parsing, chunking, and intelligent document selection. Features high-performance implementations of algorithms like Maximum Marginal Relevance (MMR) for balancing relevance and diversity in search results, making it ideal for AI applications, information retrieval systems, and content recommendation engines.</Description>
+	  <Authors>AiGeekSquad</Authors>
+	  <Copyright>Copyright © AiGeekSquad 2025</Copyright>
+	  <RepositoryUrl>https://github.com/AiGeekSquad/AIContext</RepositoryUrl>
+	  <PackageTags>ai;nlp;search;relevance;diversity;mmr;maximum-marginal-relevance;information-retrieval;recommendation</PackageTags>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <Title>Tools to help C# developer with AI Context processing</Title>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AiGeekSquad.AIContext\AiGeekSquad.AIContext.csproj" />
+  </ItemGroup>
+
+</Project>

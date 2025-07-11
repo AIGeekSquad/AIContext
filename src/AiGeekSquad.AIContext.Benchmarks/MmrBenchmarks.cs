@@ -1,6 +1,8 @@
+using AiGeekSquad.AIContext.Ranking;
+
 using BenchmarkDotNet.Attributes;
+
 using MathNet.Numerics.LinearAlgebra;
-using AiGeekSquad.AIContext;
 
 namespace AiGeekSquad.AIContext.Benchmarks;
 
@@ -48,7 +50,7 @@ public class MmrBenchmarks
     private void GenerateTestData()
     {
         _vectors = new List<Vector<double>>(VectorCount);
-        
+
         // Generate random vectors
         for (int i = 0; i < VectorCount; i++)
         {
@@ -140,12 +142,12 @@ public class MmrBenchmarks
     {
         // This benchmark is specifically for memory allocation analysis
         var result = MaximumMarginalRelevance.ComputeMMR(_vectors, _query, Lambda, TopK);
-        
+
         // Force garbage collection to measure true allocation
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
-        
+
         return result;
     }
 }

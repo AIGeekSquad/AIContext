@@ -1,10 +1,11 @@
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AiGeekSquad.AIContext
+namespace AiGeekSquad.AIContext.Ranking
 {
     /// <summary>
     /// Implements the Maximum Marginal Relevance (MMR) algorithm for diverse document selection.
