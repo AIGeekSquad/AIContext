@@ -334,13 +334,13 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 
                 // Enhanced metadata should be added
                 chunk.Metadata.Should().ContainKey("TokenCount");
-                chunk.Metadata.Should().ContainKey("SentenceCount");
+                chunk.Metadata.Should().ContainKey("SegmentCount");
                 
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                var sentenceCount = (int)chunk.Metadata["SentenceCount"];
+                var segmentCount = (int)chunk.Metadata["SegmentCount"];
                 
                 tokenCount.Should().BeGreaterThan(0);
-                sentenceCount.Should().BeGreaterThan(0);
+                segmentCount.Should().BeGreaterThan(0);
             }
         }
 

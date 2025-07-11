@@ -296,7 +296,9 @@ namespace AiGeekSquad.AIContext.Chunking
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var chunkStartIndex = 0;
+            var validChunks = new List<TextChunk>();
 
+            // Process breakpoints to create chunks
             foreach (var breakpoint in breakpoints.Concat(new[] { segments.Count - 1 }))
             {
                 if (breakpoint >= chunkStartIndex)
@@ -308,7 +310,7 @@ namespace AiGeekSquad.AIContext.Chunking
                         var chunkText = string.Join(" ", chunkSegments.Select(s => s.text));
                         var tokenCount = await _tokenCounter.CountTokensAsync(chunkText, cancellationToken);
 
-                        // Respect token limits
+                        // Check if chunk meets token requirements
                         if (tokenCount >= options.MinTokensPerChunk && tokenCount <= options.MaxTokensPerChunk)
                         {
                             var startIndex = chunkSegments.First().startIndex;
@@ -318,12 +320,55 @@ namespace AiGeekSquad.AIContext.Chunking
                             chunkMetadata["TokenCount"] = tokenCount;
                             chunkMetadata["SegmentCount"] = chunkSegments.Count;
 
-                            yield return new TextChunk(chunkText, startIndex, endIndex, chunkMetadata);
+                            var chunk = new TextChunk(chunkText, startIndex, endIndex, chunkMetadata);
+                            validChunks.Add(chunk);
                         }
                     }
 
                     chunkStartIndex = breakpoint + 1;
                 }
+            }
+
+            // If no valid chunks were created, create fallback chunks
+            if (validChunks.Count == 0 && segments.Count > 0)
+            {
+                // Create a single chunk with all segments, ignoring minimum token requirements as fallback
+                var allText = string.Join(" ", segments.Select(s => s.text));
+                var totalTokenCount = await _tokenCounter.CountTokensAsync(allText, cancellationToken);
+                
+                if (totalTokenCount <= options.MaxTokensPerChunk)
+                {
+                    // Single chunk with all content
+                    var chunkMetadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
+                    chunkMetadata["TokenCount"] = totalTokenCount;
+                    chunkMetadata["SegmentCount"] = segments.Count;
+                    chunkMetadata["IsFallback"] = true;
+
+                    validChunks.Add(new TextChunk(allText, segments.First().startIndex, segments.Last().endIndex, chunkMetadata));
+                }
+                else
+                {
+                    // Create sentence-by-sentence chunks as last resort
+                    foreach (var segment in segments)
+                    {
+                        var tokenCount = await _tokenCounter.CountTokensAsync(segment.text, cancellationToken);
+                        if (tokenCount <= options.MaxTokensPerChunk)
+                        {
+                            var chunkMetadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
+                            chunkMetadata["TokenCount"] = tokenCount;
+                            chunkMetadata["SegmentCount"] = 1;
+                            chunkMetadata["IsFallback"] = true;
+
+                            validChunks.Add(new TextChunk(segment.text, segment.startIndex, segment.endIndex, chunkMetadata));
+                        }
+                    }
+                }
+            }
+
+            // Return all valid chunks
+            foreach (var chunk in validChunks)
+            {
+                yield return chunk;
             }
         }
     }

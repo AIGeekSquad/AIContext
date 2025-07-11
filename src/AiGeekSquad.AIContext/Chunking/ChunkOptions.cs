@@ -13,9 +13,9 @@ namespace AiGeekSquad.AIContext.Chunking
 
         /// <summary>
         /// Gets or sets the minimum number of tokens per chunk.
-        /// Default is 50 tokens.
+        /// Default is 10 tokens to allow for smaller chunks.
         /// </summary>
-        public int MinTokensPerChunk { get; set; } = 50;
+        public int MinTokensPerChunk { get; set; } = 10;
 
         /// <summary>
         /// Gets or sets the buffer size for sentence grouping.
@@ -29,9 +29,9 @@ namespace AiGeekSquad.AIContext.Chunking
         /// Gets or sets the percentile threshold for identifying semantic breakpoints.
         /// This value (0.0 to 1.0) determines at what percentile of distance values
         /// a breakpoint is considered significant enough to create a chunk boundary.
-        /// Default is 0.95 (95th percentile).
+        /// Default is 0.75 (75th percentile) for more reasonable chunk boundaries.
         /// </summary>
-        public double BreakpointPercentileThreshold { get; set; } = 0.95;
+        public double BreakpointPercentileThreshold { get; set; } = 0.75;
 
         /// <summary>
         /// Gets or sets the minimum similarity threshold for merging adjacent chunks.
