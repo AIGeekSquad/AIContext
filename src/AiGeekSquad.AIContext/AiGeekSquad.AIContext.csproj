@@ -9,13 +9,13 @@
     <!-- NuGet Package Metadata -->
     <PackageId>AiGeekSquad.AIContext</PackageId>
     <Version>1.0.0</Version>
-    <Description>A high-performance C# implementation of the Maximum Marginal Relevance (MMR) algorithm for intelligent document selection. This library provides efficient algorithms for balancing relevance and diversity in search results, making it ideal for AI applications, information retrieval systems, and content recommendation engines.</Description>
+    <Description>A comprehensive toolkit for .NET and C# developers working with AI applications. This library provides essential tools and algorithms for processing, transforming, and optimizing AI context, including functionality for reranking, parsing, chunking, and intelligent document selection. Features high-performance implementations of algorithms like Maximum Marginal Relevance (MMR) for balancing relevance and diversity in search results, making it ideal for AI applications, information retrieval systems, and content recommendation engines.</Description>
     <Authors>AiGeekSquad</Authors>
     <Copyright>Copyright © AiGeekSquad 2025</Copyright>
     <RepositoryUrl>https://github.com/AiGeekSquad/AIContext</RepositoryUrl>
     <PackageTags>ai;nlp;search;relevance;diversity;mmr;maximum-marginal-relevance;information-retrieval;recommendation</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Title>Tools to help C# developer with AI COntext processing</Title>
+    <Title>Tools to help C# developer with AI Context processing</Title>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
