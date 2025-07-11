@@ -44,16 +44,9 @@ public class SemanticChunkingBenchmarks
     /// <summary>
     /// High-performance mock implementation of IEmbeddingGenerator for benchmarking
     /// </summary>
-    private class BenchmarkEmbeddingGenerator : IEmbeddingGenerator
+    private class BenchmarkEmbeddingGenerator(int dimensions = 384) : IEmbeddingGenerator
     {
-        private readonly int _dimensions;
-        private readonly Random _random;
-
-        public BenchmarkEmbeddingGenerator(int dimensions = 384)
-        {
-            _dimensions = dimensions;
-            _random = new Random(42); // Fixed seed for reproducibility
-        }
+        private readonly Random _random = new(42); // Fixed seed for reproducibility
 
         public Task<Vector<double>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
         {
@@ -73,12 +66,12 @@ public class SemanticChunkingBenchmarks
 
         private Vector<double> CreateFastEmbedding(string text)
         {
-            var values = new double[_dimensions];
+            var values = new double[dimensions];
             var hash = text.GetHashCode();
             var localRandom = new Random(Math.Abs(hash));
 
             // Generate normalized random vector
-            for (var i = 0; i < _dimensions; i++)
+            for (var i = 0; i < dimensions; i++)
             {
                 values[i] = localRandom.NextDouble() * 2.0 - 1.0;
             }
@@ -88,7 +81,7 @@ public class SemanticChunkingBenchmarks
             var magnitude = Math.Sqrt(sumSquares);
             if (magnitude > 0)
             {
-                for (var i = 0; i < _dimensions; i++)
+                for (var i = 0; i < dimensions; i++)
                     values[i] /= magnitude;
             }
 
@@ -100,17 +93,17 @@ public class SemanticChunkingBenchmarks
 
     #region Test Data Generation
 
-    private readonly string[] _shortTexts = new[]
-    {
+    private readonly string[] _shortTexts =
+    [
         "Technology drives innovation.",
         "Software development evolves rapidly.",
         "AI research advances continuously.",
         "Business strategies adapt to change.",
         "Market conditions influence decisions."
-    };
+    ];
 
-    private readonly string[] _mediumTexts = new[]
-    {
+    private readonly string[] _mediumTexts =
+    [
         "Technology has revolutionized the way we live and work in the modern era. " +
         "Artificial intelligence and machine learning are transforming industries across the globe. " +
         "Software development practices continue to evolve with new frameworks and methodologies.",
@@ -122,10 +115,10 @@ public class SemanticChunkingBenchmarks
         "Scientific research drives innovation in countless fields of human endeavor. " +
         "Computer science research enables breakthrough discoveries and applications. " +
         "Academic institutions collaborate with industry to advance knowledge and technology."
-    };
+    ];
 
-    private readonly string[] _longTexts = new[]
-    {
+    private readonly string[] _longTexts =
+    [
         "Technology has fundamentally transformed every aspect of human civilization over the past century. " +
         "From the invention of the computer to the development of artificial intelligence, we have witnessed " +
         "unprecedented changes in how we work, communicate, and solve complex problems. Software development " +
@@ -154,7 +147,7 @@ public class SemanticChunkingBenchmarks
         "platforms have democratized access to advanced research tools and methodologies. The integration " +
         "of artificial intelligence into research workflows has automated many routine tasks and enabled " +
         "researchers to focus on higher-level analysis and interpretation of results."
-    };
+    ];
 
     private string _currentText = string.Empty;
     private SemanticTextChunker _chunker = null!;

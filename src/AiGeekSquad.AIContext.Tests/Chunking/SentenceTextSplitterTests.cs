@@ -3,11 +3,6 @@ using AiGeekSquad.AIContext.Chunking;
 using FluentAssertions;
 using FluentAssertions.Execution;
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace AiGeekSquad.AIContext.Tests.Chunking
 {
     public class SentenceTextSplitterTests
@@ -161,7 +156,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Arrange
             var splitter = new SentenceTextSplitter();
             var text = "First sentence. Second sentence. Third sentence.";
-            
+
             using var cts = new CancellationTokenSource();
             cts.Cancel(); // Cancel immediately
 
@@ -317,16 +312,16 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             segments.Should().HaveCount(2);
-            
+
             foreach (var segment in segments)
             {
                 segment.Text.Should().NotBeNullOrWhiteSpace();
                 segment.StartIndex.Should().BeGreaterThanOrEqualTo(0);
                 segment.EndIndex.Should().BeGreaterThan(segment.StartIndex);
                 segment.Length.Should().Be(segment.Text.Length);
-                
+
                 // Verify the segment text matches what's in the original text
-                var extractedText = text.Substring(segment.StartIndex, segment.EndIndex - segment.StartIndex);
+                var extractedText = text[segment.StartIndex..segment.EndIndex];
                 extractedText.Should().Contain(segment.Text.Trim());
             }
         }

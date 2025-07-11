@@ -122,7 +122,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 yield break;
 
             // Step 2: Create segment groups with buffer context
-            var sentenceGroups = CreateSegmentGroups(segments, text, options.BufferSize);
+            var sentenceGroups = CreateSegmentGroups(segments, options.BufferSize);
 
             // Step 3: Generate embeddings for sentence groups
             await GenerateEmbeddingsForGroups(sentenceGroups, options, cancellationToken);
@@ -134,8 +134,7 @@ namespace AiGeekSquad.AIContext.Chunking
             var breakpoints = IdentifyBreakpoints(distances, options.BreakpointPercentileThreshold);
 
             // Step 6: Create chunks based on breakpoints
-            await foreach (var chunk in CreateChunksFromBreakpoints(
-                text, segments, breakpoints, metadata, options, cancellationToken))
+            await foreach (var chunk in CreateChunksFromBreakpoints(segments, breakpoints, metadata, options, cancellationToken))
             {
                 yield return chunk;
             }
@@ -146,12 +145,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// Creates segment groups with buffer context around each segment.
         /// </summary>
         /// <param name="segments">The list of text segments with their positions.</param>
-        /// <param name="originalText">The original text for reference.</param>
         /// <param name="bufferSize">The number of segments before and after to include as context.</param>
         /// <returns>A list of sentence groups.</returns>
         private static List<SentenceGroup> CreateSegmentGroups(
             List<(string text, int startIndex, int endIndex)> segments,
-            string originalText,
             int bufferSize)
         {
             var groups = new List<SentenceGroup>();
@@ -279,16 +276,13 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <summary>
         /// Creates text chunks based on identified breakpoints.
         /// </summary>
-        /// <param name="originalText">The original text being chunked.</param>
         /// <param name="segments">The list of text segments with their positions.</param>
         /// <param name="breakpoints">The identified breakpoint indices.</param>
         /// <param name="metadata">Optional metadata to associate with chunks.</param>
         /// <param name="options">The chunking options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>An async enumerable of text chunks.</returns>
-        private async IAsyncEnumerable<TextChunk> CreateChunksFromBreakpoints(
-            string originalText,
-            List<(string text, int startIndex, int endIndex)> segments,
+        private async IAsyncEnumerable<TextChunk> CreateChunksFromBreakpoints(List<(string text, int startIndex, int endIndex)> segments,
             List<int> breakpoints,
             IDictionary<string, object>? metadata,
             SemanticChunkingOptions options,
@@ -348,9 +342,9 @@ namespace AiGeekSquad.AIContext.Chunking
                 else
                 {
                     // Create sentence-by-sentence chunks as last resort
-                    foreach (var segment in segments)
+                    foreach (var (text, startIndex, endIndex) in segments)
                     {
-                        var tokenCount = await _tokenCounter.CountTokensAsync(segment.text, cancellationToken);
+                        var tokenCount = await _tokenCounter.CountTokensAsync(text, cancellationToken);
                         if (tokenCount <= options.MaxTokensPerChunk)
                         {
                             var chunkMetadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
@@ -358,7 +352,7 @@ namespace AiGeekSquad.AIContext.Chunking
                             chunkMetadata["SegmentCount"] = 1;
                             chunkMetadata["IsFallback"] = true;
 
-                            validChunks.Add(new TextChunk(segment.text, segment.startIndex, segment.endIndex, chunkMetadata));
+                            validChunks.Add(new TextChunk(text, startIndex, endIndex, chunkMetadata));
                         }
                     }
                 }

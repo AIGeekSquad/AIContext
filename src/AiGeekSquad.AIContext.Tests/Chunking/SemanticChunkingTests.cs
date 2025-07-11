@@ -13,15 +13,8 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         /// Creates a test embedding generator that generates deterministic embeddings based on text content.
         /// This allows for predictable testing of semantic similarity without external dependencies.
         /// </summary>
-        private class TestEmbeddingGenerator : IEmbeddingGenerator
+        private class TestEmbeddingGenerator(int dimensions = 384) : IEmbeddingGenerator
         {
-            private readonly int _dimensions;
-
-            public TestEmbeddingGenerator(int dimensions = 384)
-            {
-                _dimensions = dimensions;
-            }
-
             public Task<Vector<double>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
             {
                 // Create deterministic embeddings based on text content
@@ -41,11 +34,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             private Vector<double> CreateDeterministicEmbedding(string text)
             {
-                var values = new double[_dimensions];
+                var values = new double[dimensions];
                 var hash = text.GetHashCode();
                 var random = new Random(Math.Abs(hash));
 
-                for (var i = 0; i < _dimensions; i++)
+                for (var i = 0; i < dimensions; i++)
                 {
                     values[i] = random.NextDouble() * 2.0 - 1.0; // Range [-1, 1]
                 }
@@ -53,19 +46,19 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 // Add semantic meaning based on keywords to create predictable similarity patterns
                 if (text.Contains("technology") || text.Contains("computer") || text.Contains("software") || text.Contains("AI"))
                 {
-                    for (var i = 0; i < Math.Min(10, _dimensions); i++)
+                    for (var i = 0; i < Math.Min(10, dimensions); i++)
                         values[i] += 0.4;
                 }
 
                 if (text.Contains("business") || text.Contains("company") || text.Contains("market") || text.Contains("economy"))
                 {
-                    for (var i = 10; i < Math.Min(20, _dimensions); i++)
+                    for (var i = 10; i < Math.Min(20, dimensions); i++)
                         values[i] += 0.4;
                 }
 
                 if (text.Contains("science") || text.Contains("research") || text.Contains("study") || text.Contains("experiment"))
                 {
-                    for (var i = 20; i < Math.Min(30, _dimensions); i++)
+                    for (var i = 20; i < Math.Min(30, dimensions); i++)
                         values[i] += 0.4;
                 }
 
@@ -73,7 +66,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 var magnitude = Math.Sqrt(values.Sum(v => v * v));
                 if (magnitude > 0)
                 {
-                    for (var i = 0; i < _dimensions; i++)
+                    for (var i = 0; i < dimensions; i++)
                         values[i] /= magnitude;
                 }
 
@@ -81,7 +74,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             }
         }
 
-        private SemanticTextChunker CreateChunker()
+        private static SemanticTextChunker CreateChunker()
         {
             var tokenCounter = new MLTokenCounter();
             var embeddingGenerator = new TestEmbeddingGenerator();
