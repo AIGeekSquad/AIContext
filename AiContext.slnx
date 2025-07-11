@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/benchmarks/">
-    <Project Path="src/AiGeekSquad.AIContext.Benchmarks/AiGeekSquad.AIContext.Benchmarks.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="src/AiGeekSquad.AIContext.Tests/AiGeekSquad.AIContext.Tests.csproj" />
-  </Folder>
-  <Project Path="src/AiGeekSquad.AIContext/AiGeekSquad.AIContext.csproj" />
-</Solution>
