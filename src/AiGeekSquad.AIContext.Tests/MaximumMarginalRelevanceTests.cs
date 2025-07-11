@@ -1,9 +1,4 @@
-using Xunit;
 using MathNet.Numerics.LinearAlgebra;
-using AiGeekSquad.AIContext;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace AiGeekSquad.AIContext.Tests
 {
@@ -14,20 +9,20 @@ namespace AiGeekSquad.AIContext.Tests
         /// </summary>
         private static List<Vector<double>> GetTestVectors()
         {
-            return new List<Vector<double>>
-            {
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 }),  // Index 0
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 }),  // Index 1 (identical to 0)
-                Vector<double>.Build.DenseOfArray(new double[] { 0, 1, 0 }),  // Index 2
-                Vector<double>.Build.DenseOfArray(new double[] { 0, 0, 1 }),  // Index 3
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 1, 0 }),  // Index 4
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 1 })   // Index 5
-            };
+            return
+            [
+                Vector<double>.Build.DenseOfArray([1, 0, 0]), // Index 0
+                Vector<double>.Build.DenseOfArray([1, 0, 0]), // Index 1 (identical to 0)
+                Vector<double>.Build.DenseOfArray([0, 1, 0]), // Index 2
+                Vector<double>.Build.DenseOfArray([0, 0, 1]), // Index 3
+                Vector<double>.Build.DenseOfArray([1, 1, 0]), // Index 4
+                Vector<double>.Build.DenseOfArray([1, 0, 1])
+            ];
         }
 
         private static Vector<double> GetTestQuery()
         {
-            return Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
+            return Vector<double>.Build.DenseOfArray([1, 0, 0]);
         }
 
         [Fact]
@@ -60,11 +55,11 @@ namespace AiGeekSquad.AIContext.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal(3, result.Count);
-            
+
             // With lambda=1.0, should select vectors most similar to query [1,0,0]
             // Expected order: indices 0 and 1 (identical to query), then 4 and 5 (partial match)
             Assert.Contains(result, item => item.index == 0 || item.index == 1);
-            
+
             // First two should be the most relevant (indices 0 and 1)
             var firstTwo = result.Take(2).ToList();
             Assert.True(firstTwo.All(item => item.index == 0 || item.index == 1));
@@ -83,11 +78,11 @@ namespace AiGeekSquad.AIContext.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal(3, result.Count);
-            
+
             // With lambda=0.0, should select diverse vectors regardless of relevance
             // Should avoid selecting both identical vectors (0 and 1)
             var selectedIndices = result.Select(item => item.index).ToList();
-            Assert.False(selectedIndices.Contains(0) && selectedIndices.Contains(1), 
+            Assert.False(selectedIndices.Contains(0) && selectedIndices.Contains(1),
                 "Should not select both identical vectors when prioritizing diversity");
         }
 
@@ -104,13 +99,13 @@ namespace AiGeekSquad.AIContext.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal(3, result.Count);
-            
+
             // Should balance relevance and diversity
             var selectedIndices = result.Select(item => item.index).ToList();
-            
+
             // Should include at least one highly relevant vector (0 or 1)
             Assert.True(selectedIndices.Contains(0) || selectedIndices.Contains(1));
-            
+
             // Should include diverse vectors, not just the most relevant ones
             Assert.True(selectedIndices.Distinct().Count() == 3, "Should select 3 different vectors");
         }
@@ -143,9 +138,9 @@ namespace AiGeekSquad.AIContext.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Single(result);
-            
+
             // Should select the most relevant vector (index 0 or 1)
-            Assert.True(result[0].index == 0 || result[0].index == 1);
+            Assert.True(result[0].index is 0 or 1);
         }
 
         [Fact]
@@ -214,7 +209,7 @@ namespace AiGeekSquad.AIContext.Tests
             // Arrange
             var vectors = new List<Vector<double>>
             {
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 })
+                Vector<double>.Build.DenseOfArray([1, 0, 0])
             };
             var query = GetTestQuery();
 
@@ -234,9 +229,9 @@ namespace AiGeekSquad.AIContext.Tests
             // Arrange
             var vectors = new List<Vector<double>>
             {
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 }),
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 }),
-                Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 })
+                Vector<double>.Build.DenseOfArray([1, 0, 0]),
+                Vector<double>.Build.DenseOfArray([1, 0, 0]),
+                Vector<double>.Build.DenseOfArray([1, 0, 0])
             };
             var query = GetTestQuery();
 
@@ -265,15 +260,15 @@ namespace AiGeekSquad.AIContext.Tests
             Assert.NotNull(resultRelevance);
             Assert.NotNull(resultDiversity);
             Assert.NotNull(resultBalanced);
-            
+
             Assert.Equal(3, resultRelevance.Count);
             Assert.Equal(3, resultDiversity.Count);
             Assert.Equal(3, resultBalanced.Count);
-            
+
             // Different lambda values should potentially produce different orderings
             var relevanceIndices = resultRelevance.Select(r => r.index).ToList();
             var diversityIndices = resultDiversity.Select(r => r.index).ToList();
-            
+
             // At least one should be different (unless all vectors are identical)
             Assert.True(relevanceIndices.Count == 3 && diversityIndices.Count == 3);
         }
@@ -295,12 +290,12 @@ namespace AiGeekSquad.AIContext.Tests
             {
                 // Verify that the returned embedding matches the original vector
                 Assert.Equal(vectors[index], embedding);
-                
+
                 // Verify vector dimensions are preserved
                 Assert.Equal(vectors[index].Count, embedding.Count);
-                
+
                 // Verify vector values are preserved
-                for (int i = 0; i < vectors[index].Count; i++)
+                for (var i = 0; i < vectors[index].Count; i++)
                 {
                     Assert.Equal(vectors[index][i], embedding[i], precision: 10);
                 }
@@ -313,13 +308,13 @@ namespace AiGeekSquad.AIContext.Tests
             // Arrange
             var vectors = new List<Vector<double>>
             {
-                Vector<double>.Build.DenseOfArray(new double[] { 1000, 0, 0 }),    // Very large values
-                Vector<double>.Build.DenseOfArray(new double[] { 0.001, 0, 0 }),  // Very small values
-                Vector<double>.Build.DenseOfArray(new double[] { 0, 1000, 0 }),   // Orthogonal large
-                Vector<double>.Build.DenseOfArray(new double[] { -1000, 0, 0 }),  // Negative large
-                Vector<double>.Build.DenseOfArray(new double[] { 0, 0, 0 })       // Zero vector
+                Vector<double>.Build.DenseOfArray([1000, 0, 0]),    // Very large values
+                Vector<double>.Build.DenseOfArray([0.001, 0, 0]),  // Very small values
+                Vector<double>.Build.DenseOfArray([0, 1000, 0]),   // Orthogonal large
+                Vector<double>.Build.DenseOfArray([-1000, 0, 0]),  // Negative large
+                Vector<double>.Build.DenseOfArray([0, 0, 0])       // Zero vector
             };
-            var query = Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
+            var query = Vector<double>.Build.DenseOfArray([1, 0, 0]);
 
             // Act
             var result = MaximumMarginalRelevance.ComputeMMR(vectors, query, lambda: 0.5, topK: 3);
@@ -343,14 +338,14 @@ namespace AiGeekSquad.AIContext.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal(3, result.Count);
-            
+
             // The results should be in the order they were selected by the algorithm
             // This means the first result should be the best overall choice, 
             // second should be the best choice given the first, etc.
             Assert.True(result.Count == 3);
-            
+
             // Verify indices are within bounds
-            Assert.All(result, item => 
+            Assert.All(result, item =>
             {
                 Assert.True(item.index >= 0);
                 Assert.True(item.index < vectors.Count);
