@@ -84,6 +84,22 @@ dotnet test --filter "SemanticChunkingTests"
 dotnet test --filter "MaximumMarginalRelevanceTests"
 ```
 
+### Running Examples
+
+```bash
+# Run the basic chunking example
+dotnet run --project examples/ --configuration Release BasicChunking
+
+# Run the MMR demonstration
+dotnet run --project examples/ --configuration Release MMR
+
+# Or create a simple console app to test
+dotnet new console -n MyAIContextTest
+cd MyAIContextTest
+dotnet add package AiGeekSquad.AIContext
+# Copy examples from the repository and run
+```
+
 ### Running Benchmarks
 
 ```bash
@@ -93,6 +109,9 @@ dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Relea
 # Run specific benchmarks
 dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*MMR*"
 dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*Chunking*"
+
+# Export benchmark results
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters json html
 ```
 
 ## 🧪 Testing
@@ -126,30 +145,158 @@ dotnet test --filter "MaximumMarginalRelevanceTests"
 
 ## 📊 Performance Benchmarks
 
-### Benchmark Results
+The project includes comprehensive benchmarks in [`src/AiGeekSquad.AIContext.Benchmarks/`](src/AiGeekSquad.AIContext.Benchmarks/) using **BenchmarkDotNet** for accurate performance measurement.
 
-The project includes comprehensive benchmarks in [`src/AiGeekSquad.AIContext.Benchmarks/`](src/AiGeekSquad.AIContext.Benchmarks/):
+### 🎯 MMR Algorithm Benchmarks
 
-#### MMR Performance
-- **1,000 vectors**: ~2ms processing time
-- **Low memory allocation**: ~120KB per 1,000 vectors
-- **Optimized for .NET 9.0** with AVX-512 support
+The [`MmrBenchmarks.cs`](src/AiGeekSquad.AIContext.Benchmarks/MmrBenchmarks.cs) file provides comprehensive performance testing for the Maximum Marginal Relevance algorithm.
 
-#### Semantic Chunking Performance
-- **Streaming processing** with `IAsyncEnumerable` for large documents
-- **Memory efficient** with configurable embedding cache
-- **Token-aware** using real tokenizers (Microsoft.ML.Tokenizers)
+#### Benchmark Parameters
 
-### Running Performance Analysis
+| Parameter | Values Tested | Description |
+|-----------|---------------|-------------|
+| **Vector Count** | 1,000 | Number of vectors in the dataset |
+| **Vector Dimensions** | 100, 384 | Embedding dimensions (standard and OpenAI-compatible) |
+| **TopK** | 10 | Number of results to return |
+| **Lambda** | 0.0, 0.5, 1.0 | Relevance vs diversity balance |
+
+#### MMR Benchmark Scenarios
+
+| Benchmark Method | Purpose | Configuration |
+|------------------|---------|---------------|
+| `ComputeMMR()` | **Main benchmark** with parameter combinations | Uses `[Params]` for comprehensive testing |
+| `ComputeMMR_PureRelevance()` | Pure relevance selection | Lambda = 1.0 (relevance only) |
+| `ComputeMMR_PureDiversity()` | Pure diversity selection | Lambda = 0.0 (diversity only) |
+| `ComputeMMR_Balanced()` | Balanced selection | Lambda = 0.5 (balanced approach) |
+| `ComputeMMR_MemoryFocused()` | Memory allocation analysis | Includes forced GC for accurate measurement |
+
+#### Performance Characteristics
+
+- **Processing Time**: ~2ms for 1,000 vectors (384 dimensions)
+- **Memory Allocation**: ~120KB per 1,000 vectors
+- **Complexity**: O(n²k) where n = vector count, k = topK
+- **Optimization**: Leverages .NET 9.0 with AVX-512 support
+- **Reproducibility**: Fixed seed (42) for consistent results
+
+### 🧠 Semantic Chunking Benchmarks
+
+The [`SemanticChunkingBenchmarks.cs`](src/AiGeekSquad.AIContext.Benchmarks/SemanticChunkingBenchmarks.cs) file provides comprehensive performance testing for semantic text chunking functionality.
+
+#### Benchmark Parameters
+
+| Parameter | Values Tested | Description |
+|-----------|---------------|-------------|
+| **Document Size** | Short, Medium, Long | Text complexity and length variations |
+| **Max Tokens Per Chunk** | 256, 512 | Chunk size configurations |
+| **Caching** | Enabled, Disabled | Embedding cache impact |
+
+#### Document Size Specifications
+
+| Size | Content | Token Count (Approx.) |
+|------|---------|----------------------|
+| **Short** | 5 simple sentences | ~50-100 tokens |
+| **Medium** | 3 paragraphs with technical content | ~200-400 tokens |
+| **Long** | 3 detailed paragraphs with complex topics | ~800-1200 tokens |
+
+#### Semantic Chunking Benchmark Scenarios
+
+| Benchmark Method | Purpose | Configuration |
+|------------------|---------|---------------|
+| `SemanticChunking_Complete()` | **Baseline benchmark** | Uses parameterized configurations |
+| `SemanticChunking_DefaultOptions()` | Default configuration performance | Standard `SemanticChunkingOptions.Default` |
+| `SemanticChunking_OptimizedForSpeed()` | Speed-optimized configuration | Buffer=1, Threshold=0.75, Cache=true |
+| `SemanticChunking_OptimizedForQuality()` | Quality-optimized configuration | Buffer=3, Threshold=0.90, MaxTokens=1024 |
+| `SemanticChunking_SmallBuffer()` | Buffer size impact (small) | BufferSize=1 |
+| `SemanticChunking_LargeBuffer()` | Buffer size impact (large) | BufferSize=4 |
+| `SemanticChunking_CachingFirstPass()` | Cache miss performance | Fresh chunker instance |
+| `SemanticChunking_NoCaching()` | No caching baseline | Caching disabled |
+
+#### Performance Characteristics
+
+- **Streaming Processing**: Uses `IAsyncEnumerable` for memory efficiency
+- **Token-Aware**: Real tokenization using Microsoft.ML.Tokenizers
+- **Embedding Cache**: LRU cache with configurable size (up to 1000 entries)
+- **Mock Implementation**: High-performance mocks for consistent benchmarking
+- **Memory Efficient**: Minimal allocations with streaming approach
+
+### ⚙️ Benchmark Configuration
+
+The benchmarks use a custom [`BenchmarkConfig.cs`](src/AiGeekSquad.AIContext.Benchmarks/BenchmarkConfig.cs) with the following settings:
+
+#### Runtime Configuration
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| **Target Framework** | .NET 9.0 | Latest performance optimizations |
+| **Platform** | x64 | 64-bit architecture support |
+| **GC Modes** | Server GC, Workstation GC | Compare garbage collection strategies |
+| **Memory Diagnostics** | Enabled | Track allocations and memory usage |
+
+#### Output Formats
+
+- **Console**: Real-time progress and summary
+- **Markdown**: GitHub-compatible tables
+- **HTML**: Interactive web reports
+- **Statistical Analysis**: Mean, Median, P95, Rankings
+
+### 🚀 Running Benchmarks
+
+#### Command Line Options
 
 ```bash
-# Run all benchmarks with detailed output
-dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release
+# Run MMR benchmarks only
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release mmr
 
-# Export results to different formats
-dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters json
-dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters html
+# Run semantic chunking benchmarks only
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release semantic
+
+# Run all benchmarks
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release all
+
+# Run with specific filters
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*MMR*"
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*Chunking*"
 ```
+
+#### Export Options
+
+```bash
+# Export to JSON format
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters json
+
+# Export to HTML format
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters html
+
+# Export to multiple formats
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters json html
+```
+
+### 📈 Benchmark Environment
+
+#### Hardware Requirements
+
+- **OS**: Windows (for Windows-specific performance counters)
+- **Runtime**: .NET 9.0 SDK
+- **Architecture**: x64 recommended for optimal performance
+- **Memory**: Sufficient RAM for vector operations and caching
+
+#### Test Data Generation
+
+- **Reproducible**: Fixed seed (42) for consistent results
+- **Realistic**: Vector values between -1 and 1
+- **Fresh Data**: Regenerated per iteration to avoid caching effects
+- **Normalized**: Proper vector normalization for semantic similarity
+
+### 🔍 Performance Insights
+
+The benchmarks help identify:
+
+- **Scalability**: How performance scales with vector count and dimensions
+- **Memory Usage**: Allocation patterns and memory efficiency
+- **Parameter Impact**: How lambda and TopK values affect MMR performance
+- **Configuration Impact**: How chunking options affect semantic processing
+- **Caching Benefits**: Performance gains from embedding caching
+- **GC Behavior**: Impact of different garbage collection strategies
 
 ## 🔧 Development Workflow
 
@@ -190,32 +337,61 @@ The project uses **AppVeyor** for continuous integration:
 - **NuGet package generation** for releases
 - **Performance regression detection**
 
-## 📋 Use Cases
+## 💡 Examples & Use Cases
+
+### 🚀 **Complete Working Examples**
+
+The [`examples/`](examples/) directory contains fully functional demonstrations:
+
+- **[`BasicChunking.cs`](examples/BasicChunking.cs)**: Complete semantic chunking example with sample embedding generator
+- **[`MMRExample.cs`](examples/MMRExample.cs)**: MMR algorithm demonstration with different lambda values and RAG system context
 
 ### 🔍 **RAG Systems (Retrieval Augmented Generation)**
 ```csharp
-// Chunk documents for vector storage
-var chunks = await chunker.ChunkDocumentAsync(document, metadata);
+// Complete RAG pipeline example
+public async Task<string> ProcessUserQuery(string question)
+{
+    // 1. Generate query embedding
+    var queryEmbedding = await embeddingGenerator.GenerateEmbeddingAsync(question);
+    
+    // 2. Retrieve candidate chunks from vector database
+    var candidates = await vectorDb.SearchSimilarAsync(queryEmbedding, topK: 20);
+    
+    // 3. Use MMR to select diverse, relevant context
+    var selectedContext = MaximumMarginalRelevance.ComputeMMR(
+        vectors: candidates.Select(c => c.Embedding).ToList(),
+        query: queryEmbedding,
+        lambda: 0.8,  // Balance relevance vs diversity
+        topK: 5       // Limit for LLM context window
+    );
+    
+    // 4. Generate response with selected context
+    var contextText = string.Join("\n", selectedContext.Select(s => candidates[s.Index].Text));
+    return await llm.GenerateResponseAsync(question, contextText);
+}
+```
 
-// Later: retrieve and diversify context for LLM
-var contextChunks = MaximumMarginalRelevance.ComputeMMR(
-    vectors: candidateEmbeddings,
-    query: queryEmbedding,
-    lambda: 0.8,  // Prioritize relevance for accuracy
-    topK: 5
+### 📚 **Document Processing Scenarios**
+- **Knowledge base chunking**: Semantic splitting for enterprise search systems
+- **Legal document analysis**: Custom text splitters for numbered sections and clauses
+- **Research paper processing**: Academic content patterns with citation awareness
+- **Technical documentation**: Code-aware splitting that preserves syntax integrity
+
+### 🎯 **Content Recommendation Systems**
+```csharp
+// Avoid recommending similar content using MMR
+var recommendations = MaximumMarginalRelevance.ComputeMMR(
+    vectors: availableContent.Select(c => c.Embedding).ToList(),
+    query: userInterestVector,
+    lambda: 0.6,  // Favor diversity for better user experience
+    topK: 10
 );
 ```
 
-### 📚 **Document Processing**
-- **Knowledge base chunking** for semantic search
-- **Legal document analysis** with custom text splitters
-- **Research paper processing** with academic content patterns
-- **Technical documentation** with code-aware splitting
-
-### 🎯 **Content Recommendation**
-- **Diverse article recommendations** using MMR
-- **Product recommendation systems** with balanced results
-- **Content curation** avoiding redundant information
+### 🔬 **Research & Analytics Applications**
+- **Literature review systems**: Diverse paper selection for comprehensive coverage
+- **Market research**: Balanced sampling from different data sources
+- **Content analysis**: Representative text selection for qualitative research
 
 ## 🏗️ Architecture
 

@@ -34,72 +34,178 @@ var embeddingGenerator = new YourEmbeddingProvider(); // Implement IEmbeddingGen
 
 var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
 
-// Configure and chunk your text
+// Configure chunking for your use case
 var options = new SemanticChunkingOptions
 {
     MaxTokensPerChunk = 512,
     MinTokensPerChunk = 10,
-    BreakpointPercentileThreshold = 0.75
+    BreakpointPercentileThreshold = 0.75 // Higher = more semantic breaks
 };
 
-var text = "Your long document text here...";
-var metadata = new Dictionary<string, object> { ["DocumentId"] = "doc-123" };
+// Process a document with metadata
+var text = @"
+Artificial intelligence is transforming how we work and live. Machine learning
+algorithms can process vast amounts of data to find patterns humans might miss.
+
+In the business world, companies adopt AI for customer service, fraud detection,
+and process automation. Chatbots handle routine inquiries while algorithms
+detect suspicious transactions in real-time.";
+
+var metadata = new Dictionary<string, object>
+{
+    ["Source"] = "AI Technology Overview",
+    ["DocumentId"] = "doc-123"
+};
 
 await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
 {
-    Console.WriteLine($"Chunk: {chunk.Text}");
-    Console.WriteLine($"Tokens: {chunk.Metadata["TokenCount"]}");
+    Console.WriteLine($"Chunk {chunk.StartIndex}-{chunk.EndIndex}:");
+    Console.WriteLine($"  Text: {chunk.Text.Trim()}");
+    Console.WriteLine($"  Tokens: {chunk.Metadata["TokenCount"]}");
+    Console.WriteLine($"  Segments: {chunk.Metadata["SegmentCount"]}");
+    Console.WriteLine();
 }
 ```
 
-#### Maximum Marginal Relevance
+#### Maximum Marginal Relevance for Diverse Results
 
 ```csharp
 using MathNet.Numerics.LinearAlgebra;
 using AiGeekSquad.AIContext.Ranking;
 
-// Your document embeddings and query
+// Simulate document embeddings (from your vector database)
 var documents = new List<Vector<double>>
 {
-    Vector<double>.Build.DenseOfArray(new double[] { 0.8, 0.2, 0.1 }),
-    Vector<double>.Build.DenseOfArray(new double[] { 0.7, 0.3, 0.2 })
+    Vector<double>.Build.DenseOfArray(new double[] { 0.9, 0.1, 0.0 }), // ML intro
+    Vector<double>.Build.DenseOfArray(new double[] { 0.85, 0.15, 0.0 }), // Advanced ML (similar!)
+    Vector<double>.Build.DenseOfArray(new double[] { 0.1, 0.8, 0.1 }), // Sports content
+    Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.1, 0.9 }) // Cooking content
 };
 
+var documentTitles = new[]
+{
+    "Introduction to Machine Learning",
+    "Advanced Machine Learning Techniques", // Very similar to first
+    "Basketball Training Guide",
+    "Italian Cooking Recipes"
+};
+
+// User query: interested in machine learning
 var query = Vector<double>.Build.DenseOfArray(new double[] { 0.9, 0.1, 0.0 });
 
-// Get diverse and relevant results
-var results = MaximumMarginalRelevance.ComputeMMR(
-    vectors: documents,
-    query: query,
-    lambda: 0.7,  // Balance relevance vs diversity
+// Compare pure relevance vs MMR
+Console.WriteLine("Pure Relevance (λ = 1.0):");
+var pureRelevance = MaximumMarginalRelevance.ComputeMMR(
+    vectors: documents, query: query, lambda: 1.0, topK: 3);
+
+foreach (var (index, score) in pureRelevance)
+    Console.WriteLine($"  {documentTitles[index]} (score: {score:F3})");
+
+Console.WriteLine("\nMMR Balanced (λ = 0.7):");
+var mmrResults = MaximumMarginalRelevance.ComputeMMR(
+    vectors: documents, query: query, lambda: 0.7, topK: 3);
+
+foreach (var (index, score) in mmrResults)
+    Console.WriteLine($"  {documentTitles[index]} (score: {score:F3})");
+
+// MMR avoids selecting both similar ML documents!
+```
+
+## 🎯 Real-World Examples
+
+### Complete RAG System Pipeline
+```csharp
+using AiGeekSquad.AIContext.Chunking;
+using AiGeekSquad.AIContext.Ranking;
+
+// 1. INDEXING: Chunk documents for vector storage
+var documents = new[] { "AI research paper content...", "ML tutorial content..." };
+var allChunks = new List<TextChunk>();
+
+foreach (var doc in documents)
+{
+    await foreach (var chunk in chunker.ChunkDocumentAsync(doc, metadata))
+    {
+        allChunks.Add(chunk);
+        // Store chunk.Text and embedding in your vector database
+    }
+}
+
+// 2. RETRIEVAL: User asks a question
+var userQuestion = "What are the applications of machine learning?";
+var queryEmbedding = await embeddingGenerator.GenerateEmbeddingAsync(userQuestion);
+
+// Get candidate chunks from vector database (similarity search)
+var candidates = await vectorDb.SearchSimilarAsync(queryEmbedding, topK: 20);
+
+// 3. CONTEXT SELECTION: Use MMR for diverse, relevant context
+var selectedContext = MaximumMarginalRelevance.ComputeMMR(
+    vectors: candidates.Select(c => c.Embedding).ToList(),
+    query: queryEmbedding,
+    lambda: 0.8,  // Prioritize relevance but ensure diversity
+    topK: 5       // Limit context for LLM token limits
+);
+
+// 4. GENERATION: Send to LLM with selected context
+var contextText = string.Join("\n\n",
+    selectedContext.Select(s => candidates[s.Index].Text));
+
+var prompt = $"Context:\n{contextText}\n\nQuestion: {userQuestion}\nAnswer:";
+var response = await llm.GenerateAsync(prompt);
+```
+
+### Smart Document Processing
+```csharp
+// Custom splitter for legal documents
+var legalSplitter = SentenceTextSplitter.WithPattern(
+    @"(?<=\d+\.)\s+(?=[A-Z])"); // Split on numbered sections
+
+var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, legalSplitter);
+
+// Process with domain-specific options
+var options = new SemanticChunkingOptions
+{
+    MaxTokensPerChunk = 1024,  // Larger chunks for legal context
+    BreakpointPercentileThreshold = 0.8  // More conservative splitting
+};
+
+await foreach (var chunk in chunker.ChunkDocumentAsync(legalDocument, metadata, options))
+{
+    // Each chunk maintains legal context integrity
+    await indexService.AddChunkAsync(chunk);
+}
+```
+
+### Content Recommendation with Diversity
+```csharp
+// User has read these articles (represented as embeddings)
+var userHistory = new List<Vector<double>> { /* user's read articles */ };
+
+// Available articles to recommend
+var availableArticles = new List<(string title, Vector<double> embedding)>
+{
+    ("Machine Learning Basics", mlBasicsEmbedding),
+    ("Advanced ML Techniques", advancedMlEmbedding),  // Similar to above
+    ("Data Science Career Guide", dataScienceEmbedding),
+    ("Python Programming Tips", pythonEmbedding)
+};
+
+// User's interests (derived from their history)
+var userInterestVector = ComputeUserInterestVector(userHistory);
+
+// Get diverse recommendations (avoid recommending similar content)
+var recommendations = MaximumMarginalRelevance.ComputeMMR(
+    vectors: availableArticles.Select(a => a.embedding).ToList(),
+    query: userInterestVector,
+    lambda: 0.6,  // Balance relevance with diversity
     topK: 3
 );
+
+foreach (var (index, score) in recommendations)
+{
+    Console.WriteLine($"Recommended: {availableArticles[index].title}");
+}
 ```
-
-## 🎯 Common Use Cases
-
-### RAG Systems
-```csharp
-// Chunk documents for vector storage
-var chunks = await chunker.ChunkDocumentAsync(document, metadata);
-
-// Later: retrieve and diversify context for LLM
-var contextChunks = MaximumMarginalRelevance.ComputeMMR(
-    vectors: candidateEmbeddings,
-    query: queryEmbedding,
-    lambda: 0.8,
-    topK: 5
-);
-```
-
-### Document Processing
-- Knowledge base chunking for semantic search
-- Legal document analysis with custom text splitters
-- Research paper processing with academic content patterns
-
-### Content Recommendation
-- Diverse article recommendations using MMR
-- Product recommendation systems with balanced results
 
 ## ⚙️ Configuration
 
