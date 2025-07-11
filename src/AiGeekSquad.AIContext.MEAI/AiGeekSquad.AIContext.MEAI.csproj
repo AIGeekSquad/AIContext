@@ -17,6 +17,7 @@
 	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	  <Title>Microsoft Extensions AI Abstractions Adapter for AIContext</Title>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <PackageIcon>aigs128.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\aigs128.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 

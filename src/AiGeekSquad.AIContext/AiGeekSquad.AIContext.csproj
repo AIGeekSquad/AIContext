@@ -17,6 +17,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>Tools to help C# developer with AI Context processing</Title>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>aigs128.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +28,13 @@
 
   <ItemGroup>
     <Folder Include="Chunking\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\aigs128.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
