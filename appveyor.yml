@@ -26,3 +26,16 @@ after_build:
 artifacts:
   - path: "src/**/*.nupkg"
     name: NugetPackages
+
+clone_depth: 1
+test_script:
+  - cmd: dotnet test AiContext.sln
+deploy:
+  - provider: NuGet
+    api_key:
+      secure: vYVb0CR1e2NhwlWxxSXtzqfmiZf5TshSl/LFPBy7oBxztjSVrFLTLQpP8Xn66kdR
+
+    skip_symbols: false
+    artifact: /.*(\.|\.s)nupkg/
+    on:
+      branch: main
