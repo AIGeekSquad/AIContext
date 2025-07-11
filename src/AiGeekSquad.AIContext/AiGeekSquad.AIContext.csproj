@@ -17,7 +17,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>Tools to help C# developer with AI Context processing</Title>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>aigs128.png</PackageIcon>
+    <PackageIcon>aicontext128.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\aigs128.png">
+    <None Include="..\..\aicontext128.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
