@@ -45,7 +45,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 var hash = text.GetHashCode();
                 var random = new Random(Math.Abs(hash));
 
-                for (int i = 0; i < _dimensions; i++)
+                for (var i = 0; i < _dimensions; i++)
                 {
                     values[i] = random.NextDouble() * 2.0 - 1.0; // Range [-1, 1]
                 }
@@ -53,19 +53,19 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 // Add semantic meaning based on keywords to create predictable similarity patterns
                 if (text.Contains("technology") || text.Contains("computer") || text.Contains("software") || text.Contains("AI"))
                 {
-                    for (int i = 0; i < Math.Min(10, _dimensions); i++)
+                    for (var i = 0; i < Math.Min(10, _dimensions); i++)
                         values[i] += 0.4;
                 }
 
                 if (text.Contains("business") || text.Contains("company") || text.Contains("market") || text.Contains("economy"))
                 {
-                    for (int i = 10; i < Math.Min(20, _dimensions); i++)
+                    for (var i = 10; i < Math.Min(20, _dimensions); i++)
                         values[i] += 0.4;
                 }
 
                 if (text.Contains("science") || text.Contains("research") || text.Contains("study") || text.Contains("experiment"))
                 {
-                    for (int i = 20; i < Math.Min(30, _dimensions); i++)
+                    for (var i = 20; i < Math.Min(30, _dimensions); i++)
                         values[i] += 0.4;
                 }
 
@@ -73,7 +73,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 var magnitude = Math.Sqrt(values.Sum(v => v * v));
                 if (magnitude > 0)
                 {
-                    for (int i = 0; i < _dimensions; i++)
+                    for (var i = 0; i < _dimensions; i++)
                         values[i] /= magnitude;
                 }
 
@@ -423,7 +423,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Results should be identical when using the same text and options
             firstPassChunks.Should().HaveCount(secondPassChunks.Count);
 
-            for (int i = 0; i < firstPassChunks.Count; i++)
+            for (var i = 0; i < firstPassChunks.Count; i++)
             {
                 firstPassChunks[i].Text.Should().Be(secondPassChunks[i].Text);
                 firstPassChunks[i].StartIndex.Should().Be(secondPassChunks[i].StartIndex);

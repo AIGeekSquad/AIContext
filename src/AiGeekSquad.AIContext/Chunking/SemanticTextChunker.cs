@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -118,7 +117,7 @@ namespace AiGeekSquad.AIContext.Chunking
             {
                 segments.Add((segment.Text, segment.StartIndex, segment.EndIndex));
             }
-            
+
             if (segments.Count == 0)
                 yield break;
 
@@ -157,14 +156,14 @@ namespace AiGeekSquad.AIContext.Chunking
         {
             var groups = new List<SentenceGroup>();
 
-            for (int i = 0; i < segments.Count; i++)
+            for (var i = 0; i < segments.Count; i++)
             {
                 var groupSegments = new List<string>();
-                int groupStartIndex = segments[i].startIndex;
-                int groupEndIndex = segments[i].endIndex;
+                var groupStartIndex = segments[i].startIndex;
+                var groupEndIndex = segments[i].endIndex;
 
                 // Add segments with buffer context
-                for (int j = Math.Max(0, i - bufferSize); j <= Math.Min(segments.Count - 1, i + bufferSize); j++)
+                for (var j = Math.Max(0, i - bufferSize); j <= Math.Min(segments.Count - 1, i + bufferSize); j++)
                 {
                     groupSegments.Add(segments[j].text);
                     if (j == Math.Max(0, i - bufferSize))
@@ -195,7 +194,7 @@ namespace AiGeekSquad.AIContext.Chunking
             // Check cache first if enabled
             foreach (var group in sentenceGroups)
             {
-                if (options.EnableEmbeddingCaching && 
+                if (options.EnableEmbeddingCaching &&
                     _embeddingCache.TryGetEmbedding(group.CombinedText, out var cachedEmbedding))
                 {
                     group.Embedding = cachedEmbedding;
@@ -211,19 +210,19 @@ namespace AiGeekSquad.AIContext.Chunking
             {
                 var texts = textsToEmbed.Select(x => x.text);
                 var embeddingsList = new List<MathNet.Numerics.LinearAlgebra.Vector<double>>();
-                
+
                 await foreach (var embedding in _embeddingGenerator.GenerateBatchEmbeddingsAsync(texts, cancellationToken))
                 {
                     embeddingsList.Add(embedding);
                 }
-                
-                for (int i = 0; i < textsToEmbed.Count && i < embeddingsList.Count; i++)
+
+                for (var i = 0; i < textsToEmbed.Count && i < embeddingsList.Count; i++)
                 {
                     var group = textsToEmbed[i].group;
                     var embedding = embeddingsList[i];
-                    
+
                     group.Embedding = embedding;
-                    
+
                     // Cache the embedding if enabled
                     if (options.EnableEmbeddingCaching)
                     {
@@ -242,7 +241,7 @@ namespace AiGeekSquad.AIContext.Chunking
         {
             var distances = new List<double>();
 
-            for (int i = 0; i < sentenceGroups.Count - 1; i++)
+            for (var i = 0; i < sentenceGroups.Count - 1; i++)
             {
                 var group1 = sentenceGroups[i];
                 var group2 = sentenceGroups[i + 1];
@@ -304,7 +303,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 if (breakpoint >= chunkStartIndex)
                 {
                     var chunkSegments = segments.Skip(chunkStartIndex).Take(breakpoint - chunkStartIndex + 1).ToList();
-                    
+
                     if (chunkSegments.Count > 0)
                     {
                         var chunkText = string.Join(" ", chunkSegments.Select(s => s.text));
@@ -315,7 +314,7 @@ namespace AiGeekSquad.AIContext.Chunking
                         {
                             var startIndex = chunkSegments.First().startIndex;
                             var endIndex = chunkSegments.Last().endIndex;
-                            
+
                             var chunkMetadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
                             chunkMetadata["TokenCount"] = tokenCount;
                             chunkMetadata["SegmentCount"] = chunkSegments.Count;
@@ -335,7 +334,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 // Create a single chunk with all segments, ignoring minimum token requirements as fallback
                 var allText = string.Join(" ", segments.Select(s => s.text));
                 var totalTokenCount = await _tokenCounter.CountTokensAsync(allText, cancellationToken);
-                
+
                 if (totalTokenCount <= options.MaxTokensPerChunk)
                 {
                     // Single chunk with all content

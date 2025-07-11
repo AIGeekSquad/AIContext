@@ -48,7 +48,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .ToArray();
 
-            int currentIndex = 0;
+            var currentIndex = 0;
             foreach (var sentence in sentenceBoundaries)
             {
                 cancellationToken.ThrowIfCancellationRequested();

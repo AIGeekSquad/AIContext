@@ -1,8 +1,9 @@
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.Statistics;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.Statistics;
 
 namespace AiGeekSquad.AIContext.Chunking
 {
@@ -37,10 +38,10 @@ namespace AiGeekSquad.AIContext.Chunking
                 return sortedDistances[0];
 
             // Calculate percentile manually
-            double realIndex = percentile * (sortedDistances.Length - 1);
-            int index = (int)realIndex;
-            double frac = realIndex - index;
-            
+            var realIndex = percentile * (sortedDistances.Length - 1);
+            var index = (int)realIndex;
+            var frac = realIndex - index;
+
             if (index + 1 < sortedDistances.Length)
             {
                 return sortedDistances[index] * (1 - frac) + sortedDistances[index + 1] * frac;
@@ -66,7 +67,7 @@ namespace AiGeekSquad.AIContext.Chunking
             var distanceArray = distances.ToArray();
             var breakpoints = new List<int>();
 
-            for (int i = 0; i < distanceArray.Length; i++)
+            for (var i = 0; i < distanceArray.Length; i++)
             {
                 if (!double.IsNaN(distanceArray[i]) && !double.IsInfinity(distanceArray[i]) && distanceArray[i] >= threshold)
                 {
@@ -131,7 +132,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 return (0.0, 0.0, 0.0, 0.0);
 
             var validDistances = distances.Where(d => !double.IsNaN(d) && !double.IsInfinity(d)).ToArray();
-            
+
             if (validDistances.Length == 0)
                 return (0.0, 0.0, 0.0, 0.0);
 

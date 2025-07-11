@@ -4,11 +4,7 @@ using BenchmarkDotNet.Attributes;
 
 using MathNet.Numerics.LinearAlgebra;
 
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AiGeekSquad.AIContext.Benchmarks;
 
@@ -28,17 +24,17 @@ public class SemanticChunkingBenchmarks
     private class BenchmarkTokenCounter : ITokenCounter
     {
         private const double AverageTokensPerWord = 1.3; // Rough approximation for English text
-        
+
         public int CountTokens(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return 0;
-            
+
             // Fast approximation: split by whitespace and multiply by average tokens per word
             var wordCount = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
             return (int)(wordCount * AverageTokensPerWord);
         }
-        
+
         public Task<int> CountTokensAsync(string text, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(CountTokens(text));
@@ -82,7 +78,7 @@ public class SemanticChunkingBenchmarks
             var localRandom = new Random(Math.Abs(hash));
 
             // Generate normalized random vector
-            for (int i = 0; i < _dimensions; i++)
+            for (var i = 0; i < _dimensions; i++)
             {
                 values[i] = localRandom.NextDouble() * 2.0 - 1.0;
             }
@@ -92,7 +88,7 @@ public class SemanticChunkingBenchmarks
             var magnitude = Math.Sqrt(sumSquares);
             if (magnitude > 0)
             {
-                for (int i = 0; i < _dimensions; i++)
+                for (var i = 0; i < _dimensions; i++)
                     values[i] /= magnitude;
             }
 
@@ -118,11 +114,11 @@ public class SemanticChunkingBenchmarks
         "Technology has revolutionized the way we live and work in the modern era. " +
         "Artificial intelligence and machine learning are transforming industries across the globe. " +
         "Software development practices continue to evolve with new frameworks and methodologies.",
-        
+
         "Business leaders must adapt to rapid technological changes to remain competitive. " +
         "Companies are investing heavily in digital transformation initiatives. " +
         "Market conditions favor organizations that embrace technological innovation.",
-        
+
         "Scientific research drives innovation in countless fields of human endeavor. " +
         "Computer science research enables breakthrough discoveries and applications. " +
         "Academic institutions collaborate with industry to advance knowledge and technology."
@@ -139,7 +135,7 @@ public class SemanticChunkingBenchmarks
         "The rapid evolution of programming languages, frameworks, and development methodologies continues " +
         "to accelerate the pace of innovation. Cloud computing has democratized access to powerful computing " +
         "resources, allowing startups and enterprises alike to scale their solutions globally.",
-        
+
         "Business strategy in the digital age requires a fundamental understanding of technological trends " +
         "and their implications for market dynamics. Companies that fail to embrace digital transformation " +
         "risk becoming obsolete in an increasingly competitive landscape. Market leaders leverage data " +
@@ -148,7 +144,7 @@ public class SemanticChunkingBenchmarks
         "modeling capabilities. Organizations must balance innovation with risk management while maintaining " +
         "regulatory compliance and ethical standards. The emergence of new business models enabled by " +
         "technology platforms has disrupted traditional industries and created entirely new market segments.",
-        
+
         "Scientific research methodology has been revolutionized by computational tools and data analysis " +
         "techniques that enable researchers to process vast amounts of information quickly and accurately. " +
         "Interdisciplinary collaboration between computer scientists, domain experts, and data analysts " +

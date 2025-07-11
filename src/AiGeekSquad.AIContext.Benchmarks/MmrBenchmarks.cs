@@ -52,10 +52,10 @@ public class MmrBenchmarks
         _vectors = new List<Vector<double>>(VectorCount);
 
         // Generate random vectors
-        for (int i = 0; i < VectorCount; i++)
+        for (var i = 0; i < VectorCount; i++)
         {
             var values = new double[VectorDimension];
-            for (int j = 0; j < VectorDimension; j++)
+            for (var j = 0; j < VectorDimension; j++)
             {
                 values[j] = _random.NextDouble() * 2 - 1; // Random values between -1 and 1
             }
@@ -64,7 +64,7 @@ public class MmrBenchmarks
 
         // Generate random query vector
         var queryValues = new double[VectorDimension];
-        for (int i = 0; i < VectorDimension; i++)
+        for (var i = 0; i < VectorDimension; i++)
         {
             queryValues[i] = _random.NextDouble() * 2 - 1;
         }
