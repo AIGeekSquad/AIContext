@@ -22,9 +22,9 @@ build_script:
   - cmd: dotnet build AiContext.sln --configuration Release --no-restore
 after_build:
   # For once the build has completed
-  - cmd: dotnet pack AiContext.sln --configuration Release --no-build --output nupkg --include-symbols --include-source
+  - cmd: dotnet pack AiContext.sln --configuration Release --no-build --output packages --include-symbols --include-source
 artifacts:
-  - path: "src/**/*.nupkg"
+  - path: "packages/**/*.nupkg"
     name: NugetPackages
 
 clone_depth: 1
