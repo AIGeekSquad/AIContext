@@ -221,11 +221,24 @@ foreach (var (index, score) in recommendations)
 
 ### Custom Text Splitters
 
+The `SentenceTextSplitter` class provides intelligent sentence boundary detection:
+
+- **Default Pattern**: Optimized for English text with built-in handling of common titles and abbreviations
+- **Handled Abbreviations**: Mr., Mrs., Ms., Dr., Prof., Sr., Jr.
+- **Custom Patterns**: Create domain-specific splitters for specialized content
+
 ```csharp
-// Use custom patterns for domain-specific splitting
+// Default splitter - handles English titles automatically
+var defaultSplitter = SentenceTextSplitter.Default;
+
+// Custom pattern for numbered sections (e.g., legal documents)
 var customSplitter = SentenceTextSplitter.WithPattern(@"(?<=\.)\s+(?=\d+\.)");
+
+// Use with semantic chunker
 var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, customSplitter);
 ```
+
+**Note**: The default pattern prevents incorrect sentence breaks after common English titles like "Dr. Smith" or "Mrs. Johnson", ensuring better semantic coherence in your chunks.
 
 ## 🏗️ Core Interfaces
 
