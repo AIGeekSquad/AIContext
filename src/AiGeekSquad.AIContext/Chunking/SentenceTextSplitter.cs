@@ -21,8 +21,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public SentenceTextSplitter(string? pattern = null)
         {
             // Default pattern: Split on sentence endings followed by whitespace and capital letter
-            // This is a simple pattern that may split on abbreviations - use a custom pattern for more control
-            var defaultPattern = @"(?<=[.!?])\s+(?=[A-Z])";
+            // Uses negative lookbehind assertions to avoid splitting on common abbreviations like Mr., Dr., Mrs., Ms., Prof.
+            // The pattern avoids splitting after abbreviations by checking for specific patterns
+            var defaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
             _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled);
         }
 
