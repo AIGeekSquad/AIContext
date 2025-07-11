@@ -171,14 +171,8 @@ public class SemanticChunkingBenchmarks
     [Params(TextSize.Short, TextSize.Medium, TextSize.Long)]
     public TextSize DocumentSize { get; set; }
 
-    [Params(128, 256, 512, 1024)]
+    [Params(256, 512)]
     public int MaxTokensPerChunk { get; set; }
-
-    [Params(1, 2, 3)]
-    public int BufferSize { get; set; }
-
-    [Params(0.75, 0.85, 0.95)]
-    public double BreakpointThreshold { get; set; }
 
     [Params(true, false)]
     public bool EnableCaching { get; set; }
@@ -214,13 +208,13 @@ public class SemanticChunkingBenchmarks
             _ => string.Join(" ", _mediumTexts)
         };
 
-        // Configure options based on parameters
+        // Configure options based on parameters with reasonable defaults
         _currentOptions = new SemanticChunkingOptions
         {
             MaxTokensPerChunk = MaxTokensPerChunk,
             MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
-            BufferSize = BufferSize,
-            BreakpointPercentileThreshold = BreakpointThreshold,
+            BufferSize = 2, // Fixed reasonable buffer size
+            BreakpointPercentileThreshold = 0.80, // Fixed reasonable threshold
             EnableEmbeddingCaching = EnableCaching,
             MaxCacheSize = 1000
         };
@@ -321,7 +315,7 @@ public class SemanticChunkingBenchmarks
             MaxTokensPerChunk = 512,
             MinTokensPerChunk = 50,
             BufferSize = 1,
-            BreakpointPercentileThreshold = 0.75,
+            BreakpointPercentileThreshold = 0.80,
             EnableEmbeddingCaching = EnableCaching
         };
 
@@ -343,54 +337,8 @@ public class SemanticChunkingBenchmarks
         {
             MaxTokensPerChunk = 512,
             MinTokensPerChunk = 50,
-            BufferSize = 5,
-            BreakpointPercentileThreshold = 0.75,
-            EnableEmbeddingCaching = EnableCaching
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark the impact of strict breakpoint thresholds
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_StrictThreshold()
-    {
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = MaxTokensPerChunk,
-            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
-            BufferSize = BufferSize,
-            BreakpointPercentileThreshold = 0.95, // Very strict
-            EnableEmbeddingCaching = EnableCaching
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark the impact of relaxed breakpoint thresholds
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_RelaxedThreshold()
-    {
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = MaxTokensPerChunk,
-            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
-            BufferSize = BufferSize,
-            BreakpointPercentileThreshold = 0.60, // More relaxed
+            BufferSize = 4,
+            BreakpointPercentileThreshold = 0.80,
             EnableEmbeddingCaching = EnableCaching
         };
 
@@ -448,216 +396,6 @@ public class SemanticChunkingBenchmarks
             BufferSize = 2,
             BreakpointPercentileThreshold = 0.75,
             EnableEmbeddingCaching = false
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    #endregion
-
-    #region Text Size Specific Benchmarks
-
-    /// <summary>
-    /// Benchmark performance with very small documents
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_VerySmallDocument()
-    {
-        var smallText = "Technology drives innovation. Software evolves rapidly.";
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(smallText, _currentOptions))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark performance with very large documents
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_VeryLargeDocument()
-    {
-        // Create a very large document by repeating long texts
-        var veryLargeText = string.Join(" ", Enumerable.Repeat(string.Join(" ", _longTexts), 3));
-        
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(veryLargeText, _currentOptions))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    #endregion
-
-    #region Memory Allocation Benchmarks
-
-    /// <summary>
-    /// Benchmark focused on memory allocation patterns
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_MemoryFocused()
-    {
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, _currentOptions))
-        {
-            chunks.Add(chunk);
-        }
-
-        // Force garbage collection to measure true allocation
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark with minimal memory allocation strategies
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_LowMemoryFootprint()
-    {
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = 256, // Smaller chunks to reduce memory usage
-            MinTokensPerChunk = 25,
-            BufferSize = 1, // Minimal buffer
-            BreakpointPercentileThreshold = 0.75,
-            EnableEmbeddingCaching = true,
-            MaxCacheSize = 100 // Smaller cache
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    #endregion
-
-    #region Component Performance Benchmarks
-
-    /// <summary>
-    /// Benchmark token counting performance in isolation
-    /// </summary>
-    [Benchmark]
-    public async Task<int> TokenCounting_Performance()
-    {
-        var tokenCounter = new BenchmarkTokenCounter();
-        return await tokenCounter.CountTokensAsync(_currentText);
-    }
-
-    /// <summary>
-    /// Benchmark embedding generation performance in isolation
-    /// </summary>
-    [Benchmark]
-    public async Task<List<Vector<double>>> EmbeddingGeneration_Performance()
-    {
-        var embeddingGenerator = new BenchmarkEmbeddingGenerator();
-        var texts = _currentText.Split('.', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(s => s.Trim())
-                                .Where(s => !string.IsNullOrEmpty(s))
-                                .Take(10); // Limit to 10 for performance
-
-        var embeddings = new List<Vector<double>>();
-        await foreach (var embedding in embeddingGenerator.GenerateBatchEmbeddingsAsync(texts))
-        {
-            embeddings.Add(embedding);
-        }
-        return embeddings;
-    }
-
-    /// <summary>
-    /// Benchmark text splitting performance in isolation
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextSegment>> TextSplitting_Performance()
-    {
-        var splitter = SentenceTextSplitter.Default;
-        var segments = new List<TextSegment>();
-        await foreach (var segment in splitter.SplitAsync(_currentText))
-        {
-            segments.Add(segment);
-        }
-        return segments;
-    }
-
-    #endregion
-
-    #region Strategy Comparison Benchmarks
-
-    /// <summary>
-    /// Benchmark semantic chunking vs simple token-based chunking simulation
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_vs_SimpleTokenBased()
-    {
-        // This benchmark simulates what simple token-based chunking might look like
-        // by using very relaxed semantic settings that essentially ignore semantic boundaries
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = MaxTokensPerChunk,
-            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 20),
-            BufferSize = 0, // No buffer for simple splitting
-            BreakpointPercentileThreshold = 0.50, // Very low threshold
-            EnableEmbeddingCaching = false
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark conservative semantic chunking (prioritizing accuracy over speed)
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_Conservative()
-    {
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = 2048, // Large chunks for better semantic coherence
-            MinTokensPerChunk = 200,
-            BufferSize = 5, // Large buffer for maximum context
-            BreakpointPercentileThreshold = 0.98, // Very strict threshold
-            EnableEmbeddingCaching = true,
-            MaxCacheSize = 2000
-        };
-
-        var chunks = new List<TextChunk>();
-        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
-        {
-            chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    /// <summary>
-    /// Benchmark aggressive semantic chunking (prioritizing speed over accuracy)
-    /// </summary>
-    [Benchmark]
-    public async Task<List<TextChunk>> SemanticChunking_Aggressive()
-    {
-        var options = new SemanticChunkingOptions
-        {
-            MaxTokensPerChunk = 128, // Small chunks for faster processing
-            MinTokensPerChunk = 10,
-            BufferSize = 0, // No buffer for speed
-            BreakpointPercentileThreshold = 0.60, // Low threshold for more splits
-            EnableEmbeddingCaching = true,
-            MaxCacheSize = 500
         };
 
         var chunks = new List<TextChunk>();

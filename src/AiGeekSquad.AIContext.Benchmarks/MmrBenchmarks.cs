@@ -18,13 +18,13 @@ public class MmrBenchmarks
     private Vector<double> _query = null!;
     private Random _random = null!;
 
-    [Params(100, 1000, 5000)]
+    [Params(1000, 5000)]
     public int VectorCount { get; set; }
 
-    [Params(10, 100, 500)]
+    [Params(100, 384)]
     public int VectorDimension { get; set; }
 
-    [Params(5, 10, 20)]
+    [Params(10)]
     public int TopK { get; set; }
 
     [Params(0.0, 0.5, 1.0)]
@@ -105,33 +105,6 @@ public class MmrBenchmarks
     public List<(int index, Vector<double> embedding)> ComputeMMR_Balanced()
     {
         return MaximumMarginalRelevance.ComputeMMR(_vectors, _query, lambda: 0.5, TopK);
-    }
-
-    /// <summary>
-    /// Benchmark with small TopK value (5)
-    /// </summary>
-    [Benchmark]
-    public List<(int index, Vector<double> embedding)> ComputeMMR_SmallTopK()
-    {
-        return MaximumMarginalRelevance.ComputeMMR(_vectors, _query, Lambda, topK: 5);
-    }
-
-    /// <summary>
-    /// Benchmark with medium TopK value (10)
-    /// </summary>
-    [Benchmark]
-    public List<(int index, Vector<double> embedding)> ComputeMMR_MediumTopK()
-    {
-        return MaximumMarginalRelevance.ComputeMMR(_vectors, _query, Lambda, topK: 10);
-    }
-
-    /// <summary>
-    /// Benchmark with large TopK value (20)
-    /// </summary>
-    [Benchmark]
-    public List<(int index, Vector<double> embedding)> ComputeMMR_LargeTopK()
-    {
-        return MaximumMarginalRelevance.ComputeMMR(_vectors, _query, Lambda, topK: 20);
     }
 
     /// <summary>
