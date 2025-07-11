@@ -1,0 +1,17 @@
+version: 1.0.{build}
+pull_requests:
+  do_not_increment_build_number: true
+image: Visual Studio 2022
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  version_prefix: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+build_script:
+  - dotnet restore AiContext.sln
+  - dotnet build AiContext.sln --configuration Release --no-restore
+  - dotnet pack AiContext.sln --configuration Release --no-build --output nupkg --include-symbols --include-source
