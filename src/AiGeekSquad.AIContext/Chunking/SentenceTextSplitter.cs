@@ -9,6 +9,8 @@ namespace AiGeekSquad.AIContext.Chunking
 {
     /// <summary>
     /// A text splitter that splits text into sentences using regular expressions.
+    /// The default implementation is optimized for English text and handles common English titles
+    /// and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.) to avoid incorrect sentence breaks.
     /// </summary>
     public class SentenceTextSplitter : ITextSplitter
     {
@@ -17,12 +19,21 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <summary>
         /// Initializes a new instance of the <see cref="SentenceTextSplitter"/> class.
         /// </summary>
-        /// <param name="pattern">Optional custom regex pattern for sentence splitting. If null, uses default pattern.</param>
+        /// <param name="pattern">Optional custom regex pattern for sentence splitting. If null, uses default pattern
+        /// that handles common English titles and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.).</param>
         public SentenceTextSplitter(string? pattern = null)
         {
             // Default pattern: Split on sentence endings followed by whitespace and capital letter
-            // This is a simple pattern that may split on abbreviations - use a custom pattern for more control
-            var defaultPattern = @"(?<=[.!?])\s+(?=[A-Z])";
+            // Uses negative lookbehind assertions to avoid splitting on common English abbreviations:
+            // - Mr. (Mister)
+            // - Mrs. (Missus)
+            // - Ms. (Miss/Ms.)
+            // - Dr. (Doctor)
+            // - Prof. (Professor)
+            // - Sr. (Senior)
+            // - Jr. (Junior)
+            // The pattern avoids splitting after these abbreviations by checking for specific patterns
+            var defaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
             _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled);
         }
 
@@ -96,6 +107,8 @@ namespace AiGeekSquad.AIContext.Chunking
 
         /// <summary>
         /// Creates a sentence splitter with the default sentence detection pattern.
+        /// The default pattern is optimized for English text and handles common English titles
+        /// and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.) to prevent incorrect sentence breaks.
         /// </summary>
         /// <returns>A new instance of <see cref="SentenceTextSplitter"/> with default settings.</returns>
         public static SentenceTextSplitter Default => new SentenceTextSplitter();

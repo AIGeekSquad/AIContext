@@ -415,7 +415,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         }
 
         [Fact]
-        public async Task SplitAsync_WithDoctorTitlesAndAbbreviations_DefaultPatternSplitsOnAbbreviations()
+        public async Task SplitAsync_WithDoctorTitlesAndAbbreviations_DefaultPatternDoesNotSplitOnAbbreviations()
         {
             // Arrange
             var splitter = new SentenceTextSplitter();
@@ -430,11 +430,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            // The default pattern will split on abbreviations followed by capital letters
-            segments.Should().HaveCountGreaterThan(3);
-            // Verify that abbreviations are split (this is expected behavior with the simple default pattern)
-            segments.Should().Contain(s => s.Text == "Dr.");
-            segments.Should().Contain(s => s.Text.Contains("Smith works at the hospital."));
+            // The updated default pattern now avoids splitting on common abbreviations
+            segments.Should().HaveCount(3);
+            // Verify that abbreviations are NOT split (new behavior with improved pattern)
+            segments[0].Text.Should().Be("Dr. Smith works at the hospital.");
+            segments[1].Text.Should().Be("Prof. Johnson teaches at the university.");
+            segments[2].Text.Should().Be("Mr. Brown and Mrs. Green are attending the meeting.");
         }
 
         [Fact]
@@ -525,6 +526,30 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[0].Text.Should().Be("Contact john.doe@company.com for support.");
             segments[1].Text.Should().Be("The admin email is admin@system.org and it's monitored daily.");
             segments[2].Text.Should().Be("For urgent issues, reach out to emergency@service.net immediately.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_WithQuotedText_HandlesQuotedSentences()
+        {
+            // Arrange
+            var splitter = new SentenceTextSplitter();
+            var text = "He said, \"How do you draw an Owl Mr. Crawley ?\" to Dr. Tom. No one answered.";
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            
+ 
+            segments.Should().HaveCount(2);
+            segments[0].Text.Should().Be("He said, \"How do you draw an Owl Mr. Crawley ?\" to Dr. Tom.");
+            segments[1].Text.Should().Be("No one answered.");
+        
         }
     }
 }
