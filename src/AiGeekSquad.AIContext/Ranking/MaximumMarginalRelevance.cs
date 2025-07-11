@@ -1,10 +1,11 @@
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AiGeekSquad.AIContext
+namespace AiGeekSquad.AIContext.Ranking
 {
     /// <summary>
     /// Implements the Maximum Marginal Relevance (MMR) algorithm for diverse document selection.
@@ -223,23 +224,23 @@ namespace AiGeekSquad.AIContext
         /// </list>
         /// </remarks>
         public static List<(int index, Vector<double> embedding)> ComputeMMR(
-            List<Vector<double>> vectors, 
-            Vector<double> query, 
-            double lambda = 0.5, 
+            List<Vector<double>> vectors,
+            Vector<double> query,
+            double lambda = 0.5,
             int? topK = null)
         {
             // Parameter validation
             if (query == null)
                 throw new ArgumentNullException(nameof(query), "Query vector cannot be null.");
-            
+
             if (lambda < 0.0 || lambda > 1.0)
                 throw new ArgumentException($"Lambda must be between 0.0 and 1.0, but was {lambda}.", nameof(lambda));
-            
+
             if (vectors == null || vectors.Count == 0) return new List<(int, Vector<double>)>();
-            
+
             // Validate vector dimensions consistency
-            int expectedDimensions = query.Count;
-            for (int i = 0; i < vectors.Count; i++)
+            var expectedDimensions = query.Count;
+            for (var i = 0; i < vectors.Count; i++)
             {
                 if (vectors[i] != null && vectors[i].Count != expectedDimensions)
                 {
@@ -248,39 +249,39 @@ namespace AiGeekSquad.AIContext
                         nameof(vectors));
                 }
             }
-            
-            int k = Math.Min(topK ?? vectors.Count, vectors.Count);
+
+            var k = Math.Min(topK ?? vectors.Count, vectors.Count);
             if (k <= 0) return new List<(int, Vector<double>)>();
             if (k >= vectors.Count) return vectors.Select((v, i) => (i, v)).ToList();
-            
+
             var queryArray = query.ToArray();
             var vectorArrays = vectors.Select(v => v.ToArray()).ToArray();
-            
+
             // Pre-compute all query similarities once for efficiency
             var querySimilarities = new double[vectors.Count];
-            for (int i = 0; i < vectors.Count; i++)
+            for (var i = 0; i < vectors.Count; i++)
             {
                 querySimilarities[i] = 1.0 - Distance.Cosine(vectorArrays[i], queryArray);
             }
-            
+
             var selectedIndices = new List<int>(k);
             var remainingIndices = new bool[vectors.Count];
             Array.Fill(remainingIndices, true);
-            
+
             // Iteratively select k items using MMR scoring
-            for (int iteration = 0; iteration < k; iteration++)
+            for (var iteration = 0; iteration < k; iteration++)
             {
-                int bestIndex = -1;
-                double bestScore = double.MinValue;
-                
+                var bestIndex = -1;
+                var bestScore = double.MinValue;
+
                 // Evaluate all remaining candidates
-                for (int i = 0; i < vectors.Count; i++)
+                for (var i = 0; i < vectors.Count; i++)
                 {
                     if (!remainingIndices[i]) continue;
-                    
+
                     // Relevance component: similarity to query
-                    double relevanceScore = lambda * querySimilarities[i];
-                    
+                    var relevanceScore = lambda * querySimilarities[i];
+
                     // Diversity component: dissimilarity to already selected items
                     double diversityScore;
                     if (selectedIndices.Count == 0)
@@ -291,35 +292,35 @@ namespace AiGeekSquad.AIContext
                     else
                     {
                         // Compute average similarity to already selected items
-                        double avgSimilarity = 0.0;
-                        for (int j = 0; j < selectedIndices.Count; j++)
+                        var avgSimilarity = 0.0;
+                        for (var j = 0; j < selectedIndices.Count; j++)
                         {
-                            double similarity = 1.0 - Distance.Cosine(vectorArrays[i], vectorArrays[selectedIndices[j]]);
+                            var similarity = 1.0 - Distance.Cosine(vectorArrays[i], vectorArrays[selectedIndices[j]]);
                             avgSimilarity += similarity;
                         }
                         avgSimilarity /= selectedIndices.Count;
-                        
+
                         // Diversity score: higher when less similar to selected items
                         diversityScore = (1.0 - lambda) * (1.0 - avgSimilarity);
                     }
-                    
-                    double totalScore = relevanceScore + diversityScore;
-                    
+
+                    var totalScore = relevanceScore + diversityScore;
+
                     if (totalScore > bestScore)
                     {
                         bestScore = totalScore;
                         bestIndex = i;
                     }
                 }
-                
+
                 // Break if no valid candidate found
                 if (bestIndex == -1) break;
-                
+
                 // Select the best candidate
                 selectedIndices.Add(bestIndex);
                 remainingIndices[bestIndex] = false;
             }
-            
+
             return selectedIndices.Select(i => (i, vectors[i])).ToList();
         }
     }
