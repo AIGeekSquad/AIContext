@@ -1,0 +1,672 @@
+using AiGeekSquad.AIContext.Chunking;
+
+using BenchmarkDotNet.Attributes;
+
+using MathNet.Numerics.LinearAlgebra;
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AiGeekSquad.AIContext.Benchmarks;
+
+/// <summary>
+/// Comprehensive benchmarks for the Semantic Text Chunking functionality
+/// </summary>
+[Config(typeof(BenchmarkConfig))]
+[MemoryDiagnoser]
+[SimpleJob(baseline: true)]
+public class SemanticChunkingBenchmarks
+{
+    #region Mock Implementations for Benchmarking
+
+    /// <summary>
+    /// High-performance mock implementation of ITokenCounter for benchmarking
+    /// </summary>
+    private class BenchmarkTokenCounter : ITokenCounter
+    {
+        private const double AverageTokensPerWord = 1.3; // Rough approximation for English text
+        
+        public int CountTokens(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return 0;
+            
+            // Fast approximation: split by whitespace and multiply by average tokens per word
+            var wordCount = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            return (int)(wordCount * AverageTokensPerWord);
+        }
+        
+        public Task<int> CountTokensAsync(string text, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CountTokens(text));
+        }
+    }
+
+    /// <summary>
+    /// High-performance mock implementation of IEmbeddingGenerator for benchmarking
+    /// </summary>
+    private class BenchmarkEmbeddingGenerator : IEmbeddingGenerator
+    {
+        private readonly int _dimensions;
+        private readonly Random _random;
+
+        public BenchmarkEmbeddingGenerator(int dimensions = 384)
+        {
+            _dimensions = dimensions;
+            _random = new Random(42); // Fixed seed for reproducibility
+        }
+
+        public Task<Vector<double>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CreateFastEmbedding(text));
+        }
+
+        public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
+            IEnumerable<string> texts,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            foreach (var text in texts)
+            {
+                yield return CreateFastEmbedding(text);
+                await Task.Yield(); // Simulate minimal async behavior
+            }
+        }
+
+        private Vector<double> CreateFastEmbedding(string text)
+        {
+            var values = new double[_dimensions];
+            var hash = text.GetHashCode();
+            var localRandom = new Random(Math.Abs(hash));
+
+            // Generate normalized random vector
+            for (int i = 0; i < _dimensions; i++)
+            {
+                values[i] = localRandom.NextDouble() * 2.0 - 1.0;
+            }
+
+            // Fast normalization
+            var sumSquares = values.Sum(v => v * v);
+            var magnitude = Math.Sqrt(sumSquares);
+            if (magnitude > 0)
+            {
+                for (int i = 0; i < _dimensions; i++)
+                    values[i] /= magnitude;
+            }
+
+            return Vector<double>.Build.DenseOfArray(values);
+        }
+    }
+
+    #endregion
+
+    #region Test Data Generation
+
+    private readonly string[] _shortTexts = new[]
+    {
+        "Technology drives innovation.",
+        "Software development evolves rapidly.",
+        "AI research advances continuously.",
+        "Business strategies adapt to change.",
+        "Market conditions influence decisions."
+    };
+
+    private readonly string[] _mediumTexts = new[]
+    {
+        "Technology has revolutionized the way we live and work in the modern era. " +
+        "Artificial intelligence and machine learning are transforming industries across the globe. " +
+        "Software development practices continue to evolve with new frameworks and methodologies.",
+        
+        "Business leaders must adapt to rapid technological changes to remain competitive. " +
+        "Companies are investing heavily in digital transformation initiatives. " +
+        "Market conditions favor organizations that embrace technological innovation.",
+        
+        "Scientific research drives innovation in countless fields of human endeavor. " +
+        "Computer science research enables breakthrough discoveries and applications. " +
+        "Academic institutions collaborate with industry to advance knowledge and technology."
+    };
+
+    private readonly string[] _longTexts = new[]
+    {
+        "Technology has fundamentally transformed every aspect of human civilization over the past century. " +
+        "From the invention of the computer to the development of artificial intelligence, we have witnessed " +
+        "unprecedented changes in how we work, communicate, and solve complex problems. Software development " +
+        "has emerged as one of the most critical skills of the 21st century, enabling innovations across " +
+        "healthcare, finance, education, and entertainment industries. Machine learning algorithms now power " +
+        "recommendation systems, autonomous vehicles, and medical diagnostic tools that save lives daily. " +
+        "The rapid evolution of programming languages, frameworks, and development methodologies continues " +
+        "to accelerate the pace of innovation. Cloud computing has democratized access to powerful computing " +
+        "resources, allowing startups and enterprises alike to scale their solutions globally.",
+        
+        "Business strategy in the digital age requires a fundamental understanding of technological trends " +
+        "and their implications for market dynamics. Companies that fail to embrace digital transformation " +
+        "risk becoming obsolete in an increasingly competitive landscape. Market leaders leverage data " +
+        "analytics, artificial intelligence, and automation to optimize operations and enhance customer " +
+        "experiences. Strategic decision-making now relies heavily on real-time data insights and predictive " +
+        "modeling capabilities. Organizations must balance innovation with risk management while maintaining " +
+        "regulatory compliance and ethical standards. The emergence of new business models enabled by " +
+        "technology platforms has disrupted traditional industries and created entirely new market segments.",
+        
+        "Scientific research methodology has been revolutionized by computational tools and data analysis " +
+        "techniques that enable researchers to process vast amounts of information quickly and accurately. " +
+        "Interdisciplinary collaboration between computer scientists, domain experts, and data analysts " +
+        "has accelerated breakthrough discoveries in fields ranging from genomics to climate science. " +
+        "Research institutions worldwide are investing in high-performance computing infrastructure " +
+        "to support complex simulations and modeling efforts. Open-source software and collaborative " +
+        "platforms have democratized access to advanced research tools and methodologies. The integration " +
+        "of artificial intelligence into research workflows has automated many routine tasks and enabled " +
+        "researchers to focus on higher-level analysis and interpretation of results."
+    };
+
+    private string _currentText = string.Empty;
+    private SemanticTextChunker _chunker = null!;
+    private SemanticChunkingOptions _currentOptions = null!;
+
+    #endregion
+
+    #region Benchmark Parameters
+
+    [Params(TextSize.Short, TextSize.Medium, TextSize.Long)]
+    public TextSize DocumentSize { get; set; }
+
+    [Params(128, 256, 512, 1024)]
+    public int MaxTokensPerChunk { get; set; }
+
+    [Params(1, 2, 3)]
+    public int BufferSize { get; set; }
+
+    [Params(0.75, 0.85, 0.95)]
+    public double BreakpointThreshold { get; set; }
+
+    [Params(true, false)]
+    public bool EnableCaching { get; set; }
+
+    public enum TextSize
+    {
+        Short,
+        Medium,
+        Long
+    }
+
+    #endregion
+
+    #region Setup Methods
+
+    [GlobalSetup]
+    public void GlobalSetup()
+    {
+        var tokenCounter = new BenchmarkTokenCounter();
+        var embeddingGenerator = new BenchmarkEmbeddingGenerator();
+        _chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
+    }
+
+    [IterationSetup]
+    public void IterationSetup()
+    {
+        // Select text based on size parameter
+        _currentText = DocumentSize switch
+        {
+            TextSize.Short => string.Join(" ", _shortTexts),
+            TextSize.Medium => string.Join(" ", _mediumTexts),
+            TextSize.Long => string.Join(" ", _longTexts),
+            _ => string.Join(" ", _mediumTexts)
+        };
+
+        // Configure options based on parameters
+        _currentOptions = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = MaxTokensPerChunk,
+            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
+            BufferSize = BufferSize,
+            BreakpointPercentileThreshold = BreakpointThreshold,
+            EnableEmbeddingCaching = EnableCaching,
+            MaxCacheSize = 1000
+        };
+    }
+
+    #endregion
+
+    #region Core Chunking Benchmarks
+
+    /// <summary>
+    /// Benchmark overall chunking performance with various parameter combinations
+    /// </summary>
+    [Benchmark(Baseline = true)]
+    public async Task<List<TextChunk>> SemanticChunking_Complete()
+    {
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, _currentOptions))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark chunking with default options
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_DefaultOptions()
+    {
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, SemanticChunkingOptions.Default))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark chunking with optimized options for speed
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_OptimizedForSpeed()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 512,
+            MinTokensPerChunk = 50,
+            BufferSize = 1, // Minimal buffer for speed
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 1000
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark chunking with optimized options for quality
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_OptimizedForQuality()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 1024,
+            MinTokensPerChunk = 100,
+            BufferSize = 3, // Larger buffer for better context
+            BreakpointPercentileThreshold = 0.90, // Stricter threshold
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 1000
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+
+    #region Configuration Impact Benchmarks
+
+    /// <summary>
+    /// Benchmark the impact of different buffer sizes
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_SmallBuffer()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 512,
+            MinTokensPerChunk = 50,
+            BufferSize = 1,
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = EnableCaching
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark the impact of different buffer sizes
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_LargeBuffer()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 512,
+            MinTokensPerChunk = 50,
+            BufferSize = 5,
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = EnableCaching
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark the impact of strict breakpoint thresholds
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_StrictThreshold()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = MaxTokensPerChunk,
+            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
+            BufferSize = BufferSize,
+            BreakpointPercentileThreshold = 0.95, // Very strict
+            EnableEmbeddingCaching = EnableCaching
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark the impact of relaxed breakpoint thresholds
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_RelaxedThreshold()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = MaxTokensPerChunk,
+            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 10),
+            BufferSize = BufferSize,
+            BreakpointPercentileThreshold = 0.60, // More relaxed
+            EnableEmbeddingCaching = EnableCaching
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+
+    #region Caching Performance Benchmarks
+
+    /// <summary>
+    /// Benchmark embedding caching performance - first pass (cache misses)
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_CachingFirstPass()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 512,
+            MinTokensPerChunk = 50,
+            BufferSize = 2,
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 1000
+        };
+
+        // Create a new chunker to ensure empty cache
+        var tokenCounter = new BenchmarkTokenCounter();
+        var embeddingGenerator = new BenchmarkEmbeddingGenerator();
+        var freshChunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in freshChunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark without caching for comparison
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_NoCaching()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 512,
+            MinTokensPerChunk = 50,
+            BufferSize = 2,
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = false
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+
+    #region Text Size Specific Benchmarks
+
+    /// <summary>
+    /// Benchmark performance with very small documents
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_VerySmallDocument()
+    {
+        var smallText = "Technology drives innovation. Software evolves rapidly.";
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(smallText, _currentOptions))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark performance with very large documents
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_VeryLargeDocument()
+    {
+        // Create a very large document by repeating long texts
+        var veryLargeText = string.Join(" ", Enumerable.Repeat(string.Join(" ", _longTexts), 3));
+        
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(veryLargeText, _currentOptions))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+
+    #region Memory Allocation Benchmarks
+
+    /// <summary>
+    /// Benchmark focused on memory allocation patterns
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_MemoryFocused()
+    {
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, _currentOptions))
+        {
+            chunks.Add(chunk);
+        }
+
+        // Force garbage collection to measure true allocation
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark with minimal memory allocation strategies
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_LowMemoryFootprint()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 256, // Smaller chunks to reduce memory usage
+            MinTokensPerChunk = 25,
+            BufferSize = 1, // Minimal buffer
+            BreakpointPercentileThreshold = 0.75,
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 100 // Smaller cache
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+
+    #region Component Performance Benchmarks
+
+    /// <summary>
+    /// Benchmark token counting performance in isolation
+    /// </summary>
+    [Benchmark]
+    public async Task<int> TokenCounting_Performance()
+    {
+        var tokenCounter = new BenchmarkTokenCounter();
+        return await tokenCounter.CountTokensAsync(_currentText);
+    }
+
+    /// <summary>
+    /// Benchmark embedding generation performance in isolation
+    /// </summary>
+    [Benchmark]
+    public async Task<List<Vector<double>>> EmbeddingGeneration_Performance()
+    {
+        var embeddingGenerator = new BenchmarkEmbeddingGenerator();
+        var texts = _currentText.Split('.', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(s => s.Trim())
+                                .Where(s => !string.IsNullOrEmpty(s))
+                                .Take(10); // Limit to 10 for performance
+
+        var embeddings = new List<Vector<double>>();
+        await foreach (var embedding in embeddingGenerator.GenerateBatchEmbeddingsAsync(texts))
+        {
+            embeddings.Add(embedding);
+        }
+        return embeddings;
+    }
+
+    /// <summary>
+    /// Benchmark text splitting performance in isolation
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextSegment>> TextSplitting_Performance()
+    {
+        var splitter = SentenceTextSplitter.Default;
+        var segments = new List<TextSegment>();
+        await foreach (var segment in splitter.SplitAsync(_currentText))
+        {
+            segments.Add(segment);
+        }
+        return segments;
+    }
+
+    #endregion
+
+    #region Strategy Comparison Benchmarks
+
+    /// <summary>
+    /// Benchmark semantic chunking vs simple token-based chunking simulation
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_vs_SimpleTokenBased()
+    {
+        // This benchmark simulates what simple token-based chunking might look like
+        // by using very relaxed semantic settings that essentially ignore semantic boundaries
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = MaxTokensPerChunk,
+            MinTokensPerChunk = Math.Max(10, MaxTokensPerChunk / 20),
+            BufferSize = 0, // No buffer for simple splitting
+            BreakpointPercentileThreshold = 0.50, // Very low threshold
+            EnableEmbeddingCaching = false
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark conservative semantic chunking (prioritizing accuracy over speed)
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_Conservative()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 2048, // Large chunks for better semantic coherence
+            MinTokensPerChunk = 200,
+            BufferSize = 5, // Large buffer for maximum context
+            BreakpointPercentileThreshold = 0.98, // Very strict threshold
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 2000
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    /// <summary>
+    /// Benchmark aggressive semantic chunking (prioritizing speed over accuracy)
+    /// </summary>
+    [Benchmark]
+    public async Task<List<TextChunk>> SemanticChunking_Aggressive()
+    {
+        var options = new SemanticChunkingOptions
+        {
+            MaxTokensPerChunk = 128, // Small chunks for faster processing
+            MinTokensPerChunk = 10,
+            BufferSize = 0, // No buffer for speed
+            BreakpointPercentileThreshold = 0.60, // Low threshold for more splits
+            EnableEmbeddingCaching = true,
+            MaxCacheSize = 500
+        };
+
+        var chunks = new List<TextChunk>();
+        await foreach (var chunk in _chunker.ChunkAsync(_currentText, options))
+        {
+            chunks.Add(chunk);
+        }
+        return chunks;
+    }
+
+    #endregion
+}
