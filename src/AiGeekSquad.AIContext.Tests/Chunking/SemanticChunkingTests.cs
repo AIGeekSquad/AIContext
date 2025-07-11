@@ -5,11 +5,6 @@ using FluentAssertions.Execution;
 
 using MathNet.Numerics.LinearAlgebra;
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace AiGeekSquad.AIContext.Tests.Chunking
 {
     public class SemanticChunkingTests
@@ -35,7 +30,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             }
 
             public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
-                IEnumerable<string> texts, 
+                IEnumerable<string> texts,
                 [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
                 foreach (var text in texts)
@@ -61,7 +56,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                     for (int i = 0; i < Math.Min(10, _dimensions); i++)
                         values[i] += 0.4;
                 }
-                
+
                 if (text.Contains("business") || text.Contains("company") || text.Contains("market") || text.Contains("economy"))
                 {
                     for (int i = 10; i < Math.Min(20, _dimensions); i++)
@@ -130,7 +125,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                     chunks.Add(chunk);
                 }
             };
-            
+
             await act.Should().ThrowAsync<ArgumentNullException>();
         }
 
@@ -176,7 +171,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Arrange
             var chunker = CreateChunker();
             var options = SemanticChunkingOptions.Default;
-            
+
             // Create a longer text that will likely exceed default chunk size
             var sentences = new[]
             {
@@ -189,7 +184,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 "Market conditions favor organizations that embrace technological innovation.",
                 "Economic growth is increasingly tied to technological advancement and adoption."
             };
-            
+
             var text = string.Join(" ", sentences);
 
             // Act
@@ -201,8 +196,8 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            chunks.Should().NotBeEmpty();
-            
+            chunks.Should().HaveCount(4);
+
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
@@ -232,22 +227,19 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Act
             var chunks = new List<TextChunk>();
-            await foreach (var chunk in chunker.ChunkAsync(text, options))
+            await foreach (var textChunk in chunker.ChunkAsync(text, options))
             {
-                chunks.Add(chunk);
+                chunks.Add(textChunk);
             }
 
             // Assert
             using var _ = new AssertionScope();
-            chunks.Should().NotBeEmpty();
-            
-            foreach (var chunk in chunks)
-            {
-                chunk.Metadata.Should().ContainKey("TokenCount");
-                var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk);
-            }
+            chunks.Should().HaveCount(1);
+            var chunk = chunks.First();
+            chunk.Metadata.Should().ContainKey("TokenCount");
+            var tokenCount = (int)chunk.Metadata["TokenCount"];
+            tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
+            tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk);
         }
 
         [Fact]
@@ -284,7 +276,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty();
             chunks.Should().HaveCountGreaterThan(1, "Should create multiple chunks for semantically different content");
-            
+
             // Verify chunks have reasonable boundaries (not arbitrary splits)
             foreach (var chunk in chunks)
             {
@@ -320,25 +312,25 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty();
-            
+
             foreach (var chunk in chunks)
             {
                 // Original metadata should be preserved
                 chunk.Metadata.Should().ContainKey("DocumentId");
                 chunk.Metadata.Should().ContainKey("Source");
                 chunk.Metadata.Should().ContainKey("Category");
-                
+
                 chunk.Metadata["DocumentId"].Should().Be("test-doc-123");
                 chunk.Metadata["Source"].Should().Be("unit-test");
                 chunk.Metadata["Category"].Should().Be("technology");
-                
+
                 // Enhanced metadata should be added
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 chunk.Metadata.Should().ContainKey("SegmentCount");
-                
+
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
                 var segmentCount = (int)chunk.Metadata["SegmentCount"];
-                
+
                 tokenCount.Should().BeGreaterThan(0);
                 segmentCount.Should().BeGreaterThan(0);
             }
@@ -387,7 +379,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             using var _ = new AssertionScope();
             strictChunks.Should().NotBeEmpty();
             relaxedChunks.Should().NotBeEmpty();
-            
+
             // Stricter threshold should generally produce fewer, larger chunks
             // Relaxed threshold should generally produce more, smaller chunks
             // Note: This is a probabilistic behavior, so we test the general pattern
@@ -427,10 +419,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             using var _ = new AssertionScope();
             firstPassChunks.Should().NotBeEmpty();
             secondPassChunks.Should().NotBeEmpty();
-            
+
             // Results should be identical when using the same text and options
             firstPassChunks.Should().HaveCount(secondPassChunks.Count);
-            
+
             for (int i = 0; i < firstPassChunks.Count; i++)
             {
                 firstPassChunks[i].Text.Should().Be(secondPassChunks[i].Text);
@@ -521,14 +513,14 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         }
 
         [Fact]
-        public async Task ChunkAsync_WithCancellationToken_Respectscancellation()
+        public async Task ChunkAsync_WithCancellationToken_Respects_Cancellation()
         {
             // Arrange
             var chunker = CreateChunker();
             var text = "This is a test. Another sentence. Yet another one.";
-            
+
             using var cts = new CancellationTokenSource();
-            cts.Cancel(); // Cancel immediately
+            await cts.CancelAsync(); // Cancel immediately
 
             // Act & Assert
             var act = async () =>
@@ -539,7 +531,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                     chunks.Add(chunk);
                 }
             };
-            
+
             await act.Should().ThrowAsync<OperationCanceledException>();
         }
 
