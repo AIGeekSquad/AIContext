@@ -18,7 +18,7 @@ public class MmrBenchmarks
     private Vector<double> _query = null!;
     private Random _random = null!;
 
-    [Params(1000, 5000)]
+    [Params(1000)]
     public int VectorCount { get; set; }
 
     [Params(100, 384)]
