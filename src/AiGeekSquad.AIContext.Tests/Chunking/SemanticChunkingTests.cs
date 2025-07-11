@@ -196,7 +196,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            chunks.Should().HaveCount(4);
+            chunks.Should().HaveCount(3);
 
             foreach (var chunk in chunks)
             {

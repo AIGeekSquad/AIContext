@@ -29,9 +29,9 @@ namespace AiGeekSquad.AIContext.Chunking
         /// Gets or sets the percentile threshold for identifying semantic breakpoints.
         /// This value (0.0 to 1.0) determines at what percentile of distance values
         /// a breakpoint is considered significant enough to create a chunk boundary.
-        /// Default is 0.75 (75th percentile) for more reasonable chunk boundaries.
+        /// Default is 0.65 (65th percentile) for more reasonable chunk boundaries.
         /// </summary>
-        public double BreakpointPercentileThreshold { get; set; } = 0.75;
+        public double BreakpointPercentileThreshold { get; set; } = 0.65;
 
         /// <summary>
         /// Gets or sets the minimum similarity threshold for merging adjacent chunks.
