@@ -7,6 +7,23 @@
 
 A comprehensive C# library for **AI-powered context management**, providing intelligent text processing capabilities for modern AI applications. This library combines **semantic text chunking** and **Maximum Marginal Relevance (MMR)** algorithms to help you build better RAG systems, search engines, and content recommendation platforms.
 
+## 🏗️ Repository Structure
+
+```
+AiContext/
+├── src/
+│   ├── AiGeekSquad.AIContext/              # Main library package
+│   │   ├── Chunking/                       # Semantic text chunking components
+│   │   ├── Ranking/                        # MMR algorithm implementation
+│   │   └── README.md                       # NuGet package documentation
+│   ├── AiGeekSquad.AIContext.MEAI/         # Microsoft.Extensions.AI integration
+│   ├── AiGeekSquad.AIContext.Tests/        # Unit tests
+│   └── AiGeekSquad.AIContext.Benchmarks/   # Performance benchmarks
+├── docs/                                   # Detailed documentation
+├── examples/                               # Usage examples
+└── README.md                               # This file (repository overview)
+```
+
 ## ✨ Features
 
 ### 🧠 **Semantic Text Chunking**
@@ -28,73 +45,150 @@ A comprehensive C# library for **AI-powered context management**, providing inte
 - **Pluggable embedding generators** for different AI models
 - **Token counting** with real tokenizer implementations
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### Installation
+### Prerequisites
+
+- **.NET 9.0 SDK** or later
+- **Visual Studio 2022** or **VS Code** with C# extension
+
+### Building the Project
 
 ```bash
-dotnet add package AiGeekSquad.AIContext
+# Clone the repository
+git clone https://github.com/AiGeekSquad/AIContext.git
+cd AIContext
+
+# Restore dependencies
+dotnet restore
+
+# Build the solution
+dotnet build
+
+# Build in Release mode
+dotnet build --configuration Release
 ```
 
-### Semantic Text Chunking
+### Running Tests
 
-```csharp
-using AiGeekSquad.AIContext.Chunking;
+```bash
+# Run all tests
+dotnet test
 
-// Create a chunker with your embedding provider
-var tokenCounter = new MLTokenCounter(); // Real GPT-4 compatible tokenizer
-var embeddingGenerator = new YourEmbeddingProvider(); // Implement IEmbeddingGenerator
+# Run tests with coverage
+dotnet test --collect:"XPlat Code Coverage"
 
-var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
-
-// Configure chunking options
-var options = new SemanticChunkingOptions
-{
-    MaxTokensPerChunk = 512,
-    MinTokensPerChunk = 10,
-    BreakpointPercentileThreshold = 0.75 // 75th percentile for breakpoints
-};
-
-// Chunk your text with metadata
-var text = "Your long document text here...";
-var metadata = new Dictionary<string, object>
-{
-    ["DocumentId"] = "doc-123",
-    ["Source"] = "knowledge-base"
-};
-
-await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
-{
-    Console.WriteLine($"Chunk: {chunk.Text}");
-    Console.WriteLine($"Tokens: {chunk.Metadata["TokenCount"]}");
-    Console.WriteLine($"Segments: {chunk.Metadata["SegmentCount"]}");
-}
+# Run specific test projects
+dotnet test src/AiGeekSquad.AIContext.Tests/
+dotnet test --filter "SemanticChunkingTests"
+dotnet test --filter "MaximumMarginalRelevanceTests"
 ```
 
-### Maximum Marginal Relevance
+### Running Benchmarks
 
-```csharp
-using MathNet.Numerics.LinearAlgebra;
-using AiGeekSquad.AIContext.Ranking;
+```bash
+# Run all benchmarks
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release
 
-// Your document embeddings and query
-var documents = new List<Vector<double>>
-{
-    Vector<double>.Build.DenseOfArray(new double[] { 0.8, 0.2, 0.1 }),
-    Vector<double>.Build.DenseOfArray(new double[] { 0.7, 0.3, 0.2 }),
-    Vector<double>.Build.DenseOfArray(new double[] { 0.1, 0.8, 0.3 })
-};
-
-var query = Vector<double>.Build.DenseOfArray(new double[] { 0.9, 0.1, 0.0 });
-
-// Get diverse and relevant results
-var results = MaximumMarginalRelevance.ComputeMMR(
-    vectors: documents,
-    query: query,
-    lambda: 0.7,  // Balance relevance vs diversity
-    topK: 3
-);
+# Run specific benchmarks
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*MMR*"
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --filter "*Chunking*"
 ```
+
+## 🧪 Testing
+
+The library includes comprehensive test coverage:
+- **44 unit tests** covering all core functionality
+- **Real implementation testing** (no mocks for core algorithms)
+- **Edge case handling** with robust fallback mechanisms
+- **Performance testing** with benchmarks
+
+### Test Categories
+
+| Test Project | Coverage | Description |
+|--------------|----------|-------------|
+| `SemanticChunkingTests` | Core chunking logic | Text splitting, embedding analysis, chunk generation |
+| `SentenceTextSplitterTests` | Text splitting | Sentence boundary detection, custom patterns |
+| `MaximumMarginalRelevanceTests` | MMR algorithm | Relevance scoring, diversity optimization |
+
+### Running Specific Test Categories
+
+```bash
+# Semantic chunking tests
+dotnet test --filter "SemanticChunkingTests"
+
+# Text splitter tests
+dotnet test --filter "SentenceTextSplitterTests"
+
+# MMR algorithm tests
+dotnet test --filter "MaximumMarginalRelevanceTests"
+```
+
+## 📊 Performance Benchmarks
+
+### Benchmark Results
+
+The project includes comprehensive benchmarks in [`src/AiGeekSquad.AIContext.Benchmarks/`](src/AiGeekSquad.AIContext.Benchmarks/):
+
+#### MMR Performance
+- **1,000 vectors**: ~2ms processing time
+- **Low memory allocation**: ~120KB per 1,000 vectors
+- **Optimized for .NET 9.0** with AVX-512 support
+
+#### Semantic Chunking Performance
+- **Streaming processing** with `IAsyncEnumerable` for large documents
+- **Memory efficient** with configurable embedding cache
+- **Token-aware** using real tokenizers (Microsoft.ML.Tokenizers)
+
+### Running Performance Analysis
+
+```bash
+# Run all benchmarks with detailed output
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release
+
+# Export results to different formats
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters json
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release -- --exporters html
+```
+
+## 🔧 Development Workflow
+
+### Project Setup for Contributors
+
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/AIContext.git
+   cd AIContext
+   ```
+3. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+4. **Install dependencies**:
+   ```bash
+   dotnet restore
+   ```
+5. **Make your changes** and ensure tests pass:
+   ```bash
+   dotnet build
+   dotnet test
+   ```
+
+### Code Quality Standards
+
+- **Code Coverage**: Maintain >90% test coverage for new features
+- **Performance**: Run benchmarks for performance-critical changes
+- **Documentation**: Update relevant documentation for API changes
+- **Coding Style**: Follow existing C# conventions and patterns
+
+### Continuous Integration
+
+The project uses **AppVeyor** for continuous integration:
+- **Automated builds** on every commit
+- **Test execution** across multiple .NET versions
+- **NuGet package generation** for releases
+- **Performance regression detection**
 
 ## 📋 Use Cases
 
@@ -123,50 +217,25 @@ var contextChunks = MaximumMarginalRelevance.ComputeMMR(
 - **Product recommendation systems** with balanced results
 - **Content curation** avoiding redundant information
 
-## 🔧 Configuration Options
-
-### Semantic Chunking Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `MaxTokensPerChunk` | 512 | Maximum tokens per chunk |
-| `MinTokensPerChunk` | 10 | Minimum tokens per chunk |
-| `BreakpointPercentileThreshold` | 0.75 | Semantic breakpoint sensitivity (0.0-1.0) |
-| `BufferSize` | 1 | Context window for embedding generation |
-| `EnableEmbeddingCaching` | true | Cache embeddings for performance |
-
-### Custom Text Splitters
-
-```csharp
-// Use custom patterns for domain-specific splitting
-var customSplitter = SentenceTextSplitter.WithPattern(@"(?<=\.)\s+(?=\d+\.)"); // Numbered lists
-var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, customSplitter);
-
-// Or create your own ITextSplitter implementation
-public class CodeAwareTextSplitter : ITextSplitter
-{
-    public async IAsyncEnumerable<TextSegment> SplitAsync(string text, CancellationToken cancellationToken)
-    {
-        // Your custom splitting logic
-    }
-}
-```
-
-## 📊 Performance
-
-### Semantic Chunking
-- **Streaming processing** with `IAsyncEnumerable` for large documents
-- **Memory efficient** with configurable embedding cache
-- **Token-aware** using real tokenizers (Microsoft.ML.Tokenizers)
-
-### MMR Performance
-- **1,000 vectors**: ~2ms processing time
-- **Low memory allocation**: ~120KB per 1,000 vectors
-- **Optimized for .NET 9.0** with AVX-512 support
-
-See [detailed MMR benchmarks](docs/MMR.md) for comprehensive performance analysis.
-
 ## 🏗️ Architecture
+
+### Core Components
+
+```mermaid
+graph TB
+    A[SemanticTextChunker] --> B[ITextSplitter]
+    A --> C[IEmbeddingGenerator]
+    A --> D[ITokenCounter]
+    A --> E[ISimilarityCalculator]
+    
+    F[MaximumMarginalRelevance] --> G[Vector Operations]
+    F --> H[Similarity Calculations]
+    
+    B --> I[SentenceTextSplitter]
+    C --> J[Your Embedding Provider]
+    D --> K[MLTokenCounter]
+    E --> L[MathNetSimilarityCalculator]
+```
 
 ### Core Interfaces
 
@@ -201,54 +270,49 @@ public interface ITokenCounter
 - **`MathNetSimilarityCalculator`**: Cosine similarity using MathNet.Numerics
 - **`EmbeddingCache`**: LRU cache for embedding storage
 
+## 📦 Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| **MathNet.Numerics** | v5.0.0 | Vector operations and similarity calculations |
+| **Microsoft.ML.Tokenizers** | v0.22.0 | Real tokenization for accurate token counting |
+| **.NET** | 9.0 | Target framework for optimal performance |
+
 ## 📖 Documentation
 
 - **[MMR Algorithm](docs/MMR.md)**: Detailed MMR documentation with benchmarks
+- **[Semantic Chunking](docs/SemanticChunking.md)**: In-depth chunking algorithm explanation
 - **[API Reference](https://github.com/AiGeekSquad/AIContext/wiki/API-Reference)**: Complete API documentation
-- **[Examples](https://github.com/AiGeekSquad/AIContext/tree/main/examples)**: Sample implementations and use cases
-
-## 🧪 Testing
-
-The library includes comprehensive test coverage:
-- **44 unit tests** covering all core functionality
-- **Real implementation testing** (no mocks for core algorithms)
-- **Edge case handling** with robust fallback mechanisms
-- **Performance testing** with benchmarks
-
-```bash
-# Run all tests
-dotnet test
-
-# Run specific test categories
-dotnet test --filter "SemanticChunkingTests"
-dotnet test --filter "SentenceTextSplitterTests"
-```
-
-## 📦 Dependencies
-
-- **MathNet.Numerics** (v5.0.0): Vector operations and similarity calculations
-- **Microsoft.ML.Tokenizers** (v0.22.0): Real tokenization for accurate token counting
-- **.NET 9.0**: Target framework for optimal performance
+- **[Examples](examples/)**: Sample implementations and use cases
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Here's how to get involved:
 
-### Development Setup
+### Types of Contributions
 
-```bash
-# Clone and setup
-git clone https://github.com/AiGeekSquad/AIContext.git
-cd AIContext
-dotnet restore
-dotnet build
+- **🐛 Bug Reports**: Submit detailed bug reports with reproduction steps
+- **✨ Feature Requests**: Propose new features with use cases and examples
+- **📝 Documentation**: Improve documentation, examples, and guides
+- **🔧 Code Contributions**: Implement features, fix bugs, optimize performance
 
-# Run tests
-dotnet test
+### Contribution Process
 
-# Run benchmarks
-dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release
-```
+1. **Check existing issues** to avoid duplicates
+2. **Create an issue** to discuss major changes
+3. **Fork and create a branch** for your contribution
+4. **Write tests** for new functionality
+5. **Ensure all tests pass** and maintain code coverage
+6. **Update documentation** as needed
+7. **Submit a pull request** with clear description
+
+### Development Guidelines
+
+- Follow existing code style and patterns
+- Write comprehensive tests for new features
+- Update benchmarks for performance-critical changes
+- Document public APIs with XML comments
+- Keep commits focused and well-described
 
 ## 📄 License
 
