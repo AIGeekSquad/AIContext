@@ -175,7 +175,7 @@ catch (ArgumentNullException ex)
 
 ### Token Counter Alignment with Embedding Models
 
-> **⚠️ Critical Note:** The token counter used for chunking should be aligned with the embedding model that will be used for embedding generation. Misaligned tokenizers can result in chunks that exceed the embedding model's token limits, potentially requiring additional chunking after embedding generation.
+> **⚠️ Critical Note:** The token counter used for chunking should be aligned with the embedding model that will be used for embedding generation. Misaligned tokenizers can result in chunks that exceed the embedding model's token limits, potentially requiring additional chunking after embedding generation. This dependency is demonstrated in the [`SemanticTextChunker.cs`](src/AiGeekSquad.AIContext/Chunking/SemanticTextChunker.cs:52) implementation, where the token counter is used throughout the chunking process to validate chunk sizes before they are processed by the embedding generator.
 
 **Recommended Alignments:**
 
