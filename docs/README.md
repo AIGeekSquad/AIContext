@@ -17,6 +17,13 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
   - Custom text splitters and embedding providers
   - Performance optimization and troubleshooting
 
+#### 🔢 Token Counting
+- **[MLTokenCounter Documentation](SemanticChunking.md#token-counting)** - Comprehensive token counting capabilities
+  - Microsoft.ML.Tokenizers integration for accurate counting
+  - Multiple OpenAI model support (GPT-4, GPT-3.5-turbo, embedding models)
+  - Model-specific factory methods and alignment guidance
+  - Async/sync APIs with comprehensive error handling
+
 #### 🎯 Maximum Marginal Relevance (MMR)
 - **[MMR Algorithm Documentation](MMR.md)** - Detailed MMR implementation guide
   - Mathematical foundation and theory
@@ -34,7 +41,7 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 
 ### By Component
 - **Text Splitting**: [ITextSplitter Interface](SemanticChunking.md#text-splitters)
-- **Token Counting**: [MLTokenCounter](SemanticChunking.md#configuration-options)
+- **Token Counting**: [MLTokenCounter](SemanticChunking.md#token-counting)
 - **Similarity Calculation**: [MathNetSimilarityCalculator](MMR.md#performance-considerations)
 - **Embedding Generation**: [IEmbeddingGenerator](SemanticChunking.md#implementing-iembeddinggenerator)
 
@@ -45,6 +52,12 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 2. **[Custom Provider Implementation](SemanticChunking.md#custom-text-splitter)**
 3. **[Performance Optimization](SemanticChunking.md#performance-optimization)**
 4. **[Error Handling Strategies](SemanticChunking.md#error-handling-and-fallbacks)**
+
+### Token Counting Best Practices
+- **[Model Alignment](SemanticChunking.md#token-counter-alignment-with-embedding-models)** - Critical: Align token counter with embedding model for accuracy
+- **[Factory Methods](SemanticChunking.md#factory-methods)** - Use pre-configured methods like `CreateGpt4()` or `CreateTextEmbedding3Small()`
+- **[Error Handling](SemanticChunking.md#error-handling)** - Comprehensive validation and fallback strategies
+- **[Performance](SemanticChunking.md#usage-examples)** - Leverage async APIs for better throughput
 
 ### Integration Examples
 - **OpenAI Integration**: [Embedding Provider](SemanticChunking.md#openai-example)
@@ -57,7 +70,7 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 ### Semantic Chunking Performance
 - **Streaming Processing**: Memory-efficient with `IAsyncEnumerable`
 - **Caching Strategy**: LRU cache for embeddings
-- **Token Accuracy**: Real tokenizer implementation
+- **Token Accuracy**: [MLTokenCounter with Microsoft.ML.Tokenizers](SemanticChunking.md#token-counting) for precise, model-aligned token counting
 
 ### MMR Performance
 - **Benchmark Results**: [Detailed Performance Data](MMR.md#benchmark-results)
