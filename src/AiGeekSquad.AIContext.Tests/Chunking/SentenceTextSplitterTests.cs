@@ -709,7 +709,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_MixedDocument()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "# Title\n- List item\nParagraph one. `inline code`\n```\nblock\n```\n[Link](url)";
+            var text = """
+                       # Title
+                       - List item
+                       Paragraph one. `inline code`
+                       ```
+                       block
+                       ```
+                       [Link](url)
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -728,7 +736,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_EmptyElements()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "- \n\n```\n\n```\n# \n";
+            var text = """
+                       - 
+
+                       ```
+
+                       ```
+                       # 
+
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);

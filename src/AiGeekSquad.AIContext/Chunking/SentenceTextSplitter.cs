@@ -113,7 +113,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var blockStart = block.Span.Start;
-                var blockEnd = block.Span.End + 1;
+                var blockEnd = Math.Min(block.Span.End + 1, text.Length);
 
                 if (block is ListBlock list)
                 {
@@ -183,66 +183,50 @@ namespace AiGeekSquad.AIContext.Chunking
                     }
                     else if (inlines.Any(i => i is CodeInline || i is LinkInline))
                     {
-                        // Check if paragraph contains sentence boundaries
+                        // If the paragraph is a single sentence and contains inlines, yield as atomic
                         var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                        if (sentences.Length <= 1)
+                        if (sentences.Length == 1)
                         {
-                            // No sentence boundaries: yield entire paragraph as atomic
                             yield return new TextSegment(paraText, blockStart, blockEnd);
                         }
                         else
                         {
-                            // Has sentence boundaries: split by sentence first, then extract inlines
+                            // Otherwise, split by sentence, but keep inlines embedded
                             foreach (var s in SplitParagraphSentences(paraText, blockStart))
                             {
-                                // Check if this sentence contains inline code/links
-                                var sentenceInlines = inlines.Where(inline =>
-                                    inline.Span.Start >= s.StartIndex - blockStart &&
-                                    inline.Span.End <= s.EndIndex - blockStart).ToList();
-                                
-                                if (sentenceInlines.Any(i => i is CodeInline || i is LinkInline))
-                                {
-                                    // Split out the inline elements from this sentence
-                                    var sentenceText = s.Text;
-                                    var sentenceStart = s.StartIndex;
-                                    int lastEnd = 0;
-                                    
-                                    foreach (var inline in sentenceInlines.Where(i => i is CodeInline || i is LinkInline))
-                                    {
-                                        var relativeStart = inline.Span.Start - (sentenceStart - blockStart);
-                                        var relativeEnd = inline.Span.End - (sentenceStart - blockStart);
-                                        
-                                        if (relativeStart > lastEnd)
-                                        {
-                                            var plainText = sentenceText.Substring(lastEnd, relativeStart - lastEnd);
-                                            if (!string.IsNullOrWhiteSpace(plainText))
-                                                yield return new TextSegment(plainText, sentenceStart + lastEnd, sentenceStart + relativeStart);
-                                        }
-                                        
-                                        var inlineText = sentenceText.Substring(relativeStart, relativeEnd - relativeStart + 1);
-                                        yield return new TextSegment(inlineText, sentenceStart + relativeStart, sentenceStart + relativeEnd + 1);
-                                        lastEnd = relativeEnd + 1;
-                                    }
-                                    
-                                    if (lastEnd < sentenceText.Length)
-                                    {
-                                        var remainingText = sentenceText.Substring(lastEnd);
-                                        if (!string.IsNullOrWhiteSpace(remainingText))
-                                            yield return new TextSegment(remainingText, sentenceStart + lastEnd, sentenceStart + sentenceText.Length);
-                                    }
-                                }
-                                else
-                                {
-                                    yield return s;
-                                }
+                                yield return s;
                             }
                         }
                     }
                     else
                     {
-                        // Regular paragraph: split by sentence
-                        foreach (var s in SplitParagraphSentences(paraText, blockStart))
-                            yield return s;
+                        // If any line starts with markdown marker, split by line for atomic segments
+                        bool hasMarkdownMarker = paraLines.Any(line =>
+                        {
+                            var trimmed = line.Trim();
+                            return trimmed.StartsWith("-") || trimmed.StartsWith("*") ||
+                                   trimmed.StartsWith("+") || trimmed.StartsWith("#") ||
+                                   System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\.");
+                        });
+                        if (hasMarkdownMarker)
+                        {
+                            foreach (var line in paraLines)
+                            {
+                                var trimmedLine = line.TrimEnd('\r');
+                                if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                {
+                                    var lineStart = text.IndexOf(trimmedLine, blockStart, StringComparison.Ordinal);
+                                    var lineEnd = lineStart + trimmedLine.Length;
+                                    yield return new TextSegment(trimmedLine, lineStart, lineEnd);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Regular paragraph: split by sentence
+                            foreach (var s in SplitParagraphSentences(paraText, blockStart))
+                                yield return s;
+                        }
                     }
                     continue;
                 }
@@ -282,8 +266,10 @@ namespace AiGeekSquad.AIContext.Chunking
                     if (item is ListItemBlock listItem)
                     {
                         var itemStart = listItem.Span.Start;
-                        var itemEnd = listItem.Span.End + 1;
-                        var itemText = text.Substring(itemStart, itemEnd - itemStart);
+                        var itemEnd = Math.Min(listItem.Span.End + 1, text.Length);
+                        if (itemEnd > itemStart && itemStart < text.Length)
+                        {
+                            var itemText = text.Substring(itemStart, itemEnd - itemStart);
                         foreach (var line in itemText.Split('\n'))
                         {
                             var atomicLine = line.TrimEnd('\r');
@@ -292,6 +278,7 @@ namespace AiGeekSquad.AIContext.Chunking
                                 var lineStart = text.IndexOf(atomicLine, itemStart, StringComparison.Ordinal);
                                 var lineEnd = lineStart + atomicLine.Length;
                                 yield return new TextSegment(atomicLine, lineStart, lineEnd);
+                            }
                             }
                         }
                     }
@@ -321,6 +308,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     }
                 }
             }
+
         }
 
         /// <summary>
