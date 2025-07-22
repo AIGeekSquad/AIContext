@@ -98,20 +98,14 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private IEnumerable<TextSegment> MarkdownAwareSplit(string text, CancellationToken cancellationToken)
         {
-            // Step 1: Detect malformed markdown and handle it specially
-            if (IsMalformedMarkdown(text))
-            {
-                return HandleMalformedMarkdown(text);
-            }
-
-            // Step 2: Preprocess mixed content patterns
+            // Step 1: Preprocess mixed content patterns
             var processedText = PreprocessMixedContent(text);
             
-            // Step 3: Parse with Markdig
+            // Step 2: Parse with Markdig
             var pipeline = new MarkdownPipelineBuilder().Build();
             var document = Markdown.Parse(processedText, pipeline);
             
-            // Step 4: Extract segments with proper handling for each block type
+            // Step 3: Extract segments with proper handling for each block type
             var segments = new List<TextSegment>();
             
             foreach (var block in document)
@@ -120,131 +114,12 @@ namespace AiGeekSquad.AIContext.Chunking
                 segments.AddRange(ExtractSegmentsFromBlock(block, processedText, text));
             }
             
-            // Step 5: Handle any remaining unprocessed text
+            // Step 4: Handle any remaining unprocessed text
             var processedSegments = HandleUnprocessedText(segments, text);
             
             return processedSegments.OrderBy(s => s.StartIndex);
         }
 
-        /// <summary>
-        /// Detects if markdown is malformed (lacks proper spacing/formatting).
-        /// </summary>
-        private bool IsMalformedMarkdown(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return false;
-            
-            var lines = text.Split('\n');
-            var result = lines.Any(line =>
-            {
-                var trimmed = line.Trim();
-                return (trimmed.StartsWith("-") && !trimmed.StartsWith("- ")) ||
-                       (trimmed.StartsWith("*") && !trimmed.StartsWith("* ")) ||
-                       (trimmed.StartsWith("+") && !trimmed.StartsWith("+ ")) ||
-                       (trimmed.StartsWith("#") && !trimmed.StartsWith("# ")) ||
-                       Regex.IsMatch(trimmed, @"^\d+\.[^\s]");
-            });
-            
-            // DEBUG: Log malformed markdown detection
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] IsMalformedMarkdown result: {result} for text: {text.Replace('\n', '\\').Substring(0, Math.Min(50, text.Length))}...");
-            
-            return result;
-        }
-
-        /// <summary>
-        /// Handles malformed markdown by splitting line by line, but preserves fenced code blocks as atomic units.
-        /// </summary>
-        private IEnumerable<TextSegment> HandleMalformedMarkdown(string text)
-        {
-            // DEBUG: Log entry into HandleMalformedMarkdown
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] HandleMalformedMarkdown called with text: {text.Replace('\n', '\\').Substring(0, Math.Min(100, text.Length))}...");
-            
-            var lines = text.Split('\n');
-            var currentIndex = 0;
-            var segmentCount = 0;
-            
-            // First pass: identify fenced code block ranges
-            var fencedRanges = new List<(int start, int end)>();
-            var insideFencedBlock = false;
-            var fencedBlockStart = -1;
-            
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var line = lines[i].TrimEnd('\r');
-                if (line.Trim() == "```")
-                {
-                    if (!insideFencedBlock)
-                    {
-                        insideFencedBlock = true;
-                        fencedBlockStart = i;
-                    }
-                    else
-                    {
-                        insideFencedBlock = false;
-                        if (fencedBlockStart >= 0)
-                        {
-                            fencedRanges.Add((fencedBlockStart, i));
-                        }
-                    }
-                }
-            }
-            
-            // Second pass: process lines, merging fenced blocks
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var line = lines[i];
-                var trimmedLine = line.TrimEnd('\r');
-                
-                // Check if this line is part of a fenced block
-                var fencedRange = fencedRanges.FirstOrDefault(r => i >= r.start && i <= r.end);
-                if (fencedRange != default && i == fencedRange.start)
-                {
-                    // Start of fenced block - collect all lines in the range
-                    var fencedLines = new List<string>();
-                    for (int j = fencedRange.start; j <= fencedRange.end; j++)
-                    {
-                        fencedLines.Add(lines[j]);
-                    }
-                    
-                    var fencedContent = string.Join("\n", fencedLines);
-                    var startIndex = text.IndexOf(fencedContent, currentIndex, StringComparison.Ordinal);
-                    if (startIndex >= 0)
-                    {
-                        segmentCount++;
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG] HandleMalformedMarkdown fenced block segment #{segmentCount}: '{fencedContent.Replace('\n', '\\')}'");
-                        yield return new TextSegment(fencedContent, startIndex, startIndex + fencedContent.Length);
-                        currentIndex = startIndex + fencedContent.Length + 1;
-                    }
-                    
-                    // Skip to end of fenced block
-                    i = fencedRange.end;
-                }
-                else if (fencedRange == default)
-                {
-                    // Regular line processing (not part of fenced block)
-                    if (string.IsNullOrWhiteSpace(trimmedLine))
-                    {
-                        currentIndex += line.Length + 1; // +1 for newline
-                        continue;
-                    }
-
-                    var startIndex = text.IndexOf(trimmedLine, currentIndex, StringComparison.Ordinal);
-                    if (startIndex >= 0)
-                    {
-                        segmentCount++;
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG] HandleMalformedMarkdown regular segment #{segmentCount}: '{trimmedLine}'");
-                        yield return new TextSegment(trimmedLine, startIndex, startIndex + trimmedLine.Length);
-                        currentIndex = startIndex + trimmedLine.Length + 1; // +1 for newline
-                    }
-                    else
-                    {
-                        currentIndex += line.Length + 1;
-                    }
-                }
-                // Skip lines that are part of fenced blocks but not the start
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] HandleMalformedMarkdown produced {segmentCount} segments");
-        }
 
         /// <summary>
         /// Preprocesses text to handle mixed content patterns that Markdig doesn't parse correctly.
@@ -380,46 +255,50 @@ namespace AiGeekSquad.AIContext.Chunking
 
         /// <summary>
         /// Extracts segments from code blocks, preserving indentation and whitespace.
+        /// For fenced code blocks, reconstructs the original markdown syntax with delimiters.
         /// </summary>
         private IEnumerable<TextSegment> ExtractCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
         {
-            var blockStart = Math.Max(0, Math.Min(codeBlock.Span.Start, processedText.Length));
-            var blockEnd = Math.Max(blockStart, Math.Min(codeBlock.Span.End + 1, processedText.Length));
-
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments called - Type: {codeBlock.GetType().Name}, blockStart: {blockStart}, blockEnd: {blockEnd}");
-
-            if (blockStart >= blockEnd)
+            if (codeBlock is FencedCodeBlock fencedCodeBlock)
             {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments - Invalid range, yielding nothing");
-                yield break;
-            }
-
-            if (codeBlock is FencedCodeBlock)
-            {
-                // Fenced code block - preserve as-is including multiline and empty content
-                var codeText = processedText.Substring(blockStart, blockEnd - blockStart);
+                // Reconstruct the fenced code block with its original delimiters
+                var fence = new string(fencedCodeBlock.FencedChar, fencedCodeBlock.OpeningFencedCharCount);
+                var info = fencedCodeBlock.Info ?? string.Empty;
                 
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments - FencedCodeBlock content: '{codeText.Replace('\n', '\\').Replace('\r', 'r')}'");
+                // Get the content lines
+                var contentLines = new List<string>();
+                if (fencedCodeBlock.Lines.Count > 0)
+                {
+                    for (int i = 0; i < fencedCodeBlock.Lines.Count; i++)
+                    {
+                        var line = fencedCodeBlock.Lines.Lines[i];
+                        contentLines.Add(line.ToString());
+                    }
+                }
                 
-                // For empty fenced code blocks, preserve exact formatting
-                var originalSegment = FindInOriginalTextPreservingWhitespace(codeText, originalText, blockStart);
+                // Try both \n and \r\n line endings to match the original text
+                var reconstructedWithLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\n");
+                var reconstructedWithCRLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\r\n");
+                
+                // Try to find either variant in the original text
+                var originalSegment = FindInOriginalTextPreservingWhitespace(reconstructedWithCRLF, originalText, 0)
+                                    ?? FindInOriginalTextPreservingWhitespace(reconstructedWithLF, originalText, 0);
+                
                 if (originalSegment != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments - Created segment: '{originalSegment.Text.Replace('\n', '\\').Replace('\r', 'r')}'");
                     yield return originalSegment;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments - Failed to find original segment");
                 }
             }
             else
             {
                 // Indented code block - preserve indentation
+                var blockStart = Math.Max(0, Math.Min(codeBlock.Span.Start, processedText.Length));
+                var blockEnd = Math.Max(blockStart, Math.Min(codeBlock.Span.End + 1, processedText.Length));
+                
+                if (blockStart >= blockEnd) yield break;
+                
                 var codeText = processedText.Substring(blockStart, blockEnd - blockStart);
                 var lines = codeText.Split('\n');
-
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractCodeBlockSegments - IndentedCodeBlock with {lines.Length} lines");
 
                 foreach (var line in lines)
                 {
@@ -432,6 +311,19 @@ namespace AiGeekSquad.AIContext.Chunking
                         yield return originalSegment;
                 }
             }
+        }
+
+        /// <summary>
+        /// Helper method to reconstruct a fenced code block with the specified line ending.
+        /// </summary>
+        private string ReconstructFencedCodeBlock(string fence, string info, List<string> contentLines, string lineEnding)
+        {
+            var reconstructed = new List<string>();
+            reconstructed.Add(fence + info);
+            reconstructed.AddRange(contentLines);
+            reconstructed.Add(fence);
+            
+            return string.Join(lineEnding, reconstructed);
         }
 
         /// <summary>

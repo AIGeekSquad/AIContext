@@ -789,28 +789,6 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         }
 
         [Fact]
-        public async Task SplitAsync_Markdown_MalformedMarkdown()
-        {
-            var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = """
-                       -Item without space
-                       *Another
-                       1.Item
-                       ##HeaderNoSpace
-                       """;
-            var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
-                segments.Add(segment);
-
-            using var _ = new AssertionScope();
-            segments.Should().HaveCount(4);
-            segments[0].Text.Should().Be("-Item without space");
-            segments[1].Text.Should().Be("*Another");
-            segments[2].Text.Should().Be("1.Item");
-            segments[3].Text.Should().Be("##HeaderNoSpace");
-        }
-
-        [Fact]
         public async Task SplitAsync_Markdown_MixedWithRegularText()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
