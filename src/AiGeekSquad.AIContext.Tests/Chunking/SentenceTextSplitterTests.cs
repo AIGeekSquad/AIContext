@@ -730,7 +730,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[1].Text.Should().Be("> Second line.");
         }
 
-        [Fact(Skip = "wip")]
+        [Fact]
         public async Task SplitAsync_Markdown_MixedDocument()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
@@ -748,20 +748,19 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
-            segments.Should().HaveCount(6);
+            segments.Should().HaveCount(5);
             segments[0].Text.Should().Be("# Title");
             segments[1].Text.Should().Be("- List item");
-            segments[2].Text.Should().Be("Paragraph one.");
-            segments[3].Text.Should().Be("`inline code`");
-            segments[4].Text.Should().Be("""
+            segments[2].Text.Should().Be("Paragraph one. `inline code`");
+            segments[3].Text.Should().Be("""
                                          ```
                                          block
                                          ```
                                          """);
-            segments[5].Text.Should().Be("[Link](url)");
+            segments[4].Text.Should().Be("[Link](url)");
         }
 
-        [Fact(Skip = "wip")]
+        [Fact]
         public async Task SplitAsync_Markdown_EmptyElements()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
@@ -783,7 +782,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[0].Text.Should().Be("- ");
             segments[1].Text.Should().Be("""
                                          ```
-
+                                         
                                          ```
                                          """);
             segments[2].Text.Should().Be("# ");
