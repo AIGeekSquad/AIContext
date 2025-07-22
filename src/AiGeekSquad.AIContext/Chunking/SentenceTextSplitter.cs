@@ -98,14 +98,20 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private IEnumerable<TextSegment> MarkdownAwareSplit(string text, CancellationToken cancellationToken)
         {
-            // Step 1: Preprocess mixed content patterns
+            // Step 1: Detect malformed markdown and handle it specially
+            if (IsMalformedMarkdown(text))
+            {
+                return HandleMalformedMarkdown(text);
+            }
+
+            // Step 2: Preprocess mixed content patterns
             var processedText = PreprocessMixedContent(text);
             
-            // Step 2: Parse with Markdig
+            // Step 3: Parse with Markdig
             var pipeline = new MarkdownPipelineBuilder().Build();
             var document = Markdown.Parse(processedText, pipeline);
             
-            // Step 3: Extract segments with proper handling for each block type
+            // Step 4: Extract segments with proper handling for each block type
             var segments = new List<TextSegment>();
             
             foreach (var block in document)
@@ -114,10 +120,59 @@ namespace AiGeekSquad.AIContext.Chunking
                 segments.AddRange(ExtractSegmentsFromBlock(block, processedText, text));
             }
             
-            // Step 4: Handle any remaining unprocessed text
+            // Step 5: Handle any remaining unprocessed text
             var processedSegments = HandleUnprocessedText(segments, text);
             
             return processedSegments.OrderBy(s => s.StartIndex);
+        }
+
+        /// <summary>
+        /// Detects if markdown is malformed (lacks proper spacing/formatting).
+        /// </summary>
+        private bool IsMalformedMarkdown(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            
+            var lines = text.Split('\n');
+            return lines.Any(line =>
+            {
+                var trimmed = line.Trim();
+                return (trimmed.StartsWith("-") && !trimmed.StartsWith("- ")) ||
+                       (trimmed.StartsWith("*") && !trimmed.StartsWith("* ")) ||
+                       (trimmed.StartsWith("+") && !trimmed.StartsWith("+ ")) ||
+                       (trimmed.StartsWith("#") && !trimmed.StartsWith("# ")) ||
+                       Regex.IsMatch(trimmed, @"^\d+\.[^\s]");
+            });
+        }
+
+        /// <summary>
+        /// Handles malformed markdown by splitting line by line.
+        /// </summary>
+        private IEnumerable<TextSegment> HandleMalformedMarkdown(string text)
+        {
+            var lines = text.Split('\n');
+            var currentIndex = 0;
+            
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.TrimEnd('\r');
+                if (string.IsNullOrWhiteSpace(trimmedLine)) 
+                {
+                    currentIndex += line.Length + 1; // +1 for newline
+                    continue;
+                }
+
+                var startIndex = text.IndexOf(trimmedLine, currentIndex, StringComparison.Ordinal);
+                if (startIndex >= 0)
+                {
+                    yield return new TextSegment(trimmedLine, startIndex, startIndex + trimmedLine.Length);
+                    currentIndex = startIndex + trimmedLine.Length + 1; // +1 for newline
+                }
+                else
+                {
+                    currentIndex += line.Length + 1;
+                }
+            }
         }
 
         /// <summary>
@@ -204,7 +259,8 @@ namespace AiGeekSquad.AIContext.Chunking
                     var trimmedLine = line.TrimEnd('\r');
                     if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
 
-                    var originalSegment = FindInOriginalText(trimmedLine, originalText, itemStart);
+                    // For list items, preserve indentation when needed
+                    var originalSegment = FindInOriginalTextWithIndentation(trimmedLine, originalText, itemStart);
                     if (originalSegment != null)
                         yield return originalSegment;
                 }
@@ -222,9 +278,21 @@ namespace AiGeekSquad.AIContext.Chunking
             if (blockStart >= blockEnd) yield break;
 
             var headingText = processedText.Substring(blockStart, blockEnd - blockStart).Trim();
-            var originalSegment = FindInOriginalText(headingText, originalText, blockStart);
-            if (originalSegment != null)
-                yield return originalSegment;
+            
+            // Handle empty headings - preserve trailing space
+            if (string.IsNullOrEmpty(headingText.Replace("#", "").Trim()))
+            {
+                var originalHeading = processedText.Substring(blockStart, blockEnd - blockStart);
+                var originalSegment = FindInOriginalTextPreservingWhitespace(originalHeading, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+            }
+            else
+            {
+                var originalSegment = FindInOriginalText(headingText, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+            }
         }
 
         /// <summary>
@@ -277,25 +345,14 @@ namespace AiGeekSquad.AIContext.Chunking
             var paraText = processedText.Substring(blockStart, blockEnd - blockStart);
             var inlines = paragraphBlock.Inline?.ToList() ?? new List<Inline>();
 
-            // Check if paragraph contains inline code that should be kept atomic
+            // Check if paragraph contains inline code that should be split
             var hasInlineCode = inlines.Any(i => i is CodeInline);
             
             if (hasInlineCode)
             {
-                // For single sentence with inline code, keep atomic
-                var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                if (sentences.Length == 1)
-                {
-                    var originalSegment = FindInOriginalText(paraText.Trim(), originalText, blockStart);
-                    if (originalSegment != null)
-                        yield return originalSegment;
-                }
-                else
-                {
-                    // Multiple sentences - split but handle inline code properly
-                    foreach (var segment in SplitParagraphWithInlines(paraText, originalText, inlines, blockStart))
-                        yield return segment;
-                }
+                // For paragraphs with inline code, always split them
+                foreach (var segment in SplitParagraphWithInlines(paraText, originalText, inlines, blockStart))
+                    yield return segment;
             }
             else
             {
@@ -388,6 +445,16 @@ namespace AiGeekSquad.AIContext.Chunking
             if (blockStart >= blockEnd) yield break;
 
             var blockText = processedText.Substring(blockStart, blockEnd - blockStart);
+            
+            // Handle empty elements specially
+            if (string.IsNullOrEmpty(blockText.Trim()))
+            {
+                var originalSegment = FindInOriginalTextPreservingWhitespace(blockText, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+                yield break;
+            }
+
             var lines = blockText.Split('\n');
 
             foreach (var line in lines)
@@ -428,13 +495,13 @@ namespace AiGeekSquad.AIContext.Chunking
         }
 
         /// <summary>
-        /// Finds text with indentation preserved (for code blocks).
+        /// Finds text with indentation preserved (for code blocks and lists).
         /// </summary>
         private TextSegment? FindInOriginalTextWithIndentation(string text, string originalText, int searchStartHint = 0)
         {
             if (string.IsNullOrEmpty(text)) return null;
 
-            // For indented code, preserve the original indentation
+            // For indented content, preserve the original indentation
             var lines = originalText.Split('\n');
             for (int i = 0; i < lines.Length; i++)
             {
@@ -451,6 +518,22 @@ namespace AiGeekSquad.AIContext.Chunking
 
             // Fallback to regular search
             return FindInOriginalText(text, originalText, searchStartHint);
+        }
+
+        /// <summary>
+        /// Finds text preserving all whitespace (for empty elements).
+        /// </summary>
+        private TextSegment? FindInOriginalTextPreservingWhitespace(string text, string originalText, int searchStartHint = 0)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+
+            var startIndex = originalText.IndexOf(text, Math.Max(0, searchStartHint), StringComparison.Ordinal);
+            if (startIndex >= 0)
+            {
+                return new TextSegment(text, startIndex, startIndex + text.Length);
+            }
+
+            return null;
         }
 
         /// <summary>
