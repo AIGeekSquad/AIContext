@@ -307,9 +307,11 @@ namespace AiGeekSquad.AIContext.Chunking
 
             if (codeBlock is FencedCodeBlock)
             {
-                // Fenced code block - preserve as-is
-                var codeText = processedText.Substring(blockStart, blockEnd - blockStart).Trim();
-                var originalSegment = FindInOriginalText(codeText, originalText, blockStart);
+                // Fenced code block - preserve as-is including multiline and empty content
+                var codeText = processedText.Substring(blockStart, blockEnd - blockStart);
+                
+                // For empty fenced code blocks, preserve exact formatting
+                var originalSegment = FindInOriginalTextPreservingWhitespace(codeText, originalText, blockStart);
                 if (originalSegment != null)
                     yield return originalSegment;
             }
@@ -345,14 +347,26 @@ namespace AiGeekSquad.AIContext.Chunking
             var paraText = processedText.Substring(blockStart, blockEnd - blockStart);
             var inlines = paragraphBlock.Inline?.ToList() ?? new List<Inline>();
 
-            // Check if paragraph contains inline code that should be split
+            // Check if paragraph contains inline code
             var hasInlineCode = inlines.Any(i => i is CodeInline);
             
             if (hasInlineCode)
             {
-                // For paragraphs with inline code, always split them
-                foreach (var segment in SplitParagraphWithInlines(paraText, originalText, inlines, blockStart))
-                    yield return segment;
+                // Count sentences - if only one sentence, keep the entire paragraph atomic
+                var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                if (sentences.Length <= 1)
+                {
+                    // Single sentence with inline code - keep atomic
+                    var originalSegment = FindInOriginalText(paraText.Trim(), originalText, blockStart);
+                    if (originalSegment != null)
+                        yield return originalSegment;
+                }
+                else
+                {
+                    // Multiple sentences - split them
+                    foreach (var segment in SplitParagraphWithInlines(paraText, originalText, inlines, blockStart))
+                        yield return segment;
+                }
             }
             else
             {
