@@ -156,13 +156,91 @@ namespace AiGeekSquad.AIContext.Chunking
                 {
                     var paraText = text.Substring(blockStart, blockEnd - blockStart);
                     var inlines = para.Inline?.ToList() ?? new List<Inline>();
-                    bool hasAtomicInline = inlines.Any(i => i is CodeInline || i is LinkInline);
-                    if (hasAtomicInline)
+                    
+                    // Check if this contains malformed markdown (lines starting with -, *, #, etc.)
+                    var paraLines = paraText.Split('\n');
+                    bool hasMalformedMarkdown = paraLines.Any(line =>
                     {
-                        yield return new TextSegment(paraText, blockStart, blockEnd);
+                        var trimmed = line.Trim();
+                        return trimmed.StartsWith("-") || trimmed.StartsWith("*") ||
+                               trimmed.StartsWith("+") || trimmed.StartsWith("#") ||
+                               System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\.");
+                    });
+                    
+                    if (hasMalformedMarkdown)
+                    {
+                        // Split by lines for malformed markdown
+                        foreach (var line in paraLines)
+                        {
+                            var trimmedLine = line.TrimEnd('\r');
+                            if (!string.IsNullOrWhiteSpace(trimmedLine))
+                            {
+                                var lineStart = text.IndexOf(trimmedLine, blockStart, StringComparison.Ordinal);
+                                var lineEnd = lineStart + trimmedLine.Length;
+                                yield return new TextSegment(trimmedLine, lineStart, lineEnd);
+                            }
+                        }
+                    }
+                    else if (inlines.Any(i => i is CodeInline || i is LinkInline))
+                    {
+                        // Check if paragraph contains sentence boundaries
+                        var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                        if (sentences.Length <= 1)
+                        {
+                            // No sentence boundaries: yield entire paragraph as atomic
+                            yield return new TextSegment(paraText, blockStart, blockEnd);
+                        }
+                        else
+                        {
+                            // Has sentence boundaries: split by sentence first, then extract inlines
+                            foreach (var s in SplitParagraphSentences(paraText, blockStart))
+                            {
+                                // Check if this sentence contains inline code/links
+                                var sentenceInlines = inlines.Where(inline =>
+                                    inline.Span.Start >= s.StartIndex - blockStart &&
+                                    inline.Span.End <= s.EndIndex - blockStart).ToList();
+                                
+                                if (sentenceInlines.Any(i => i is CodeInline || i is LinkInline))
+                                {
+                                    // Split out the inline elements from this sentence
+                                    var sentenceText = s.Text;
+                                    var sentenceStart = s.StartIndex;
+                                    int lastEnd = 0;
+                                    
+                                    foreach (var inline in sentenceInlines.Where(i => i is CodeInline || i is LinkInline))
+                                    {
+                                        var relativeStart = inline.Span.Start - (sentenceStart - blockStart);
+                                        var relativeEnd = inline.Span.End - (sentenceStart - blockStart);
+                                        
+                                        if (relativeStart > lastEnd)
+                                        {
+                                            var plainText = sentenceText.Substring(lastEnd, relativeStart - lastEnd);
+                                            if (!string.IsNullOrWhiteSpace(plainText))
+                                                yield return new TextSegment(plainText, sentenceStart + lastEnd, sentenceStart + relativeStart);
+                                        }
+                                        
+                                        var inlineText = sentenceText.Substring(relativeStart, relativeEnd - relativeStart + 1);
+                                        yield return new TextSegment(inlineText, sentenceStart + relativeStart, sentenceStart + relativeEnd + 1);
+                                        lastEnd = relativeEnd + 1;
+                                    }
+                                    
+                                    if (lastEnd < sentenceText.Length)
+                                    {
+                                        var remainingText = sentenceText.Substring(lastEnd);
+                                        if (!string.IsNullOrWhiteSpace(remainingText))
+                                            yield return new TextSegment(remainingText, sentenceStart + lastEnd, sentenceStart + sentenceText.Length);
+                                    }
+                                }
+                                else
+                                {
+                                    yield return s;
+                                }
+                            }
+                        }
                     }
                     else
                     {
+                        // Regular paragraph: split by sentence
                         foreach (var s in SplitParagraphSentences(paraText, blockStart))
                             yield return s;
                     }
@@ -171,14 +249,27 @@ namespace AiGeekSquad.AIContext.Chunking
 
                 // Fallback: split by line as atomic segments
                 var blockText = text.Substring(blockStart, blockEnd - blockStart);
-                foreach (var line in blockText.Split('\n'))
+                var lines = blockText.Split('\n');
+                if (lines.Length > 1)
                 {
-                    var atomicLine = line.TrimEnd('\r');
+                    foreach (var line in lines)
+                    {
+                        var atomicLine = line.TrimEnd('\r');
+                        if (!string.IsNullOrWhiteSpace(atomicLine))
+                        {
+                            var lineStart = text.IndexOf(atomicLine, blockStart, StringComparison.Ordinal);
+                            var lineEnd = lineStart + atomicLine.Length;
+                            yield return new TextSegment(atomicLine, lineStart, lineEnd);
+                        }
+                    }
+                }
+                else
+                {
+                    // If only one line, yield as atomic
+                    var atomicLine = blockText.TrimEnd('\r');
                     if (!string.IsNullOrWhiteSpace(atomicLine))
                     {
-                        var lineStart = text.IndexOf(atomicLine, blockStart, StringComparison.Ordinal);
-                        var lineEnd = lineStart + atomicLine.Length;
-                        yield return new TextSegment(atomicLine, lineStart, lineEnd);
+                        yield return new TextSegment(atomicLine, blockStart, blockEnd);
                     }
                 }
             }

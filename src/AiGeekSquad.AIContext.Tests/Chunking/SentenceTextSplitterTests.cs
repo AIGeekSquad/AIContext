@@ -562,6 +562,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("- Item one");
             segments[1].Text.Should().Be("* Item two");
@@ -577,6 +578,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("1. First item");
             segments[1].Text.Should().Be("2. Second item");
@@ -592,6 +594,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(4);
             segments[0].Text.Should().Be("- Parent");
             segments[1].Text.Should().Be("  - Child 1");
@@ -608,6 +611,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(2);
             segments[0].Text.Should().Be("- First item. Has two sentences!");
             segments[1].Text.Should().Be("- Second item? Yes.");
@@ -622,6 +626,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(4);
             segments[0].Text.Should().Be("- List item");
             segments[1].Text.Should().Be("Paragraph one.");
@@ -667,6 +672,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(1);
             segments[0].Text.Should().Be("This is `inline code` in a sentence.");
         }
@@ -693,6 +699,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(2);
             segments[0].Text.Should().Be("> This is a blockquote.");
             segments[1].Text.Should().Be("> Second line.");
@@ -707,6 +714,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(6);
             segments[0].Text.Should().Be("# Title");
             segments[1].Text.Should().Be("- List item");
@@ -725,6 +733,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("- ");
             segments[1].Text.Should().Be("```\n\n```");
@@ -740,6 +749,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(4);
             segments[0].Text.Should().Be("-Item without space");
             segments[1].Text.Should().Be("*Another");
@@ -756,6 +766,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("This is a paragraph.");
             segments[1].Text.Should().Be("- List item");
@@ -771,6 +782,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("# Header");
             segments[1].Text.Should().Be("- List");
@@ -786,6 +798,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
+            using var _ = new AssertionScope();
             // Should split only by sentences, not preserve markdown
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("- List item.");
