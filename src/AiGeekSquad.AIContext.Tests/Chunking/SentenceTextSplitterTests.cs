@@ -694,7 +694,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_Blockquotes()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "> This is a blockquote.\n> Second line.";
+            var text = """
+                       > This is a blockquote.
+                       > Second line.
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);

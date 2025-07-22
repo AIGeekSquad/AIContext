@@ -35,13 +35,6 @@ namespace AiGeekSquad.AIContext.Chunking
 
         /// <summary>
         /// Asynchronously splits the specified text into sentence segments.
-        /// </summary>
-        /// <param name="text">The text to split into sentences.</param>
-        /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <returns>An async enumerable of text segments representing sentences.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
-        /// <summary>
-        /// Asynchronously splits the specified text into sentence segments.
         /// If markdown mode is enabled, preserves markdown blocks, lists, headers, inline code, links, and images as atomic segments.
         /// </summary>
         public async IAsyncEnumerable<TextSegment> SplitAsync(
@@ -101,10 +94,17 @@ namespace AiGeekSquad.AIContext.Chunking
         }
 
         /// <summary>
-        /// Markdown-aware splitting: uses Markdig to parse markdown and preserve block boundaries.
+        /// Simple markdown-aware splitting: parse with Markdig and extract all components directly.
         /// </summary>
         private IEnumerable<TextSegment> MarkdownAwareSplit(string text, CancellationToken cancellationToken)
         {
+            // Handle simple mixed patterns first (sentence. - list item)
+            var mixedPattern = @"([.!?])\s+([-*+])\s";
+            if (Regex.IsMatch(text, mixedPattern))
+            {
+                text = Regex.Replace(text, mixedPattern, "$1\n$2 ");
+            }
+            
             var pipeline = new MarkdownPipelineBuilder().Build();
             var document = Markdown.Parse(text, pipeline);
 
@@ -112,203 +112,133 @@ namespace AiGeekSquad.AIContext.Chunking
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var blockStart = block.Span.Start;
-                var blockEnd = Math.Min(block.Span.End + 1, text.Length);
-
-                if (block is ListBlock list)
+                foreach (var segment in ExtractSegmentsFromBlock(block, text))
                 {
-                    foreach (var segment in ExtractListItemsRecursive(list, text))
-                        yield return segment;
-                    continue;
+                    yield return segment;
                 }
+            }
+        }
 
-                if (block is HeadingBlock heading)
-                {
-                    var headingText = text.Substring(blockStart, blockEnd - blockStart);
-                    yield return new TextSegment(headingText, blockStart, blockEnd);
-                    continue;
-                }
+        private IEnumerable<TextSegment> ExtractSegmentsFromBlock(Block block, string text)
+        {
+            var blockStart = block.Span.Start;
+            var blockEnd = Math.Min(block.Span.End + 1, text.Length);
+            
+            if (blockStart >= text.Length) yield break;
+            if (blockEnd > text.Length) blockEnd = text.Length;
+            if (blockEnd <= blockStart) yield break;
 
-                if (block is CodeBlock code)
-                {
-                    var codeText = text.Substring(blockStart, blockEnd - blockStart);
-                    yield return new TextSegment(codeText, blockStart, blockEnd);
-                    continue;
-                }
+            var blockText = text.Substring(blockStart, blockEnd - blockStart);
 
-                if (block is QuoteBlock quote)
-                {
-                    var quoteText = text.Substring(blockStart, blockEnd - blockStart);
-                    foreach (var line in quoteText.Split('\n'))
+            // Handle different block types
+            switch (block)
+            {
+                case ListBlock list:
+                    foreach (var item in list)
                     {
-                        var trimmedLine = line.TrimEnd('\r');
-                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                        if (item is ListItemBlock listItem)
                         {
-                            var lineStart = text.IndexOf(trimmedLine, blockStart, StringComparison.Ordinal);
-                            var lineEnd = lineStart + trimmedLine.Length;
-                            yield return new TextSegment(trimmedLine, lineStart, lineEnd);
-                        }
-                    }
-                    continue;
-                }
-
-                if (block is ParagraphBlock para)
-                {
-                    var paraText = text.Substring(blockStart, blockEnd - blockStart);
-                    var inlines = para.Inline?.ToList() ?? new List<Inline>();
-                    
-                    // Check if this contains malformed markdown (lines starting with -, *, #, etc.)
-                    var paraLines = paraText.Split('\n');
-                    bool hasMalformedMarkdown = paraLines.Any(line =>
-                    {
-                        var trimmed = line.Trim();
-                        return trimmed.StartsWith("-") || trimmed.StartsWith("*") ||
-                               trimmed.StartsWith("+") || trimmed.StartsWith("#") ||
-                               System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\.");
-                    });
-                    
-                    if (hasMalformedMarkdown)
-                    {
-                        // Split by lines for malformed markdown
-                        foreach (var line in paraLines)
-                        {
-                            var trimmedLine = line.TrimEnd('\r');
-                            if (!string.IsNullOrWhiteSpace(trimmedLine))
+                            var itemStart = listItem.Span.Start;
+                            var itemEnd = Math.Min(listItem.Span.End + 1, text.Length);
+                            if (itemEnd > itemStart && itemStart < text.Length)
                             {
-                                var lineStart = text.IndexOf(trimmedLine, blockStart, StringComparison.Ordinal);
-                                var lineEnd = lineStart + trimmedLine.Length;
-                                yield return new TextSegment(trimmedLine, lineStart, lineEnd);
+                                var itemText = text.Substring(itemStart, itemEnd - itemStart).Trim();
+                                yield return new TextSegment(itemText, itemStart, itemEnd);
                             }
                         }
                     }
-                    else if (inlines.Any(i => i is CodeInline || i is LinkInline))
+                    break;
+
+                case HeadingBlock heading:
+                case CodeBlock code:
+                    yield return new TextSegment(blockText.Trim(), blockStart, blockEnd);
+                    break;
+
+                case ParagraphBlock para:
+                    // Check for inline code or links - if found, split them out
+                    var inlines = para.Inline?.ToList() ?? new List<Inline>();
+                    if (inlines.Any(i => i is CodeInline))
                     {
-                        // If the paragraph is a single sentence and contains inlines, yield as atomic
-                        var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                        if (sentences.Length == 1)
+                        // Split by inline code
+                        var pattern = @"(`[^`]+`)";
+                        var parts = Regex.Split(blockText, pattern);
+                        var partIndex = blockStart;
+                        
+                        foreach (var part in parts)
                         {
-                            yield return new TextSegment(paraText, blockStart, blockEnd);
-                        }
-                        else
-                        {
-                            // Otherwise, split by sentence, but keep inlines embedded
-                            foreach (var s in SplitParagraphSentences(paraText, blockStart))
+                            if (string.IsNullOrWhiteSpace(part)) continue;
+                            
+                            var trimmedPart = part.Trim();
+                            if (trimmedPart.StartsWith("`") && trimmedPart.EndsWith("`"))
                             {
-                                yield return s;
+                                // Inline code
+                                var codeStart = text.IndexOf(trimmedPart, partIndex);
+                                if (codeStart >= 0)
+                                {
+                                    yield return new TextSegment(trimmedPart, codeStart, codeStart + trimmedPart.Length);
+                                    partIndex = codeStart + trimmedPart.Length;
+                                }
+                            }
+                            else
+                            {
+                                // Regular text - split by sentences
+                                var sentences = _sentencePattern.Split(trimmedPart).Where(s => !string.IsNullOrWhiteSpace(s));
+                                foreach (var sentence in sentences)
+                                {
+                                    var trimmedSentence = sentence.Trim();
+                                    if (!string.IsNullOrEmpty(trimmedSentence))
+                                    {
+                                        var sentStart = text.IndexOf(trimmedSentence, partIndex);
+                                        if (sentStart >= 0)
+                                        {
+                                            yield return new TextSegment(trimmedSentence, sentStart, sentStart + trimmedSentence.Length);
+                                            partIndex = sentStart + trimmedSentence.Length;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                     else
                     {
-                        // If any line starts with markdown marker, split by line for atomic segments
-                        bool hasMarkdownMarker = paraLines.Any(line =>
+                        // Regular paragraph - split by sentences
+                        var sentences = _sentencePattern.Split(blockText).Where(s => !string.IsNullOrWhiteSpace(s));
+                        var sentIndex = blockStart;
+                        foreach (var sentence in sentences)
                         {
-                            var trimmed = line.Trim();
-                            return trimmed.StartsWith("-") || trimmed.StartsWith("*") ||
-                                   trimmed.StartsWith("+") || trimmed.StartsWith("#") ||
-                                   System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\.");
-                        });
-                        if (hasMarkdownMarker)
-                        {
-                            foreach (var line in paraLines)
+                            var trimmedSentence = sentence.Trim();
+                            if (!string.IsNullOrEmpty(trimmedSentence))
                             {
-                                var trimmedLine = line.TrimEnd('\r');
-                                if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                var sentStart = text.IndexOf(trimmedSentence, sentIndex);
+                                if (sentStart >= 0)
                                 {
-                                    var lineStart = text.IndexOf(trimmedLine, blockStart, StringComparison.Ordinal);
-                                    var lineEnd = lineStart + trimmedLine.Length;
-                                    yield return new TextSegment(trimmedLine, lineStart, lineEnd);
+                                    yield return new TextSegment(trimmedSentence, sentStart, sentStart + trimmedSentence.Length);
+                                    sentIndex = sentStart + trimmedSentence.Length;
                                 }
                             }
                         }
-                        else
-                        {
-                            // Regular paragraph: split by sentence
-                            foreach (var s in SplitParagraphSentences(paraText, blockStart))
-                                yield return s;
-                        }
                     }
-                    continue;
-                }
+                    break;
 
-                // Fallback: split by line as atomic segments
-                var blockText = text.Substring(blockStart, blockEnd - blockStart);
-                var lines = blockText.Split('\n');
-                if (lines.Length > 1)
-                {
+                default:
+                    // Fallback for other block types
+                    var lines = blockText.Split('\n');
+                    var lineIndex = blockStart;
                     foreach (var line in lines)
                     {
-                        var atomicLine = line.TrimEnd('\r');
-                        if (!string.IsNullOrWhiteSpace(atomicLine))
+                        var trimmedLine = line.Trim();
+                        if (!string.IsNullOrEmpty(trimmedLine))
                         {
-                            var lineStart = text.IndexOf(atomicLine, blockStart, StringComparison.Ordinal);
-                            var lineEnd = lineStart + atomicLine.Length;
-                            yield return new TextSegment(atomicLine, lineStart, lineEnd);
-                        }
-                    }
-                }
-                else
-                {
-                    // If only one line, yield as atomic
-                    var atomicLine = blockText.TrimEnd('\r');
-                    if (!string.IsNullOrWhiteSpace(atomicLine))
-                    {
-                        yield return new TextSegment(atomicLine, blockStart, blockEnd);
-                    }
-                }
-            }
-
-            // Recursively extract all list items (including nested)
-            IEnumerable<TextSegment> ExtractListItemsRecursive(ListBlock list, string text)
-            {
-                foreach (var item in list)
-                {
-                    if (item is ListItemBlock listItem)
-                    {
-                        var itemStart = listItem.Span.Start;
-                        var itemEnd = Math.Min(listItem.Span.End + 1, text.Length);
-                        if (itemEnd > itemStart && itemStart < text.Length)
-                        {
-                            var itemText = text.Substring(itemStart, itemEnd - itemStart);
-                        foreach (var line in itemText.Split('\n'))
-                        {
-                            var atomicLine = line.TrimEnd('\r');
-                            if (!string.IsNullOrWhiteSpace(atomicLine))
+                            var lineStart = text.IndexOf(trimmedLine, lineIndex);
+                            if (lineStart >= 0)
                             {
-                                var lineStart = text.IndexOf(atomicLine, itemStart, StringComparison.Ordinal);
-                                var lineEnd = lineStart + atomicLine.Length;
-                                yield return new TextSegment(atomicLine, lineStart, lineEnd);
-                            }
+                                yield return new TextSegment(trimmedLine, lineStart, lineStart + trimmedLine.Length);
+                                lineIndex = lineStart + trimmedLine.Length;
                             }
                         }
                     }
-                }
+                    break;
             }
-
-            // Helper: split paragraph text by sentence, using offset for accurate indices
-            IEnumerable<TextSegment> SplitParagraphSentences(string paraText, int offset)
-            {
-                var sentences = _sentencePattern.Split(paraText)
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .ToArray();
-                var idx = 0;
-                foreach (var sentence in sentences)
-                {
-                    var trimmed = sentence.Trim();
-                    if (!string.IsNullOrEmpty(trimmed))
-                    {
-                        var localStart = paraText.IndexOf(trimmed, idx, StringComparison.Ordinal);
-                        if (localStart >= 0)
-                        {
-                            var start = offset + localStart;
-                            var end = start + trimmed.Length;
-                            yield return new TextSegment(trimmed, start, end);
-                            idx = localStart + trimmed.Length;
-                        }
-                    }
-                }
-            }
-
         }
 
         /// <summary>
@@ -332,6 +262,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         /// <returns>A new instance of <see cref="SentenceTextSplitter"/> with default settings.</returns>
         public static SentenceTextSplitter Default => new SentenceTextSplitter();
+
         /// <summary>
         /// Creates a sentence splitter with markdown-aware splitting enabled.
         /// </summary>
