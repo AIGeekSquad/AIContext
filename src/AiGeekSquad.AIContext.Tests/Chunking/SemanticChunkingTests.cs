@@ -301,7 +301,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Act
             var chunks = new List<TextChunk>();
-            await foreach (var chunk in chunker.ChunkDocumentAsync(text, originalMetadata))
+            await foreach (var chunk in chunker.ChunkAsync(text, metadata: originalMetadata))
             {
                 chunks.Add(chunk);
             }

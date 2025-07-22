@@ -66,27 +66,6 @@ namespace AiGeekSquad.AIContext.Chunking
             return new SemanticTextChunker(tokenCounter, embeddingGenerator, similarityCalculator, embeddingCache, splitter);
         }
 
-        /// <summary>
-        /// Asynchronously chunks the specified text into semantically meaningful segments.
-        /// </summary>
-        /// <param name="text">The text to chunk.</param>
-        /// <param name="options">The chunking options. If null, default options are used.</param>
-        /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <returns>An async enumerable of text chunks.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
-        public async IAsyncEnumerable<TextChunk> ChunkAsync(
-            string text,
-            SemanticChunkingOptions? options = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            if (text == null)
-                throw new ArgumentNullException(nameof(text));
-
-            await foreach (var chunk in ChunkDocumentAsync(text, null, options, cancellationToken))
-            {
-                yield return chunk;
-            }
-        }
 
         /// <summary>
         /// Asynchronously chunks a document with associated metadata.
@@ -97,10 +76,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="cancellationToken">A token to cancel the operation.</param>
         /// <returns>An async enumerable of text chunks with metadata.</returns>
         /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
-        public async IAsyncEnumerable<TextChunk> ChunkDocumentAsync(
+        public async IAsyncEnumerable<TextChunk> ChunkAsync(
             string text,
-            IDictionary<string, object>? metadata = null,
             SemanticChunkingOptions? options = null,
+            IDictionary<string, object>? metadata = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (text == null)
