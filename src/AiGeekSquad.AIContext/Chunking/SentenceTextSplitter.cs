@@ -94,151 +94,373 @@ namespace AiGeekSquad.AIContext.Chunking
         }
 
         /// <summary>
-        /// Simple markdown-aware splitting: parse with Markdig and extract all components directly.
+        /// Comprehensive markdown-aware splitting that handles all edge cases.
         /// </summary>
         private IEnumerable<TextSegment> MarkdownAwareSplit(string text, CancellationToken cancellationToken)
         {
-            // Handle simple mixed patterns first (sentence. - list item)
-            var mixedPattern = @"([.!?])\s+([-*+])\s";
-            if (Regex.IsMatch(text, mixedPattern))
-            {
-                text = Regex.Replace(text, mixedPattern, "$1\n$2 ");
-            }
+            // Step 1: Preprocess mixed content patterns
+            var processedText = PreprocessMixedContent(text);
             
+            // Step 2: Parse with Markdig
             var pipeline = new MarkdownPipelineBuilder().Build();
-            var document = Markdown.Parse(text, pipeline);
-
+            var document = Markdown.Parse(processedText, pipeline);
+            
+            // Step 3: Extract segments with proper handling for each block type
+            var segments = new List<TextSegment>();
+            
             foreach (var block in document)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                foreach (var segment in ExtractSegmentsFromBlock(block, text))
-                {
-                    yield return segment;
-                }
+                segments.AddRange(ExtractSegmentsFromBlock(block, processedText, text));
             }
+            
+            // Step 4: Handle any remaining unprocessed text
+            var processedSegments = HandleUnprocessedText(segments, text);
+            
+            return processedSegments.OrderBy(s => s.StartIndex);
         }
 
-        private IEnumerable<TextSegment> ExtractSegmentsFromBlock(Block block, string text)
+        /// <summary>
+        /// Preprocesses text to handle mixed content patterns that Markdig doesn't parse correctly.
+        /// </summary>
+        private string PreprocessMixedContent(string text)
         {
-            var blockStart = block.Span.Start;
-            var blockEnd = Math.Min(block.Span.End + 1, text.Length);
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            var result = text;
             
-            if (blockStart >= text.Length) yield break;
-            if (blockEnd > text.Length) blockEnd = text.Length;
-            if (blockEnd <= blockStart) yield break;
+            // Pattern 1: "sentence. - list item" -> "sentence.\n- list item"
+            result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ");
+            
+            // Pattern 2: "sentence.\nAnother sentence" after list items
+            result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2");
+            
+            return result;
+        }
 
-            var blockText = text.Substring(blockStart, blockEnd - blockStart);
+        /// <summary>
+        /// Extracts segments from a markdown block with comprehensive handling.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractSegmentsFromBlock(Block block, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(block.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(block.Span.End + 1, processedText.Length));
+            
+            if (blockStart >= blockEnd) yield break;
 
-            // Handle different block types
             switch (block)
             {
-                case ListBlock list:
-                    foreach (var item in list)
-                    {
-                        if (item is ListItemBlock listItem)
-                        {
-                            var itemStart = listItem.Span.Start;
-                            var itemEnd = Math.Min(listItem.Span.End + 1, text.Length);
-                            if (itemEnd > itemStart && itemStart < text.Length)
-                            {
-                                var itemText = text.Substring(itemStart, itemEnd - itemStart).Trim();
-                                yield return new TextSegment(itemText, itemStart, itemEnd);
-                            }
-                        }
-                    }
+                case ListBlock listBlock:
+                    foreach (var segment in ExtractListSegments(listBlock, processedText, originalText))
+                        yield return segment;
                     break;
 
-                case HeadingBlock heading:
-                case CodeBlock code:
-                    yield return new TextSegment(blockText.Trim(), blockStart, blockEnd);
+                case HeadingBlock headingBlock:
+                    foreach (var segment in ExtractHeadingSegments(headingBlock, processedText, originalText))
+                        yield return segment;
                     break;
 
-                case ParagraphBlock para:
-                    // Check for inline code or links - if found, split them out
-                    var inlines = para.Inline?.ToList() ?? new List<Inline>();
-                    if (inlines.Any(i => i is CodeInline))
-                    {
-                        // Split by inline code
-                        var pattern = @"(`[^`]+`)";
-                        var parts = Regex.Split(blockText, pattern);
-                        var partIndex = blockStart;
-                        
-                        foreach (var part in parts)
-                        {
-                            if (string.IsNullOrWhiteSpace(part)) continue;
-                            
-                            var trimmedPart = part.Trim();
-                            if (trimmedPart.StartsWith("`") && trimmedPart.EndsWith("`"))
-                            {
-                                // Inline code
-                                var codeStart = text.IndexOf(trimmedPart, partIndex);
-                                if (codeStart >= 0)
-                                {
-                                    yield return new TextSegment(trimmedPart, codeStart, codeStart + trimmedPart.Length);
-                                    partIndex = codeStart + trimmedPart.Length;
-                                }
-                            }
-                            else
-                            {
-                                // Regular text - split by sentences
-                                var sentences = _sentencePattern.Split(trimmedPart).Where(s => !string.IsNullOrWhiteSpace(s));
-                                foreach (var sentence in sentences)
-                                {
-                                    var trimmedSentence = sentence.Trim();
-                                    if (!string.IsNullOrEmpty(trimmedSentence))
-                                    {
-                                        var sentStart = text.IndexOf(trimmedSentence, partIndex);
-                                        if (sentStart >= 0)
-                                        {
-                                            yield return new TextSegment(trimmedSentence, sentStart, sentStart + trimmedSentence.Length);
-                                            partIndex = sentStart + trimmedSentence.Length;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Regular paragraph - split by sentences
-                        var sentences = _sentencePattern.Split(blockText).Where(s => !string.IsNullOrWhiteSpace(s));
-                        var sentIndex = blockStart;
-                        foreach (var sentence in sentences)
-                        {
-                            var trimmedSentence = sentence.Trim();
-                            if (!string.IsNullOrEmpty(trimmedSentence))
-                            {
-                                var sentStart = text.IndexOf(trimmedSentence, sentIndex);
-                                if (sentStart >= 0)
-                                {
-                                    yield return new TextSegment(trimmedSentence, sentStart, sentStart + trimmedSentence.Length);
-                                    sentIndex = sentStart + trimmedSentence.Length;
-                                }
-                            }
-                        }
-                    }
+                case CodeBlock codeBlock:
+                    foreach (var segment in ExtractCodeBlockSegments(codeBlock, processedText, originalText))
+                        yield return segment;
+                    break;
+
+                case ParagraphBlock paragraphBlock:
+                    foreach (var segment in ExtractParagraphSegments(paragraphBlock, processedText, originalText))
+                        yield return segment;
+                    break;
+
+                case QuoteBlock quoteBlock:
+                    foreach (var segment in ExtractQuoteSegments(quoteBlock, processedText, originalText))
+                        yield return segment;
                     break;
 
                 default:
                     // Fallback for other block types
-                    var lines = blockText.Split('\n');
-                    var lineIndex = blockStart;
-                    foreach (var line in lines)
-                    {
-                        var trimmedLine = line.Trim();
-                        if (!string.IsNullOrEmpty(trimmedLine))
-                        {
-                            var lineStart = text.IndexOf(trimmedLine, lineIndex);
-                            if (lineStart >= 0)
-                            {
-                                yield return new TextSegment(trimmedLine, lineStart, lineStart + trimmedLine.Length);
-                                lineIndex = lineStart + trimmedLine.Length;
-                            }
-                        }
-                    }
+                    foreach (var segment in ExtractFallbackSegments(block, processedText, originalText))
+                        yield return segment;
                     break;
             }
+        }
+
+        /// <summary>
+        /// Extracts segments from list blocks, handling nested lists properly.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractListSegments(ListBlock listBlock, string processedText, string originalText)
+        {
+            foreach (var listItemBlock in listBlock.OfType<ListItemBlock>())
+            {
+                var itemStart = Math.Max(0, Math.Min(listItemBlock.Span.Start, processedText.Length));
+                var itemEnd = Math.Max(itemStart, Math.Min(listItemBlock.Span.End + 1, processedText.Length));
+
+                if (itemStart >= itemEnd) continue;
+
+                var itemText = processedText.Substring(itemStart, itemEnd - itemStart);
+                var lines = itemText.Split('\n');
+
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.TrimEnd('\r');
+                    if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+
+                    var originalSegment = FindInOriginalText(trimmedLine, originalText, itemStart);
+                    if (originalSegment != null)
+                        yield return originalSegment;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extracts segments from heading blocks.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractHeadingSegments(HeadingBlock headingBlock, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(headingBlock.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(headingBlock.Span.End + 1, processedText.Length));
+
+            if (blockStart >= blockEnd) yield break;
+
+            var headingText = processedText.Substring(blockStart, blockEnd - blockStart).Trim();
+            var originalSegment = FindInOriginalText(headingText, originalText, blockStart);
+            if (originalSegment != null)
+                yield return originalSegment;
+        }
+
+        /// <summary>
+        /// Extracts segments from code blocks, preserving indentation and whitespace.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(codeBlock.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(codeBlock.Span.End + 1, processedText.Length));
+
+            if (blockStart >= blockEnd) yield break;
+
+            if (codeBlock is FencedCodeBlock)
+            {
+                // Fenced code block - preserve as-is
+                var codeText = processedText.Substring(blockStart, blockEnd - blockStart).Trim();
+                var originalSegment = FindInOriginalText(codeText, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+            }
+            else
+            {
+                // Indented code block - preserve indentation
+                var codeText = processedText.Substring(blockStart, blockEnd - blockStart);
+                var lines = codeText.Split('\n');
+
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.TrimEnd('\r');
+                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+
+                    // For indented code blocks, preserve the original indentation
+                    var originalSegment = FindInOriginalTextWithIndentation(trimmedLine, originalText, blockStart);
+                    if (originalSegment != null)
+                        yield return originalSegment;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extracts segments from paragraph blocks, handling inline elements properly.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractParagraphSegments(ParagraphBlock paragraphBlock, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(paragraphBlock.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(paragraphBlock.Span.End + 1, processedText.Length));
+
+            if (blockStart >= blockEnd) yield break;
+
+            var paraText = processedText.Substring(blockStart, blockEnd - blockStart);
+            var inlines = paragraphBlock.Inline?.ToList() ?? new List<Inline>();
+
+            // Check if paragraph contains inline code that should be kept atomic
+            var hasInlineCode = inlines.Any(i => i is CodeInline);
+            
+            if (hasInlineCode)
+            {
+                // For single sentence with inline code, keep atomic
+                var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                if (sentences.Length == 1)
+                {
+                    var originalSegment = FindInOriginalText(paraText.Trim(), originalText, blockStart);
+                    if (originalSegment != null)
+                        yield return originalSegment;
+                }
+                else
+                {
+                    // Multiple sentences - split but handle inline code properly
+                    foreach (var segment in SplitParagraphWithInlines(paraText, originalText, inlines, blockStart))
+                        yield return segment;
+                }
+            }
+            else
+            {
+                // Regular paragraph - split by sentences
+                var sentences = _sentencePattern.Split(paraText).Where(s => !string.IsNullOrWhiteSpace(s));
+                foreach (var sentence in sentences)
+                {
+                    var trimmedSentence = sentence.Trim();
+                    if (!string.IsNullOrEmpty(trimmedSentence))
+                    {
+                        var originalSegment = FindInOriginalText(trimmedSentence, originalText, blockStart);
+                        if (originalSegment != null)
+                            yield return originalSegment;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Splits paragraphs containing inline elements properly.
+        /// </summary>
+        private IEnumerable<TextSegment> SplitParagraphWithInlines(string paraText, string originalText, List<Inline> inlines, int blockStart)
+        {
+            // Use regex to split by inline code while preserving the inline code elements
+            var pattern = @"(`[^`]+`)";
+            var parts = Regex.Split(paraText, pattern);
+
+            foreach (var part in parts)
+            {
+                if (string.IsNullOrWhiteSpace(part)) continue;
+
+                var trimmedPart = part.Trim();
+                if (trimmedPart.StartsWith("`") && trimmedPart.EndsWith("`"))
+                {
+                    // This is inline code - keep as atomic segment
+                    var originalSegment = FindInOriginalText(trimmedPart, originalText, blockStart);
+                    if (originalSegment != null)
+                        yield return originalSegment;
+                }
+                else
+                {
+                    // Regular text - split by sentences
+                    var sentences = _sentencePattern.Split(trimmedPart).Where(s => !string.IsNullOrWhiteSpace(s));
+                    foreach (var sentence in sentences)
+                    {
+                        var trimmedSentence = sentence.Trim();
+                        if (!string.IsNullOrEmpty(trimmedSentence))
+                        {
+                            var originalSegment = FindInOriginalText(trimmedSentence, originalText, blockStart);
+                            if (originalSegment != null)
+                                yield return originalSegment;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extracts segments from quote blocks.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractQuoteSegments(QuoteBlock quoteBlock, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(quoteBlock.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(quoteBlock.Span.End + 1, processedText.Length));
+
+            if (blockStart >= blockEnd) yield break;
+
+            var quoteText = processedText.Substring(blockStart, blockEnd - blockStart);
+            var lines = quoteText.Split('\n');
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.TrimEnd('\r');
+                if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+
+                var originalSegment = FindInOriginalText(trimmedLine, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+            }
+        }
+
+        /// <summary>
+        /// Fallback segment extraction for unhandled block types.
+        /// </summary>
+        private IEnumerable<TextSegment> ExtractFallbackSegments(Block block, string processedText, string originalText)
+        {
+            var blockStart = Math.Max(0, Math.Min(block.Span.Start, processedText.Length));
+            var blockEnd = Math.Max(blockStart, Math.Min(block.Span.End + 1, processedText.Length));
+
+            if (blockStart >= blockEnd) yield break;
+
+            var blockText = processedText.Substring(blockStart, blockEnd - blockStart);
+            var lines = blockText.Split('\n');
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.TrimEnd('\r');
+                if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+
+                var originalSegment = FindInOriginalText(trimmedLine, originalText, blockStart);
+                if (originalSegment != null)
+                    yield return originalSegment;
+            }
+        }
+
+        /// <summary>
+        /// Finds text in the original string and creates a TextSegment with correct positions.
+        /// </summary>
+        private TextSegment? FindInOriginalText(string text, string originalText, int searchStartHint = 0)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+
+            var trimmedText = text.Trim();
+            if (string.IsNullOrEmpty(trimmedText)) return null;
+
+            var startIndex = originalText.IndexOf(trimmedText, Math.Max(0, searchStartHint), StringComparison.Ordinal);
+            if (startIndex >= 0)
+            {
+                return new TextSegment(trimmedText, startIndex, startIndex + trimmedText.Length);
+            }
+
+            // Fallback: try from beginning
+            startIndex = originalText.IndexOf(trimmedText, StringComparison.Ordinal);
+            if (startIndex >= 0)
+            {
+                return new TextSegment(trimmedText, startIndex, startIndex + trimmedText.Length);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Finds text with indentation preserved (for code blocks).
+        /// </summary>
+        private TextSegment? FindInOriginalTextWithIndentation(string text, string originalText, int searchStartHint = 0)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+
+            // For indented code, preserve the original indentation
+            var lines = originalText.Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].TrimEnd('\r');
+                if (line.Trim() == text.Trim() && line.Contains(text.Trim()))
+                {
+                    var startIndex = originalText.IndexOf(line, StringComparison.Ordinal);
+                    if (startIndex >= 0)
+                    {
+                        return new TextSegment(line, startIndex, startIndex + line.Length);
+                    }
+                }
+            }
+
+            // Fallback to regular search
+            return FindInOriginalText(text, originalText, searchStartHint);
+        }
+
+        /// <summary>
+        /// Handles any text that wasn't processed by markdown parsing.
+        /// </summary>
+        private List<TextSegment> HandleUnprocessedText(List<TextSegment> segments, string originalText)
+        {
+            // For now, just return the segments as-is
+            // Could be extended to handle edge cases where some text is missed
+            return segments;
         }
 
         /// <summary>

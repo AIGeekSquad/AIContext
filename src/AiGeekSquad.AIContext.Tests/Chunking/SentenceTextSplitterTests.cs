@@ -533,7 +533,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var splitter = new SentenceTextSplitter();
-            var text = "He said, \"How do you draw an Owl Mr. Crawley ?\" to Dr. Tom. No one answered.";
+            var text = """He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom. No one answered.""";
 
             // Act
             var segments = new List<TextSegment>();
@@ -547,7 +547,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             
  
             segments.Should().HaveCount(2);
-            segments[0].Text.Should().Be("He said, \"How do you draw an Owl Mr. Crawley ?\" to Dr. Tom.");
+            segments[0].Text.Should().Be("""He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom.""");
             segments[1].Text.Should().Be("No one answered.");
         
         }
@@ -557,7 +557,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_UnorderedLists_AllBulletTypes()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "- Item one\n* Item two\n+ Item three";
+            var text = """
+                       - Item one
+                       * Item two
+                       + Item three
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -589,7 +593,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_NestedLists()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "- Parent\n  - Child 1\n  - Child 2\n    * Grandchild";
+            var text = """
+                       - Parent
+                         - Child 1
+                         - Child 2
+                           * Grandchild
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -638,7 +647,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_Headers()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "# Header 1\n## Header 2\n### Header 3";
+            var text = """
+                       # Header 1
+                       ## Header 2
+                       ### Header 3
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -653,13 +666,22 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_CodeBlocks_FencedAndIndented()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "```\ncode block\n```\n    indented code";
+            var text = """
+                       ```
+                       code block
+                       ```
+                           indented code
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
 
             segments.Should().HaveCount(2);
-            segments[0].Text.Should().Be("```\ncode block\n```");
+            segments[0].Text.Should().Be("""
+                                         ```
+                                         code block
+                                         ```
+                                         """);
             segments[1].Text.Should().Be("    indented code");
         }
 
@@ -731,7 +753,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[1].Text.Should().Be("- List item");
             segments[2].Text.Should().Be("Paragraph one.");
             segments[3].Text.Should().Be("`inline code`");
-            segments[4].Text.Should().Be("```\nblock\n```");
+            segments[4].Text.Should().Be("""
+                                         ```
+                                         block
+                                         ```
+                                         """);
             segments[5].Text.Should().Be("[Link](url)");
         }
 
@@ -755,7 +781,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             using var _ = new AssertionScope();
             segments.Should().HaveCount(3);
             segments[0].Text.Should().Be("- ");
-            segments[1].Text.Should().Be("```\n\n```");
+            segments[1].Text.Should().Be("""
+                                         ```
+
+                                         ```
+                                         """);
             segments[2].Text.Should().Be("# ");
         }
 
@@ -763,7 +793,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_MalformedMarkdown()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "-Item without space\n*Another\n1.Item\n##HeaderNoSpace";
+            var text = """
+                       -Item without space
+                       *Another
+                       1.Item
+                       ##HeaderNoSpace
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -780,7 +815,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_MixedWithRegularText()
         {
             var splitter = SentenceTextSplitter.ForMarkdown();
-            var text = "This is a paragraph. - List item\nAnother sentence!";
+            var text = """
+                       This is a paragraph. - List item
+                       Another sentence!
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -796,7 +834,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_WithPatternForMarkdown_Works()
         {
             var splitter = SentenceTextSplitter.WithPatternForMarkdown(@"(?<=\n)");
-            var text = "# Header\n- List\nParagraph.";
+            var text = """
+                       # Header
+                       - List
+                       Paragraph.
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
@@ -812,7 +854,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task SplitAsync_Markdown_BackwardCompatibility_NonMarkdownMode()
         {
             var splitter = new SentenceTextSplitter();
-            var text = "- List item. Paragraph one. Paragraph two!";
+            var text = """
+                       - List item.
+                       Paragraph one.
+                       Paragraph two!
+                       """;
             var segments = new List<TextSegment>();
             await foreach (var segment in splitter.SplitAsync(text))
                 segments.Add(segment);
