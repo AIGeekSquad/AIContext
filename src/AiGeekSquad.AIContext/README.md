@@ -57,7 +57,7 @@ var metadata = new Dictionary<string, object>
     ["DocumentId"] = "doc-123"
 };
 
-await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
 {
     Console.WriteLine($"Chunk {chunk.StartIndex}-{chunk.EndIndex}:");
     Console.WriteLine($"  Text: {chunk.Text.Trim()}");
@@ -124,7 +124,7 @@ var allChunks = new List<TextChunk>();
 
 foreach (var doc in documents)
 {
-    await foreach (var chunk in chunker.ChunkDocumentAsync(doc, metadata))
+    await foreach (var chunk in chunker.ChunkAsync(doc, metadata))
     {
         allChunks.Add(chunk);
         // Store chunk.Text and embedding in your vector database
@@ -169,7 +169,7 @@ var options = new SemanticChunkingOptions
     BreakpointPercentileThreshold = 0.8  // More conservative splitting
 };
 
-await foreach (var chunk in chunker.ChunkDocumentAsync(legalDocument, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(legalDocument, metadata, options))
 {
     // Each chunk maintains legal context integrity
     await indexService.AddChunkAsync(chunk);

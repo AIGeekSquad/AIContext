@@ -258,7 +258,7 @@ var metadata = new Dictionary<string, object>
     ["Author"] = "AI Assistant"
 };
 
-await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
 {
     // Original metadata is preserved and enhanced
     Console.WriteLine($"Document ID: {chunk.Metadata["DocumentId"]}");
@@ -434,7 +434,7 @@ var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
 
 foreach (var document in documents)
 {
-    await foreach (var chunk in chunker.ChunkDocumentAsync(document.Text, document.Metadata))
+    await foreach (var chunk in chunker.ChunkAsync(document.Text, document.Metadata))
     {
         await ProcessChunkAsync(chunk);
     }
@@ -513,7 +513,7 @@ var options = new SemanticChunkingOptions
 };
 
 var chunks = new List<TextChunk>();
-await foreach (var chunk in chunker.ChunkDocumentAsync(document, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(document, metadata, options))
 {
     chunks.Add(chunk);
 }
@@ -598,7 +598,7 @@ public async Task IndexDocumentAsync(string documentText, Dictionary<string, obj
 {
     var chunks = new List<(string text, Vector<double> embedding, Dictionary<string, object> metadata)>();
     
-    await foreach (var chunk in chunker.ChunkDocumentAsync(documentText, metadata))
+    await foreach (var chunk in chunker.ChunkAsync(documentText, metadata))
     {
         var embedding = await embeddingGenerator.GetSingleEmbeddingAsync(chunk.Text);
         chunks.Add((chunk.Text, embedding, chunk.Metadata));
@@ -616,7 +616,7 @@ public async Task IndexDocumentAsync(Document document)
 {
     var searchDocuments = new List<SearchDocument>();
     
-    await foreach (var chunk in chunker.ChunkDocumentAsync(document.Content, document.Metadata))
+    await foreach (var chunk in chunker.ChunkAsync(document.Content, document.Metadata))
     {
         var searchDoc = new SearchDocument
         {
