@@ -54,7 +54,7 @@ public class BasicChunkingExample
         
         // Process chunks
         var chunkNumber = 1;
-        await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
         {
             Console.WriteLine($"Chunk {chunkNumber}:");
             Console.WriteLine($"  Text: {chunk.Text.Trim()}");

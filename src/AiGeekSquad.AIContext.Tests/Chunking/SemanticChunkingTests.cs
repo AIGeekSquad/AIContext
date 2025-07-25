@@ -207,8 +207,8 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var chunker = CreateChunker();
             var options = new SemanticChunkingOptions
             {
-                MinTokensPerChunk = 20,
-                MaxTokensPerChunk = 100,
+                MinTokensPerChunk = 2,
+                MaxTokensPerChunk = 20,
                 BufferSize = 2,
                 BreakpointPercentileThreshold = 0.90
             };
@@ -227,12 +227,16 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            chunks.Should().HaveCount(1);
-            var chunk = chunks.First();
-            chunk.Metadata.Should().ContainKey("TokenCount");
-            var tokenCount = (int)chunk.Metadata["TokenCount"];
-            tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
-            tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk);
+            chunks.Should().HaveCountGreaterThan(1, "Should create multiple chunks when text exceeds MaxTokensPerChunk");
+            
+            // Verify all chunks respect the token limits
+            foreach (var chunk in chunks)
+            {
+                chunk.Metadata.Should().ContainKey("TokenCount");
+                var tokenCount = (int)chunk.Metadata["TokenCount"];
+                tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk);
+            }
         }
 
         [Fact]
@@ -297,7 +301,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Act
             var chunks = new List<TextChunk>();
-            await foreach (var chunk in chunker.ChunkDocumentAsync(text, originalMetadata))
+            await foreach (var chunk in chunker.ChunkAsync(text, metadata: originalMetadata))
             {
                 chunks.Add(chunk);
             }

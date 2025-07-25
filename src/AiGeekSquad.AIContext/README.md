@@ -57,7 +57,7 @@ var metadata = new Dictionary<string, object>
     ["DocumentId"] = "doc-123"
 };
 
-await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
 {
     Console.WriteLine($"Chunk {chunk.StartIndex}-{chunk.EndIndex}:");
     Console.WriteLine($"  Text: {chunk.Text.Trim()}");
@@ -124,7 +124,7 @@ var allChunks = new List<TextChunk>();
 
 foreach (var doc in documents)
 {
-    await foreach (var chunk in chunker.ChunkDocumentAsync(doc, metadata))
+    await foreach (var chunk in chunker.ChunkAsync(doc, metadata))
     {
         allChunks.Add(chunk);
         // Store chunk.Text and embedding in your vector database
@@ -169,7 +169,7 @@ var options = new SemanticChunkingOptions
     BreakpointPercentileThreshold = 0.8  // More conservative splitting
 };
 
-await foreach (var chunk in chunker.ChunkDocumentAsync(legalDocument, metadata, options))
+await foreach (var chunk in chunker.ChunkAsync(legalDocument, metadata, options))
 {
     // Each chunk maintains legal context integrity
     await indexService.AddChunkAsync(chunk);
@@ -207,6 +207,247 @@ foreach (var (index, score) in recommendations)
 }
 ```
 
+## 📝 Markdown Support
+
+The `SentenceTextSplitter` now supports **markdown-aware text splitting**, providing intelligent handling of markdown documents while preserving the structural integrity of markdown elements. This feature is especially powerful for processing documentation, README files, and other markdown content in RAG systems.
+
+### Key Features
+
+- **🎯 Atomic Markdown Elements**: Lists, headers, code blocks, and other markdown elements are treated as indivisible segments
+- **📋 Comprehensive List Support**: Handles unordered (`-`, `*`, `+`), ordered (`1.`, `2.`), and nested lists
+- **💻 Code Preservation**: Maintains fenced code blocks, indented code, and inline code as complete units
+- **🔗 Link and Image Handling**: Preserves markdown links and images within their containing paragraphs
+- **📖 Blockquote Support**: Treats blockquote lines as atomic segments
+- **🏷️ Header Recognition**: Each markdown header becomes a separate segment
+
+### Factory Methods
+
+```csharp
+using AiGeekSquad.AIContext.Chunking;
+
+// Enable markdown-aware splitting with default sentence pattern
+var markdownSplitter = SentenceTextSplitter.ForMarkdown();
+
+// Use custom pattern with markdown awareness
+var customMarkdownSplitter = SentenceTextSplitter.WithPatternForMarkdown(@"(?<=\.)\s+(?=[A-Z])");
+
+// Compare with regular mode (backward compatible)
+var regularSplitter = SentenceTextSplitter.Default;
+```
+
+### Markdown vs Regular Mode Comparison
+
+```csharp
+var markdownText = @"
+# Introduction
+This is a paragraph with a sentence. Another sentence here.
+
+- First list item with text
+- Second item
+  - Nested item
+
+```csharp
+var code = ""Hello World"";
+```
+
+> This is a blockquote.
+> Second line of quote.
+";
+
+// Regular mode - splits by sentences, ignores markdown structure
+var regularSplitter = SentenceTextSplitter.Default;
+await foreach (var segment in regularSplitter.SplitAsync(markdownText))
+{
+    Console.WriteLine($"Regular: {segment.Text}");
+}
+
+// Markdown mode - preserves markdown structure
+var markdownSplitter = SentenceTextSplitter.ForMarkdown();
+await foreach (var segment in markdownSplitter.SplitAsync(markdownText))
+{
+    Console.WriteLine($"Markdown: {segment.Text}");
+}
+```
+
+**Regular Mode Output:**
+```
+Regular: # Introduction
+Regular: This is a paragraph with a sentence.
+Regular: Another sentence here.
+Regular: - First list item with text
+Regular: - Second item
+Regular: - Nested item
+// ... splits code block and quotes by sentences
+```
+
+**Markdown Mode Output:**
+```
+Markdown: # Introduction
+Markdown: This is a paragraph with a sentence.
+Markdown: Another sentence here.
+Markdown: - First list item with text
+Markdown: - Second item
+Markdown:   - Nested item
+Markdown: ```csharp
+var code = "Hello World";
+```
+Markdown: > This is a blockquote.
+Markdown: > Second line of quote.
+```
+
+### List Handling Examples
+
+Markdown mode excels at handling various list types as atomic segments:
+
+#### Unordered Lists
+```csharp
+var splitter = SentenceTextSplitter.ForMarkdown();
+var listText = @"
+- First item with multiple sentences. This stays together!
+* Second item using asterisk
++ Third item using plus sign
+";
+
+await foreach (var segment in splitter.SplitAsync(listText))
+{
+    Console.WriteLine($"List item: {segment.Text}");
+}
+// Output:
+// List item: - First item with multiple sentences. This stays together!
+// List item: * Second item using asterisk  
+// List item: + Third item using plus sign
+```
+
+#### Ordered Lists
+```csharp
+var orderedText = @"
+1. First numbered item
+2. Second item with details. Multiple sentences preserved.
+3. Third item
+";
+
+await foreach (var segment in splitter.SplitAsync(orderedText))
+{
+    Console.WriteLine($"Ordered: {segment.Text}");
+}
+// Each numbered item becomes one segment, regardless of internal sentences
+```
+
+#### Nested Lists
+```csharp
+var nestedText = @"
+- Parent item
+  - Child item one
+  - Child item two  
+    * Grandchild item
+- Another parent
+";
+
+await foreach (var segment in splitter.SplitAsync(nestedText))
+{
+    Console.WriteLine($"Nested: '{segment.Text}'");
+}
+// Output preserves indentation:
+// Nested: '- Parent item'
+// Nested: '  - Child item one'
+// Nested: '  - Child item two'
+// Nested: '    * Grandchild item'
+// Nested: '- Another parent'
+```
+
+### Code Block Handling
+
+```csharp
+var codeText = @"
+Here's a fenced code block:
+
+```csharp
+public class Example 
+{
+    public void Method() { }
+}
+```
+
+And indented code:
+
+    var indented = ""code"";
+    Console.WriteLine(indented);
+";
+
+await foreach (var segment in splitter.SplitAsync(codeText))
+{
+    Console.WriteLine($"Segment: {segment.Text}");
+}
+// Fenced code blocks are preserved as complete units
+// Indented code lines are kept with original indentation
+```
+
+### Integration with Semantic Chunking
+
+```csharp
+using AiGeekSquad.AIContext.Chunking;
+
+// Use markdown-aware splitter with semantic chunking
+var tokenCounter = new MLTokenCounter();
+var embeddingGenerator = new YourEmbeddingProvider();
+var markdownSplitter = SentenceTextSplitter.ForMarkdown();
+
+var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, markdownSplitter);
+
+var markdownDocument = @"
+# API Documentation
+
+## Authentication
+Use Bearer tokens for API access.
+
+### Request Headers
+- `Authorization: Bearer <token>`
+- `Content-Type: application/json`
+
+```json
+{
+  ""example"": ""request""
+}
+```
+
+## Endpoints
+Each endpoint follows REST principles.
+";
+
+var options = new SemanticChunkingOptions
+{
+    MaxTokensPerChunk = 512,
+    MinTokensPerChunk = 10,
+    BreakpointPercentileThreshold = 0.75
+};
+
+await foreach (var chunk in chunker.ChunkAsync(markdownDocument, metadata, options))
+{
+    // Each chunk will contain semantically related markdown elements
+    // Lists, code blocks, and headers maintain their integrity
+    Console.WriteLine($"Chunk: {chunk.Text}");
+}
+```
+
+### Best Practices
+
+1. **Documentation Processing**: Use markdown mode when processing technical documentation, README files, or any structured markdown content
+2. **Preserve Context**: Markdown elements like lists and code blocks maintain their formatting and context
+3. **RAG Systems**: Ideal for RAG systems that need to preserve markdown structure for better context retrieval
+4. **Mixed Content**: Handles documents that mix regular prose with markdown elements seamlessly
+
+### When to Use Each Mode
+
+| Use Case | Regular Mode | Markdown Mode |
+|----------|-------------|---------------|
+| Plain text documents | ✅ | ❌ |
+| Email content | ✅ | ❌ |
+| Technical documentation | ❌ | ✅ |
+| README files | ❌ | ✅ |
+| API documentation | ❌ | ✅ |
+| Mixed markdown/prose | ❌ | ✅ |
+| Code-heavy documents | ❌ | ✅ |
+
 ## ⚙️ Configuration
 
 ### Chunking Options
@@ -221,11 +462,32 @@ foreach (var (index, score) in recommendations)
 
 ### Custom Text Splitters
 
+The `SentenceTextSplitter` class provides intelligent sentence boundary detection with support for both regular text and markdown content:
+
+- **Default Pattern**: Optimized for English text with built-in handling of common titles and abbreviations
+- **Handled Abbreviations**: Mr., Mrs., Ms., Dr., Prof., Sr., Jr.
+- **Custom Patterns**: Create domain-specific splitters for specialized content
+- **🆕 Markdown Support**: New markdown-aware mode preserves markdown structure and elements
+
 ```csharp
-// Use custom patterns for domain-specific splitting
+// Default splitter - handles English titles automatically
+var defaultSplitter = SentenceTextSplitter.Default;
+
+// Custom pattern for numbered sections (e.g., legal documents)
 var customSplitter = SentenceTextSplitter.WithPattern(@"(?<=\.)\s+(?=\d+\.)");
+
+// NEW: Markdown-aware splitters
+var markdownSplitter = SentenceTextSplitter.ForMarkdown();
+var customMarkdownSplitter = SentenceTextSplitter.WithPatternForMarkdown(@"(?<=\.)\s+(?=[A-Z])");
+
+// Use with semantic chunker
 var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, customSplitter);
+
+// Use markdown splitter for documentation processing
+var markdownChunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, markdownSplitter);
 ```
+
+**Note**: The default pattern prevents incorrect sentence breaks after common English titles like "Dr. Smith" or "Mrs. Johnson", ensuring better semantic coherence in your chunks. For markdown content, use the new markdown-aware factory methods to preserve the structural integrity of lists, code blocks, headers, and other markdown elements.
 
 ## 🏗️ Core Interfaces
 

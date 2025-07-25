@@ -415,7 +415,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         }
 
         [Fact]
-        public async Task SplitAsync_WithDoctorTitlesAndAbbreviations_DefaultPatternSplitsOnAbbreviations()
+        public async Task SplitAsync_WithDoctorTitlesAndAbbreviations_DefaultPatternDoesNotSplitOnAbbreviations()
         {
             // Arrange
             var splitter = new SentenceTextSplitter();
@@ -430,11 +430,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            // The default pattern will split on abbreviations followed by capital letters
-            segments.Should().HaveCountGreaterThan(3);
-            // Verify that abbreviations are split (this is expected behavior with the simple default pattern)
-            segments.Should().Contain(s => s.Text == "Dr.");
-            segments.Should().Contain(s => s.Text.Contains("Smith works at the hospital."));
+            // The updated default pattern now avoids splitting on common abbreviations
+            segments.Should().HaveCount(3);
+            // Verify that abbreviations are NOT split (new behavior with improved pattern)
+            segments[0].Text.Should().Be("Dr. Smith works at the hospital.");
+            segments[1].Text.Should().Be("Prof. Johnson teaches at the university.");
+            segments[2].Text.Should().Be("Mr. Brown and Mrs. Green are attending the meeting.");
         }
 
         [Fact]
@@ -525,6 +526,326 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[0].Text.Should().Be("Contact john.doe@company.com for support.");
             segments[1].Text.Should().Be("The admin email is admin@system.org and it's monitored daily.");
             segments[2].Text.Should().Be("For urgent issues, reach out to emergency@service.net immediately.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_WithQuotedText_HandlesQuotedSentences()
+        {
+            // Arrange
+            var splitter = new SentenceTextSplitter();
+            var text = """He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom. No one answered.""";
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            
+ 
+            segments.Should().HaveCount(2);
+            segments[0].Text.Should().Be("""He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom.""");
+            segments[1].Text.Should().Be("No one answered.");
+        
+        }
+        // MARKDOWN TESTS
+
+        [Fact]
+        public async Task SplitAsync_Markdown_UnorderedLists_AllBulletTypes()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       - Item one
+                       * Item two
+                       + Item three
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("- Item one");
+            segments[1].Text.Should().Be("* Item two");
+            segments[2].Text.Should().Be("+ Item three");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_OrderedLists_Numbers()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = "1. First item\n2. Second item\n3. Third item";
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("1. First item");
+            segments[1].Text.Should().Be("2. Second item");
+            segments[2].Text.Should().Be("3. Third item");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_NestedLists()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       - Parent
+                         - Child 1
+                         - Child 2
+                           * Grandchild
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(4);
+            segments[0].Text.Should().Be("- Parent");
+            segments[1].Text.Should().Be("  - Child 1");
+            segments[2].Text.Should().Be("  - Child 2");
+            segments[3].Text.Should().Be("    * Grandchild");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_ListItemsWithMultipleSentences()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = "- First item. Has two sentences!\n- Second item? Yes.";
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(2);
+            segments[0].Text.Should().Be("- First item. Has two sentences!");
+            segments[1].Text.Should().Be("- Second item? Yes.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_MixedListsAndParagraphs()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = "- List item\n\nParagraph one. Paragraph two!\n- Another item";
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(4);
+            segments[0].Text.Should().Be("- List item");
+            segments[1].Text.Should().Be("Paragraph one.");
+            segments[2].Text.Should().Be("Paragraph two!");
+            segments[3].Text.Should().Be("- Another item");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_Headers()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       # Header 1
+                       ## Header 2
+                       ### Header 3
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("# Header 1");
+            segments[1].Text.Should().Be("## Header 2");
+            segments[2].Text.Should().Be("### Header 3");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_CodeBlocks_FencedAndIndented()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       ```
+                       code block
+                       ```
+                           indented code
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            segments.Should().HaveCount(2);
+            segments[0].Text.Should().Be("""
+                                         ```
+                                         code block
+                                         ```
+                                         """);
+            segments[1].Text.Should().Be("    indented code");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_InlineCode()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = "This is `inline code` in a sentence.";
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(1);
+            segments[0].Text.Should().Be("This is `inline code` in a sentence.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_LinksAndImages()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = "[Link](https://example.com) and ![Image](img.png)";
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            segments.Should().HaveCount(1);
+            segments[0].Text.Should().Be("[Link](https://example.com) and ![Image](img.png)");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_Blockquotes()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       > This is a blockquote.
+                       > Second line.
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(2);
+            segments[0].Text.Should().Be("> This is a blockquote.");
+            segments[1].Text.Should().Be("> Second line.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_MixedDocument()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       # Title
+                       - List item
+                       Paragraph one. `inline code`
+                       ```
+                       block
+                       ```
+                       [Link](url)
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(5);
+            segments[0].Text.Should().Be("# Title");
+            segments[1].Text.Should().Be("- List item");
+            segments[2].Text.Should().Be("Paragraph one. `inline code`");
+            segments[3].Text.Should().Be("""
+                                         ```
+                                         block
+                                         ```
+                                         """);
+            segments[4].Text.Should().Be("[Link](url)");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_EmptyElements()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       - 
+
+                       ```
+
+                       ```
+                       # 
+
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("- ");
+            segments[1].Text.Should().Be("""
+                                         ```
+                                         
+                                         ```
+                                         """);
+            segments[2].Text.Should().Be("# ");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_MixedWithRegularText()
+        {
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            var text = """
+                       This is a paragraph. - List item
+                       Another sentence!
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("This is a paragraph.");
+            segments[1].Text.Should().Be("- List item");
+            segments[2].Text.Should().Be("Another sentence!");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithPatternForMarkdown_Works()
+        {
+            var splitter = SentenceTextSplitter.WithPatternForMarkdown(@"(?<=\n)");
+            var text = """
+                       # Header
+                       - List
+                       Paragraph.
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("# Header");
+            segments[1].Text.Should().Be("- List");
+            segments[2].Text.Should().Be("Paragraph.");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_BackwardCompatibility_NonMarkdownMode()
+        {
+            var splitter = new SentenceTextSplitter();
+            var text = """
+                       - List item.
+                       Paragraph one.
+                       Paragraph two!
+                       """;
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(text))
+                segments.Add(segment);
+
+            using var _ = new AssertionScope();
+            // Should split only by sentences, not preserve markdown
+            segments.Should().HaveCount(3);
+            segments[0].Text.Should().Be("- List item.");
+            segments[1].Text.Should().Be("Paragraph one.");
+            segments[2].Text.Should().Be("Paragraph two!");
         }
     }
 }
