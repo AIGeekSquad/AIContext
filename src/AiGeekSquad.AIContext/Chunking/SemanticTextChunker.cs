@@ -66,6 +66,27 @@ namespace AiGeekSquad.AIContext.Chunking
             return new SemanticTextChunker(tokenCounter, embeddingGenerator, similarityCalculator, embeddingCache, splitter);
         }
 
+        /// <summary>
+        /// Asynchronously chunks the specified text into semantically meaningful segments.
+        /// </summary>
+        /// <param name="text">The text to chunk.</param>
+        /// <param name="options">The chunking options. If null, default options are used.</param>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>An async enumerable of text chunks.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
+        public async IAsyncEnumerable<TextChunk> ChunkAsync(
+            string text,
+            SemanticChunkingOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            if (text == null)
+                throw new ArgumentNullException(nameof(text));
+
+            await foreach (var chunk in ChunkDocumentAsync(text, null, options, cancellationToken))
+            {
+                yield return chunk;
+            }
+        }
 
         /// <summary>
         /// Asynchronously chunks a document with associated metadata.
@@ -76,10 +97,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="cancellationToken">A token to cancel the operation.</param>
         /// <returns>An async enumerable of text chunks with metadata.</returns>
         /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
-        public async IAsyncEnumerable<TextChunk> ChunkAsync(
+        public async IAsyncEnumerable<TextChunk> ChunkDocumentAsync(
             string text,
-            SemanticChunkingOptions? options = null,
             IDictionary<string, object>? metadata = null,
+            SemanticChunkingOptions? options = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (text == null)
@@ -100,29 +121,20 @@ namespace AiGeekSquad.AIContext.Chunking
             if (segments.Count == 0)
                 yield break;
 
-            // Step 1.5: Validate and split segments that exceed token limits
-            var validatedSegments = await ValidateAndSplitSegments(segments, options, cancellationToken);
-
-            if (validatedSegments.Count == 0)
-                yield break;
-
             // Step 2: Create segment groups with buffer context
-            var sentenceGroups = CreateSegmentGroups(validatedSegments, options.BufferSize);
-
-            // Step 2.5: Validate segment groups don't exceed token limits
-            var validatedGroups = await ValidateSegmentGroups(sentenceGroups, options, cancellationToken);
+            var sentenceGroups = CreateSegmentGroups(segments, options.BufferSize);
 
             // Step 3: Generate embeddings for sentence groups
-            await GenerateEmbeddingsForGroups(validatedGroups, options, cancellationToken);
+            await GenerateEmbeddingsForGroups(sentenceGroups, options, cancellationToken);
 
             // Step 4: Calculate similarities and distances
-            var distances = CalculateDistancesBetweenGroups(validatedGroups);
+            var distances = CalculateDistancesBetweenGroups(sentenceGroups);
 
             // Step 5: Identify breakpoints using percentile threshold
             var breakpoints = IdentifyBreakpoints(distances, options.BreakpointPercentileThreshold);
 
             // Step 6: Create chunks based on breakpoints
-            await foreach (var chunk in CreateChunksFromBreakpoints(validatedSegments, breakpoints, metadata, options, cancellationToken))
+            await foreach (var chunk in CreateChunksFromBreakpoints(segments, breakpoints, metadata, options, cancellationToken))
             {
                 yield return chunk;
             }
@@ -161,164 +173,6 @@ namespace AiGeekSquad.AIContext.Chunking
             }
 
             return groups;
-        }
-
-        /// <summary>
-        /// Validates and splits segments that exceed token limits to ensure they can be processed by the embedding generator.
-        /// </summary>
-        /// <param name="segments">The list of text segments to validate.</param>
-        /// <param name="options">The chunking options.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A list of validated segments that respect token limits.</returns>
-        private async Task<List<(string text, int startIndex, int endIndex)>> ValidateAndSplitSegments(
-            List<(string text, int startIndex, int endIndex)> segments,
-            SemanticChunkingOptions options,
-            CancellationToken cancellationToken)
-        {
-            var validatedSegments = new List<(string text, int startIndex, int endIndex)>();
-
-            foreach (var segment in segments)
-            {
-                var tokenCount = await _tokenCounter.CountTokensAsync(segment.text, cancellationToken);
-
-                if (tokenCount <= options.MaxTokensPerChunk)
-                {
-                    // Segment is within limits
-                    validatedSegments.Add(segment);
-                }
-                else
-                {
-                    // Segment exceeds token limit, split it further
-                    var splitSegments = await SplitOversizedSegment(segment, options, cancellationToken);
-                    validatedSegments.AddRange(splitSegments);
-                }
-            }
-
-            return validatedSegments;
-        }
-
-        /// <summary>
-        /// Splits an oversized segment into smaller segments that respect token limits.
-        /// </summary>
-        /// <param name="segment">The oversized segment to split.</param>
-        /// <param name="options">The chunking options.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A list of smaller segments that respect token limits.</returns>
-        private async Task<List<(string text, int startIndex, int endIndex)>> SplitOversizedSegment(
-            (string text, int startIndex, int endIndex) segment,
-            SemanticChunkingOptions options,
-            CancellationToken cancellationToken)
-        {
-            var result = new List<(string text, int startIndex, int endIndex)>();
-            var text = segment.text;
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            if (words.Length <= 1)
-            {
-                // Single word that's too long - this is an edge case but we'll include it anyway
-                // Log warning that this might cause embedding generation issues
-                result.Add(segment);
-                return result;
-            }
-
-            var currentSegmentWords = new List<string>();
-            var currentStartIndex = segment.startIndex;
-
-            for (int i = 0; i < words.Length; i++)
-            {
-                currentSegmentWords.Add(words[i]);
-                var testText = string.Join(" ", currentSegmentWords);
-                var tokenCount = await _tokenCounter.CountTokensAsync(testText, cancellationToken);
-
-                if (tokenCount > options.MaxTokensPerChunk)
-                {
-                    // Remove the last word and create a segment
-                    if (currentSegmentWords.Count > 1)
-                    {
-                        currentSegmentWords.RemoveAt(currentSegmentWords.Count - 1);
-                        var segmentText = string.Join(" ", currentSegmentWords);
-                        
-                        // Find the actual position in the original text
-                        var actualStartIndex = segment.text.IndexOf(segmentText, StringComparison.Ordinal);
-                        if (actualStartIndex >= 0)
-                        {
-                            actualStartIndex += segment.startIndex;
-                            result.Add((segmentText, actualStartIndex, actualStartIndex + segmentText.Length));
-                        }
-                        else
-                        {
-                            // Fallback to approximate positioning
-                            result.Add((segmentText, currentStartIndex, currentStartIndex + segmentText.Length));
-                        }
-
-                        // Start new segment with the current word
-                        currentSegmentWords.Clear();
-                        currentSegmentWords.Add(words[i]);
-                        currentStartIndex = actualStartIndex >= 0 ? actualStartIndex + segmentText.Length + 1 : currentStartIndex + segmentText.Length + 1;
-                    }
-                    else
-                    {
-                        // Single word is too long - add it anyway (edge case)
-                        var singleWordText = currentSegmentWords[0];
-                        result.Add((singleWordText, currentStartIndex, currentStartIndex + singleWordText.Length));
-                        currentSegmentWords.Clear();
-                        currentStartIndex += singleWordText.Length + 1;
-                    }
-                }
-            }
-
-            // Add remaining words as the last segment
-            if (currentSegmentWords.Count > 0)
-            {
-                var finalSegmentText = string.Join(" ", currentSegmentWords);
-                result.Add((finalSegmentText, currentStartIndex, Math.Min(currentStartIndex + finalSegmentText.Length, segment.endIndex)));
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Validates that segment groups don't exceed token limits for embedding generation.
-        /// </summary>
-        /// <param name="sentenceGroups">The sentence groups to validate.</param>
-        /// <param name="options">The chunking options.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A list of validated sentence groups.</returns>
-        private async Task<List<SentenceGroup>> ValidateSegmentGroups(
-            List<SentenceGroup> sentenceGroups,
-            SemanticChunkingOptions options,
-            CancellationToken cancellationToken)
-        {
-            var validatedGroups = new List<SentenceGroup>();
-
-            foreach (var group in sentenceGroups)
-            {
-                var tokenCount = await _tokenCounter.CountTokensAsync(group.CombinedText, cancellationToken);
-
-                if (tokenCount <= options.MaxTokensPerChunk)
-                {
-                    // Group is within limits
-                    validatedGroups.Add(group);
-                }
-                else
-                {
-                    // Group exceeds limits, create a simplified group with just the core sentence
-                    var coreSegment = group.Sentences.Count > 0 ? group.Sentences[0] : string.Empty;
-                    if (!string.IsNullOrEmpty(coreSegment))
-                    {
-                        var coreTokenCount = await _tokenCounter.CountTokensAsync(coreSegment, cancellationToken);
-                        if (coreTokenCount <= options.MaxTokensPerChunk)
-                        {
-                            // Use just the core segment without buffer context
-                            var simplifiedGroup = new SentenceGroup(new List<string> { coreSegment }, group.StartIndex, group.EndIndex);
-                            validatedGroups.Add(simplifiedGroup);
-                        }
-                        // If even the core segment is too large, we skip it (it should have been handled in ValidateAndSplitSegments)
-                    }
-                }
-            }
-
-            return validatedGroups;
         }
 
         /// <summary>

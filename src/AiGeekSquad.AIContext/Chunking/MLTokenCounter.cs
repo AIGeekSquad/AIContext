@@ -94,49 +94,9 @@ namespace AiGeekSquad.AIContext.Chunking
         }
 
         /// <summary>
-        /// Creates a new instance of <see cref="MLTokenCounter"/> with text-embedding-ada-002 tokenizer.
-        /// This is commonly used for OpenAI embedding models.
-        /// </summary>
-        /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
-        public static MLTokenCounter CreateTextEmbeddingAda002()
-        {
-            return new MLTokenCounter(TiktokenTokenizer.CreateForModel("text-embedding-ada-002"));
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="MLTokenCounter"/> with text-embedding-3-small tokenizer.
-        /// This is used for OpenAI's newer small embedding model.
-        /// </summary>
-        /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
-        public static MLTokenCounter CreateTextEmbedding3Small()
-        {
-            return new MLTokenCounter(TiktokenTokenizer.CreateForModel("text-embedding-3-small"));
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="MLTokenCounter"/> with text-embedding-3-large tokenizer.
-        /// This is used for OpenAI's newer large embedding model.
-        /// </summary>
-        /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
-        public static MLTokenCounter CreateTextEmbedding3Large()
-        {
-            return new MLTokenCounter(TiktokenTokenizer.CreateForModel("text-embedding-3-large"));
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="MLTokenCounter"/> with cl100k_base encoding.
-        /// This is the base encoding used by many OpenAI models including GPT-4 and embedding models.
-        /// </summary>
-        /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
-        public static MLTokenCounter CreateCl100kBase()
-        {
-            return new MLTokenCounter(TiktokenTokenizer.CreateForEncoding("cl100k_base"));
-        }
-
-        /// <summary>
         /// Creates a new instance of <see cref="MLTokenCounter"/> with a specific model tokenizer.
         /// </summary>
-        /// <param name="modelName">The model name to create tokenizer for (e.g., "gpt-4", "gpt-3.5-turbo", "text-embedding-ada-002").</param>
+        /// <param name="modelName">The model name to create tokenizer for (e.g., "gpt-4", "gpt-3.5-turbo").</param>
         /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
         /// <exception cref="ArgumentException">Thrown when model name is null or empty.</exception>
         /// <exception cref="InvalidOperationException">Thrown when tokenizer creation fails.</exception>
@@ -153,29 +113,6 @@ namespace AiGeekSquad.AIContext.Chunking
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to create tokenizer for model '{modelName}'.", ex);
-            }
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="MLTokenCounter"/> with a specific encoding.
-        /// </summary>
-        /// <param name="encodingName">The encoding name to create tokenizer for (e.g., "cl100k_base", "p50k_base", "r50k_base").</param>
-        /// <returns>A new <see cref="MLTokenCounter"/> instance.</returns>
-        /// <exception cref="ArgumentException">Thrown when encoding name is null or empty.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when tokenizer creation fails.</exception>
-        public static MLTokenCounter CreateForEncoding(string encodingName)
-        {
-            if (string.IsNullOrWhiteSpace(encodingName))
-                throw new ArgumentException("Encoding name cannot be null or empty.", nameof(encodingName));
-
-            try
-            {
-                var tokenizer = TiktokenTokenizer.CreateForEncoding(encodingName);
-                return new MLTokenCounter(tokenizer);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Failed to create tokenizer for encoding '{encodingName}'.", ex);
             }
         }
 

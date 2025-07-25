@@ -445,9 +445,6 @@ public interface ITokenCounter
 
 - **`MLTokenCounter`**: GPT-4 compatible tokenizer using Microsoft.ML.Tokenizers
 - **`SentenceTextSplitter`**: Regex-based sentence splitting with customizable patterns
-  - Default pattern is optimized for English text
-  - Handles common English titles and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.)
-  - Prevents incorrect sentence breaks at abbreviations
 - **`MathNetSimilarityCalculator`**: Cosine similarity using MathNet.Numerics
 - **`EmbeddingCache`**: LRU cache for embedding storage
 

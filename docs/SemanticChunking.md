@@ -18,7 +18,7 @@ Traditional text chunking methods split text based on fixed rules like character
 2. **Embedding Generation**: Each segment gets converted to a vector embedding
 3. **Similarity Analysis**: Adjacent segments are compared for semantic similarity
 4. **Breakpoint Detection**: Points with low similarity become chunk boundaries
-5. **Token Validation**: Chunks are validated against size constraints using [`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs:12) with Microsoft.ML.Tokenizers
+5. **Token Validation**: Chunks are validated against size constraints
 6. **Fallback Logic**: Ensures meaningful chunks are always produced
 
 ## Architecture
@@ -36,7 +36,7 @@ ITextSplitter
 
 // Token counting
 ITokenCounter
-└── MLTokenCounter (Microsoft.ML.Tokenizers)
+└── MLTokenCounter
 
 // Embedding generation (implement yourself)
 IEmbeddingGenerator
@@ -44,164 +44,7 @@ IEmbeddingGenerator
 // Similarity calculations
 ISimilarityCalculator
 └── MathNetSimilarityCalculator
-
-The [`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs:12) implementation leverages Microsoft.ML.Tokenizers to provide accurate, model-specific token counting that aligns with OpenAI's tokenization standards. It uses TiktokenTokenizer internally and defaults to GPT-4 tokenization for maximum compatibility. The component integrates seamlessly with [`SemanticTextChunker.Create()`](src/AiGeekSquad.AIContext/Chunking/SemanticTextChunker.cs:52) and is used throughout the chunking process for token validation and metadata generation.
-
 ```
-## Token Counting
-
-The [`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs:12) class provides accurate token counting using the Microsoft.ML.Tokenizers library. This implementation ensures compatibility with OpenAI models and other tokenization standards.
-
-### Key Features
-
-- **Microsoft.ML.Tokenizers Integration**: Uses the official Microsoft tokenization library for accurate token counting
-- **GPT-4 Default**: Uses GPT-4 tokenizer by default for maximum compatibility
-- **Multiple Model Support**: Factory methods for various OpenAI models and encodings
-- **Async Support**: Both synchronous and asynchronous token counting APIs
-- **Error Handling**: Comprehensive validation and error messages
-
-### Factory Methods
-
-The [`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs:12) class provides several factory methods for different models and encodings:
-
-#### Pre-configured Model Methods
-
-```csharp
-// GPT models
-var gpt4Counter = MLTokenCounter.CreateGpt4();
-var gpt35Counter = MLTokenCounter.CreateGpt35Turbo();
-
-// OpenAI embedding models  
-var ada002Counter = MLTokenCounter.CreateTextEmbeddingAda002();
-var embedding3SmallCounter = MLTokenCounter.CreateTextEmbedding3Small();
-var embedding3LargeCounter = MLTokenCounter.CreateTextEmbedding3Large();
-
-// Base encoding
-var cl100kCounter = MLTokenCounter.CreateCl100kBase();
-```
-
-#### Generic Factory Methods
-
-```csharp
-// Create for any supported model
-var customModelCounter = MLTokenCounter.CreateForModel("gpt-4");
-var embeddingCounter = MLTokenCounter.CreateForModel("text-embedding-3-small");
-
-// Create for specific encoding
-var encodingCounter = MLTokenCounter.CreateForEncoding("cl100k_base");
-```
-
-### API Reference
-
-#### Synchronous Token Counting
-
-```csharp
-public int CountTokens(string text)
-```
-
-**Parameters:**
-- `text` (string): The text to count tokens for
-
-**Returns:** The number of tokens in the text
-
-**Exceptions:**
-- `ArgumentNullException`: When text is null
-
-#### Asynchronous Token Counting
-
-```csharp
-public Task<int> CountTokensAsync(string text, CancellationToken cancellationToken = default)
-```
-
-**Parameters:**
-- `text` (string): The text to count tokens for
-- `cancellationToken` (CancellationToken): Optional cancellation token
-
-**Returns:** Task containing the number of tokens in the text
-
-**Exceptions:**
-- `ArgumentNullException`: When text is null
-- `OperationCanceledException`: When operation is cancelled
-
-### Usage Examples
-
-#### Basic Usage
-
-```csharp
-using AiGeekSquad.AIContext.Chunking;
-
-// Default GPT-4 tokenizer
-var tokenCounter = new MLTokenCounter();
-var tokenCount = tokenCounter.CountTokens("Hello, world!");
-Console.WriteLine($"Token count: {tokenCount}");
-
-// Async version
-var asyncTokenCount = await tokenCounter.CountTokensAsync("Hello, world!");
-```
-
-#### Model-Specific Usage
-
-```csharp
-// For GPT-4 applications
-var gpt4Counter = MLTokenCounter.CreateGpt4();
-var gpt4Tokens = gpt4Counter.CountTokens(text);
-
-// For embedding applications (important: align with embedding model)
-var embeddingCounter = MLTokenCounter.CreateTextEmbedding3Small();
-var embeddingTokens = embeddingCounter.CountTokens(text);
-```
-
-#### Error Handling
-
-```csharp
-try
-{
-    var counter = MLTokenCounter.CreateForModel("unsupported-model");
-}
-catch (InvalidOperationException ex)
-{
-    Console.WriteLine($"Failed to create tokenizer: {ex.Message}");
-}
-
-try
-{
-    var count = tokenCounter.CountTokens(null);
-}
-catch (ArgumentNullException ex)
-{
-    Console.WriteLine($"Invalid input: {ex.Message}");
-}
-```
-
-### Token Counter Alignment with Embedding Models
-
-> **⚠️ Critical Note:** The token counter used for chunking should be aligned with the embedding model that will be used for embedding generation. Misaligned tokenizers can result in chunks that exceed the embedding model's token limits, potentially requiring additional chunking after embedding generation. This dependency is demonstrated in the [`SemanticTextChunker.cs`](src/AiGeekSquad.AIContext/Chunking/SemanticTextChunker.cs:52) implementation, where the token counter is used throughout the chunking process to validate chunk sizes before they are processed by the embedding generator.
-
-**Recommended Alignments:**
-
-| Embedding Model | Recommended Token Counter | Factory Method |
-|-----------------|---------------------------|----------------|
-| text-embedding-ada-002 | text-embedding-ada-002 | `CreateTextEmbeddingAda002()` |
-| text-embedding-3-small | text-embedding-3-small | `CreateTextEmbedding3Small()` |
-| text-embedding-3-large | text-embedding-3-large | `CreateTextEmbedding3Large()` |
-| Custom OpenAI models | cl100k_base encoding | `CreateCl100kBase()` |
-
-**Example of Proper Alignment:**
-
-```csharp
-// For text-embedding-3-small model
-var tokenCounter = MLTokenCounter.CreateTextEmbedding3Small();
-var embeddingGenerator = new OpenAIEmbeddingGenerator("text-embedding-3-small");
-var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
-```
-
-**Consequences of Misalignment:**
-
-- Chunks may exceed embedding model token limits
-- Embedding generation may fail or truncate content  
-- Additional post-processing chunking may be required
-- Reduced chunking efficiency and accuracy
-
 
 ## Quick Start
 
@@ -210,11 +53,8 @@ var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
 ```csharp
 using AiGeekSquad.AIContext.Chunking;
 
-// Setup dependencies with specific tokenizer for your use case
-var tokenCounter = MLTokenCounter.CreateGpt4(); // For GPT-4 applications
-// OR for embedding applications:
-// var tokenCounter = MLTokenCounter.CreateTextEmbedding3Small(); // Align with your embedding model
-
+// Setup dependencies
+var tokenCounter = new MLTokenCounter();
 var embeddingGenerator = new YourEmbeddingProvider(); // Implement IEmbeddingGenerator
 
 // Create chunker
@@ -258,7 +98,7 @@ var metadata = new Dictionary<string, object>
     ["Author"] = "AI Assistant"
 };
 
-await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
+await foreach (var chunk in chunker.ChunkDocumentAsync(text, metadata, options))
 {
     // Original metadata is preserved and enhanced
     Console.WriteLine($"Document ID: {chunk.Metadata["DocumentId"]}");
@@ -434,7 +274,7 @@ var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
 
 foreach (var document in documents)
 {
-    await foreach (var chunk in chunker.ChunkAsync(document.Text, document.Metadata))
+    await foreach (var chunk in chunker.ChunkDocumentAsync(document.Text, document.Metadata))
     {
         await ProcessChunkAsync(chunk);
     }
@@ -513,7 +353,7 @@ var options = new SemanticChunkingOptions
 };
 
 var chunks = new List<TextChunk>();
-await foreach (var chunk in chunker.ChunkAsync(document, metadata, options))
+await foreach (var chunk in chunker.ChunkDocumentAsync(document, metadata, options))
 {
     chunks.Add(chunk);
 }
@@ -528,7 +368,6 @@ await vectorStore.AddChunksAsync(chunks);
 // Custom splitter for legal sections
 var legalSplitter = SentenceTextSplitter.WithPattern(@"(?<=\.)\s+(?=\d+\.\d+|\([a-z]\)|\([ivx]+\))");
 
-var tokenCounter = MLTokenCounter.CreateGpt4(); // Use appropriate model for legal content
 var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, legalSplitter);
 var options = new SemanticChunkingOptions
 {
@@ -598,7 +437,7 @@ public async Task IndexDocumentAsync(string documentText, Dictionary<string, obj
 {
     var chunks = new List<(string text, Vector<double> embedding, Dictionary<string, object> metadata)>();
     
-    await foreach (var chunk in chunker.ChunkAsync(documentText, metadata))
+    await foreach (var chunk in chunker.ChunkDocumentAsync(documentText, metadata))
     {
         var embedding = await embeddingGenerator.GetSingleEmbeddingAsync(chunk.Text);
         chunks.Add((chunk.Text, embedding, chunk.Metadata));
@@ -616,7 +455,7 @@ public async Task IndexDocumentAsync(Document document)
 {
     var searchDocuments = new List<SearchDocument>();
     
-    await foreach (var chunk in chunker.ChunkAsync(document.Content, document.Metadata))
+    await foreach (var chunk in chunker.ChunkDocumentAsync(document.Content, document.Metadata))
     {
         var searchDoc = new SearchDocument
         {
