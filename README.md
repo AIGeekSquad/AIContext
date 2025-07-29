@@ -343,8 +343,8 @@ The project uses **AppVeyor** for continuous integration:
 
 The [`examples/`](examples/) directory contains fully functional demonstrations:
 
-- **[`BasicChunking.cs`](examples/BasicChunking.cs)**: Complete semantic chunking example with sample embedding generator
-- **[`MMRExample.cs`](examples/MMRExample.cs)**: MMR algorithm demonstration with different lambda values and RAG system context
+- **[`BasicChunking.cs`](examples/BasicChunking.cs)** - Complete semantic chunking example with sample embedding generator
+- **[`MMRExample.cs`](examples/MMRExample.cs)** - MMR algorithm demonstration with different lambda values and RAG system context
 
 ### 🔍 **RAG Systems (Retrieval Augmented Generation)**
 ```csharp
