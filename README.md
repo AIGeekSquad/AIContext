@@ -1,8 +1,5 @@
 # AiGeekSquad.AIContext
 
-[![Build status](https://ci.appveyor.com/api/projects/status/1xihiiexyrymgxpg?svg=true)](https://ci.appveyor.com/project/colombod/aicontext)
-[![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ![AiContext](aicontext128.png)
@@ -119,6 +116,7 @@ dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Relea
 ## 🧪 Testing
 
 The library includes comprehensive test coverage:
+
 - **44 unit tests** covering all core functionality
 - **Real implementation testing** (no mocks for core algorithms)
 - **Edge case handling** with robust fallback mechanisms
