@@ -1,5 +1,7 @@
 # AiGeekSquad.AIContext
-
+[![Build status](https://ci.appveyor.com/api/projects/status/1xihiiexyrymgxpg?svg=true)](https://ci.appveyor.com/project/colombod/aicontext)
+[![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ![AiContext](aicontext128.png)
@@ -390,9 +392,10 @@ var recommendations = MaximumMarginalRelevance.ComputeMMR(
 ```
 
 ### 🔬 **Research & Analytics Applications**
-- **Literature review systems**: Diverse paper selection for comprehensive coverage
-- **Market research**: Balanced sampling from different data sources
-- **Content analysis**: Representative text selection for qualitative research
+
+- **Literature review systems** - Diverse paper selection for comprehensive coverage
+- **Market research** - Balanced sampling from different data sources
+- **Content analysis** - Representative text selection for qualitative research
 
 ## 🏗️ Architecture
 
@@ -442,13 +445,13 @@ public interface ITokenCounter
 
 ### Built-in Implementations
 
-- **`MLTokenCounter`**: GPT-4 compatible tokenizer using Microsoft.ML.Tokenizers
-- **`SentenceTextSplitter`**: Regex-based sentence splitting with customizable patterns
+- **[`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs)** - GPT-4 compatible tokenizer using Microsoft.ML.Tokenizers
+- **[`SentenceTextSplitter`](src/AiGeekSquad.AIContext/Chunking/SentenceTextSplitter.cs)** - Regex-based sentence splitting with customizable patterns
   - Default pattern is optimized for English text
   - Handles common English titles and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.)
   - Prevents incorrect sentence breaks at abbreviations
-- **`MathNetSimilarityCalculator`**: Cosine similarity using MathNet.Numerics
-- **`EmbeddingCache`**: LRU cache for embedding storage
+- **[`MathNetSimilarityCalculator`](src/AiGeekSquad.AIContext/Chunking/MathNetSimilarityCalculator.cs)** - Cosine similarity using MathNet.Numerics
+- **[`EmbeddingCache`](src/AiGeekSquad.AIContext/Chunking/EmbeddingCache.cs)** - LRU cache for embedding storage
 
 ## 📦 Dependencies
 
@@ -460,10 +463,10 @@ public interface ITokenCounter
 
 ## 📖 Documentation
 
-- **[MMR Algorithm](docs/MMR.md)**: Detailed MMR documentation with benchmarks
-- **[Semantic Chunking](docs/SemanticChunking.md)**: In-depth chunking algorithm explanation
-- **[API Reference](https://github.com/AiGeekSquad/AIContext/wiki/API-Reference)**: Complete API documentation
-- **[Examples](examples/)**: Sample implementations and use cases
+- **[MMR Algorithm](docs/MMR.md)** - Detailed MMR documentation with benchmarks
+- **[Semantic Chunking](docs/SemanticChunking.md)** - In-depth chunking algorithm explanation
+- **[API Reference](https://github.com/AiGeekSquad/AIContext/wiki/API-Reference)** - Complete API documentation
+- **[Examples](examples/)** - Sample implementations and use cases
 
 ## 🤝 Contributing
 
@@ -471,10 +474,10 @@ We welcome contributions! Here's how to get involved:
 
 ### Types of Contributions
 
-- **🐛 Bug Reports**: Submit detailed bug reports with reproduction steps
-- **✨ Feature Requests**: Propose new features with use cases and examples
-- **📝 Documentation**: Improve documentation, examples, and guides
-- **🔧 Code Contributions**: Implement features, fix bugs, optimize performance
+- **🐛 Bug Reports** - Submit detailed bug reports with reproduction steps
+- **✨ Feature Requests** - Propose new features with use cases and examples
+- **📝 Documentation** - Improve documentation, examples, and guides
+- **🔧 Code Contributions** - Implement features, fix bugs, optimize performance
 
 ### Contribution Process
 
