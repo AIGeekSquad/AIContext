@@ -372,10 +372,11 @@ public async Task<string> ProcessUserQuery(string question)
 ```
 
 ### 📚 **Document Processing Scenarios**
-- **Knowledge base chunking**: Semantic splitting for enterprise search systems
-- **Legal document analysis**: Custom text splitters for numbered sections and clauses
-- **Research paper processing**: Academic content patterns with citation awareness
-- **Technical documentation**: Code-aware splitting that preserves syntax integrity
+
+- **Knowledge base chunking** - Semantic splitting for enterprise search systems
+- **Legal document analysis** - Custom text splitters for numbered sections and clauses
+- **Research paper processing** - Academic content patterns with citation awareness
+- **Technical documentation** - Code-aware splitting that preserves syntax integrity
 
 ### 🎯 **Content Recommendation Systems**
 ```csharp
