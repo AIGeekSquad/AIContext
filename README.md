@@ -503,9 +503,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Support
 
-- **Issues**: [GitHub Issues](https://github.com/AiGeekSquad/AIContext/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/AiGeekSquad/AIContext/discussions)
-- **Documentation**: [Wiki](https://github.com/AiGeekSquad/AIContext/wiki)
+- **Issues** - [GitHub Issues](https://github.com/AiGeekSquad/AIContext/issues)
+- **Discussions** - [GitHub Discussions](https://github.com/AiGeekSquad/AIContext/discussions)
+- **Documentation** - [Wiki](https://github.com/AiGeekSquad/AIContext/wiki)
 
 ## 🙏 Acknowledgments
 
