@@ -1,7 +1,5 @@
 # AiGeekSquad.AIContext
 
-[![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive C# library for **AI-powered context management**, providing intelligent text processing capabilities for modern AI applications. This library combines **semantic text chunking** and **Maximum Marginal Relevance (MMR)** algorithms to help you build better RAG systems, search engines, and content recommendation platforms.
@@ -17,7 +15,7 @@ A comprehensive C# library for **AI-powered context management**, providing inte
 
 ### Installation
 
-```bash
+```pwsh
 dotnet add package AiGeekSquad.AIContext
 ```
 
@@ -409,10 +407,6 @@ Use Bearer tokens for API access.
   ""example"": ""request""
 }
 ```
-
-## Endpoints
-Each endpoint follows REST principles.
-";
 
 var options = new SemanticChunkingOptions
 {
