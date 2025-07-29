@@ -244,9 +244,9 @@ This is a paragraph with a sentence. Another sentence here.
 - Second item
   - Nested item
 
-```csharp
+" + "```csharp" + @"
 var code = ""Hello World"";
-```
+" + "```" + @"
 
 > This is a blockquote.
 > Second line of quote.
@@ -288,9 +288,6 @@ Markdown: - Second item
 Markdown:   - Nested item
 Markdown: ```csharp
 var code = "Hello World";
-```
-Markdown: > This is a blockquote.
-Markdown: > Second line of quote.
 ```
 
 ### List Handling Examples
@@ -336,7 +333,7 @@ await foreach (var segment in splitter.SplitAsync(orderedText))
 var nestedText = @"
 - Parent item
   - Child item one
-  - Child item two  
+  - Child item two
     * Grandchild item
 - Another parent
 ";
@@ -351,76 +348,6 @@ await foreach (var segment in splitter.SplitAsync(nestedText))
 // Nested: '  - Child item two'
 // Nested: '    * Grandchild item'
 // Nested: '- Another parent'
-```
-
-### Code Block Handling
-
-```csharp
-var codeText = @"
-Here's a fenced code block:
-
-```csharp
-public class Example 
-{
-    public void Method() { }
-}
-```
-
-And indented code:
-
-    var indented = ""code"";
-    Console.WriteLine(indented);
-";
-
-await foreach (var segment in splitter.SplitAsync(codeText))
-{
-    Console.WriteLine($"Segment: {segment.Text}");
-}
-// Fenced code blocks are preserved as complete units
-// Indented code lines are kept with original indentation
-```
-
-### Integration with Semantic Chunking
-
-```csharp
-using AiGeekSquad.AIContext.Chunking;
-
-// Use markdown-aware splitter with semantic chunking
-var tokenCounter = new MLTokenCounter();
-var embeddingGenerator = new YourEmbeddingProvider();
-var markdownSplitter = SentenceTextSplitter.ForMarkdown();
-
-var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator, markdownSplitter);
-
-var markdownDocument = @"
-# API Documentation
-
-## Authentication
-Use Bearer tokens for API access.
-
-### Request Headers
-- `Authorization: Bearer <token>`
-- `Content-Type: application/json`
-
-```json
-{
-  ""example"": ""request""
-}
-```
-
-var options = new SemanticChunkingOptions
-{
-    MaxTokensPerChunk = 512,
-    MinTokensPerChunk = 10,
-    BreakpointPercentileThreshold = 0.75
-};
-
-await foreach (var chunk in chunker.ChunkAsync(markdownDocument, metadata, options))
-{
-    // Each chunk will contain semantically related markdown elements
-    // Lists, code blocks, and headers maintain their integrity
-    Console.WriteLine($"Chunk: {chunk.Text}");
-}
 ```
 
 ### Best Practices
