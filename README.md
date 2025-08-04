@@ -1,8 +1,9 @@
 # AiGeekSquad.AIContext
 [![Build status](https://ci.appveyor.com/api/projects/status/1xihiiexyrymgxpg?svg=true)](https://ci.appveyor.com/project/colombod/aicontext)
-[![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext.svg)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
+[![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 ![AiContext](aicontext128.png)
 
