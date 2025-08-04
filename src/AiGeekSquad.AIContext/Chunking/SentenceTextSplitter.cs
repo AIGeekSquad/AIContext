@@ -473,7 +473,9 @@ namespace AiGeekSquad.AIContext.Chunking
             var trimmedText = text.Trim();
             if (string.IsNullOrEmpty(trimmedText)) return null;
 
-            var startIndex = originalText.IndexOf(trimmedText, Math.Max(0, searchStartHint), StringComparison.Ordinal);
+            // Ensure searchStartHint is within bounds of originalText
+            var safeSearchStart = Math.Max(0, Math.Min(searchStartHint, originalText.Length));
+            var startIndex = originalText.IndexOf(trimmedText, safeSearchStart, StringComparison.Ordinal);
             if (startIndex >= 0)
             {
                 return new TextSegment(trimmedText, startIndex, startIndex + trimmedText.Length);
@@ -522,7 +524,9 @@ namespace AiGeekSquad.AIContext.Chunking
         {
             if (string.IsNullOrEmpty(text)) return null;
 
-            var startIndex = originalText.IndexOf(text, Math.Max(0, searchStartHint), StringComparison.Ordinal);
+            // Ensure searchStartHint is within bounds of originalText
+            var safeSearchStart = Math.Max(0, Math.Min(searchStartHint, originalText.Length));
+            var startIndex = originalText.IndexOf(text, safeSearchStart, StringComparison.Ordinal);
             if (startIndex >= 0)
             {
                 return new TextSegment(text, startIndex, startIndex + text.Length);
