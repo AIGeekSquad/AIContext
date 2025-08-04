@@ -544,12 +544,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            
- 
+
+
             segments.Should().HaveCount(2);
             segments[0].Text.Should().Be("""He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom.""");
             segments[1].Text.Should().Be("No one answered.");
-        
+
         }
         // MARKDOWN TESTS
 
@@ -846,6 +846,92 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             segments[0].Text.Should().Be("- List item.");
             segments[1].Text.Should().Be("Paragraph one.");
             segments[2].Text.Should().Be("Paragraph two!");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_ArgumentOutOfRangeException_Fix_Verification()
+        {
+            // Arrange
+            var splitter = new SentenceTextSplitter(markdownMode: true);
+
+            // This markdown text is designed to trigger the specific bug where:
+            // 1. Markdown preprocessing changes text length
+            // 2. blockStart calculated from processedText.Length exceeds originalText.Length
+            // 3. This causes ArgumentOutOfRangeException in ExtractParagraphSegments -> FindInOriginalText
+            var problematicMarkdownText = """
+                This is a paragraph. - List item
+                Another sentence!
+                
+                # Header with [link](https://example.com)
+                
+                Some text with `inline code` and more content.
+                
+                - List item with [another link](https://test.com)
+                - Second item
+                
+                Final paragraph with ![image](image.png) reference.
+                """;
+
+            // Act & Assert
+            // This test verifies that the fix prevents ArgumentOutOfRangeException
+            // The test should complete without throwing any exceptions
+            var segments = new List<TextSegment>();
+            var act = async () =>
+            {
+                await foreach (var segment in splitter.SplitAsync(problematicMarkdownText))
+                {
+                    segments.Add(segment);
+                }
+            };
+
+            // Should not throw ArgumentOutOfRangeException
+            await act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
+
+            // Verify that we got some segments (the exact count may vary based on parsing)
+            segments.Should().NotBeEmpty();
+
+            // Verify that all segments have valid indices
+            foreach (var segment in segments)
+            {
+                segment.StartIndex.Should().BeGreaterThanOrEqualTo(0);
+                segment.EndIndex.Should().BeGreaterThan(segment.StartIndex);
+                segment.EndIndex.Should().BeLessThanOrEqualTo(problematicMarkdownText.Length);
+                segment.Text.Should().NotBeNullOrEmpty();
+            }
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_ProcessedTextLengthMismatch_DoesNotThrow()
+        {
+            // Arrange
+            var splitter = new SentenceTextSplitter(markdownMode: true);
+
+            // This specific pattern triggers the PreprocessMixedContent method which can
+            // cause processedText to be longer than originalText, leading to blockStart
+            // being out of bounds when used as searchStartHint in FindInOriginalText
+            var textWithMixedContent = "Sentence one. - List item\nAnother sentence.";
+
+            // Act & Assert
+            var segments = new List<TextSegment>();
+            var act = async () =>
+            {
+                await foreach (var segment in splitter.SplitAsync(textWithMixedContent))
+                {
+                    segments.Add(segment);
+                }
+            };
+
+            // Should not throw ArgumentOutOfRangeException even when processed text length differs
+            await act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
+
+            // Verify segments are created properly
+            segments.Should().NotBeEmpty();
+            foreach (var segment in segments)
+            {
+                segment.StartIndex.Should().BeGreaterThanOrEqualTo(0);
+                segment.EndIndex.Should().BeLessThanOrEqualTo(textWithMixedContent.Length);
+                segment.Text.Should().NotBeNullOrEmpty();
+            }
         }
     }
 }

@@ -11,10 +11,10 @@ public class Program
     public static void Main(string[] args)
     {
         Console.WriteLine("=== AI Context Library Benchmarks ===");
-        
+
         // Parse command line arguments
         var benchmarkType = args.Length > 0 ? args[0].ToLowerInvariant() : "mmr";
-        
+
         switch (benchmarkType)
         {
             case "mmr":
@@ -86,7 +86,7 @@ public class Program
         Console.WriteLine($"Total benchmarks run: {summary.Reports.Count()}");
         Console.WriteLine($"Total errors: {summary.Reports.Count(r => !r.Success)}");
         Console.WriteLine($"Results location: {summary.ResultsDirectoryPath}");
-        
+
         if (summary.Reports.Any(r => !r.Success))
         {
             Console.WriteLine();

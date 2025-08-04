@@ -74,7 +74,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Create a text with very long sentences that exceed the token limit
             var longSentence = "This is an extremely long sentence that contains many words and phrases that will definitely exceed the maximum token limit " +
                               "when processed by the tokenizer and should trigger the segment validation and splitting logic before embedding generation occurs.";
-            
+
             var text = $"{longSentence} Another sentence. Short one.";
 
             // Act
@@ -87,13 +87,13 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty("Should create chunks even with oversized segments");
-            
+
             // All chunks should respect the token limit
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk, 
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk,
                     $"Chunk should not exceed max token limit. Chunk text: '{chunk.Text}'");
                 tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
             }
@@ -125,13 +125,13 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty("Should handle oversized single sentence");
-            
+
             // All chunks should respect the token limit (except potentially edge cases with single words)
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk, 
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk,
                     $"Chunk should not exceed max token limit. Chunk text: '{chunk.Text}'");
             }
         }
@@ -166,12 +166,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty("Should create chunks from mixed-sized segments");
-            
+
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk, 
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk,
                     $"Chunk token count ({tokenCount}) should not exceed max limit ({options.MaxTokensPerChunk}). Chunk: '{chunk.Text}'");
                 tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
             }
@@ -204,7 +204,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty();
-            
+
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
@@ -239,12 +239,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty();
-            
+
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk, 
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk,
                     "Buffer context should not cause token limit violations");
             }
         }
@@ -282,7 +282,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // This test ensures that we don't pass oversized segments to the embedding generator
             // which could cause it to fail
-            
+
             // Arrange
             var chunker = CreateChunker();
             var options = new SemanticChunkingOptions
@@ -310,7 +310,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             };
 
             await action.Should().NotThrowAsync("Chunker should handle oversized segments without errors");
-            
+
             chunks.Should().NotBeEmpty();
             foreach (var chunk in chunks)
             {
@@ -344,12 +344,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().NotBeEmpty("Should create at least one chunk");
-            
+
             foreach (var chunk in chunks)
             {
                 chunk.Metadata.Should().ContainKey("TokenCount");
                 var tokenCount = (int)chunk.Metadata["TokenCount"];
-                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk, 
+                tokenCount.Should().BeLessThanOrEqualTo(options.MaxTokensPerChunk,
                     $"Chunk token count ({tokenCount}) should not exceed max limit ({options.MaxTokensPerChunk}). Chunk: '{chunk.Text}'");
                 tokenCount.Should().BeGreaterThanOrEqualTo(options.MinTokensPerChunk);
             }

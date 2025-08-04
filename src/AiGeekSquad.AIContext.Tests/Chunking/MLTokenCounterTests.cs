@@ -136,7 +136,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -150,7 +150,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -164,7 +164,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -178,7 +178,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -192,7 +192,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -206,7 +206,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -220,7 +220,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -266,7 +266,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -318,7 +318,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -335,7 +335,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             tokenCounter.Should().NotBeNull();
-            
+
             // Test that it can count tokens
             var result = tokenCounter.CountTokens("Hello world!");
             result.Should().BeGreaterThan(0);
@@ -358,7 +358,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             using var _ = new AssertionScope();
             gpt4Count.Should().BeGreaterThan(0);
             cl100kCount.Should().BeGreaterThan(0);
-            
+
             // Note: GPT-4 and cl100k_base actually use the same encoding, so counts should be equal
             // This test verifies the tokenizers work correctly
             gpt4Count.Should().Be(cl100kCount);
@@ -417,13 +417,13 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             counter1.Should().NotBeSameAs(counter2);
-            
+
             // Both should work independently
             var text = "Test text";
             var count1 = counter1.CountTokens(text);
             var count2 = counter2.CountTokens(text);
-            
-            
+
+
             count1.Should().Be(count2);
             count1.Should().BeGreaterThan(0);
         }

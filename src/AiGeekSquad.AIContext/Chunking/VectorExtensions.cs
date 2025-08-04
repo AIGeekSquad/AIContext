@@ -22,20 +22,29 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when percentile is not between 0 and 1.</exception>
         public static double CalculatePercentile(IEnumerable<double> distances, double percentile)
         {
-            if (distances == null)
+            if (distances is null)
+            {
                 throw new ArgumentNullException(nameof(distances));
+            }
+
             if (percentile < 0.0 || percentile > 1.0)
+            {
                 throw new ArgumentException("Percentile must be between 0.0 and 1.0.", nameof(percentile));
+            }
 
             var sortedDistances = distances.Where(d => !double.IsNaN(d) && !double.IsInfinity(d))
                                           .OrderBy(d => d)
                                           .ToArray();
 
             if (sortedDistances.Length == 0)
+            {
                 return 0.0;
+            }
 
             if (sortedDistances.Length == 1)
+            {
                 return sortedDistances[0];
+            }
 
             // Calculate percentile manually
             var realIndex = percentile * (sortedDistances.Length - 1);
@@ -61,8 +70,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentNullException">Thrown when distances is null.</exception>
         public static IEnumerable<int> FindBreakpoints(IEnumerable<double> distances, double threshold)
         {
-            if (distances == null)
+            if (distances is null)
+            {
                 throw new ArgumentNullException(nameof(distances));
+            }
 
             var distanceArray = distances.ToArray();
             var breakpoints = new List<int>();
@@ -87,7 +98,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public static Vector<double> CreateVector(double[] values)
         {
             if (values == null)
+            {
                 throw new ArgumentNullException(nameof(values));
+            }
 
             return Vector<double>.Build.DenseOfArray(values);
         }
@@ -101,7 +114,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public static Vector<double> CreateVector(IEnumerable<double> values)
         {
             if (values == null)
+            {
                 throw new ArgumentNullException(nameof(values));
+            }
 
             return Vector<double>.Build.DenseOfEnumerable(values);
         }
@@ -116,9 +131,14 @@ namespace AiGeekSquad.AIContext.Chunking
         public static void ValidateVector(Vector<double> vector, string parameterName)
         {
             if (vector == null)
+            {
                 throw new ArgumentNullException(parameterName);
+            }
+
             if (vector.Count == 0)
+            {
                 throw new ArgumentException("Vector cannot have zero dimension.", parameterName);
+            }
         }
 
         /// <summary>
@@ -128,13 +148,17 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <returns>A tuple containing (mean, standardDeviation, min, max) statistics.</returns>
         public static (double mean, double standardDeviation, double min, double max) CalculateDistanceStatistics(IEnumerable<double> distances)
         {
-            if (distances == null)
+            if (distances is null)
+            {
                 return (0.0, 0.0, 0.0, 0.0);
+            }
 
             var validDistances = distances.Where(d => !double.IsNaN(d) && !double.IsInfinity(d)).ToArray();
 
             if (validDistances.Length == 0)
+            {
                 return (0.0, 0.0, 0.0, 0.0);
+            }
 
             var mean = validDistances.Mean();
             var standardDeviation = validDistances.StandardDeviation();

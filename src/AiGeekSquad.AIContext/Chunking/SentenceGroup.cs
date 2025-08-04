@@ -66,8 +66,8 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <returns>A string that represents the current sentence group.</returns>
         public override string ToString()
         {
-            var preview = CombinedText.Length > 100 
-                ? CombinedText.Substring(0, 100) + "..." 
+            var preview = CombinedText.Length > 100
+                ? CombinedText.Substring(0, 100) + "..."
                 : CombinedText;
             return $"SentenceGroup[{StartIndex}-{EndIndex}, {SentenceCount} sentences]: {preview}";
         }

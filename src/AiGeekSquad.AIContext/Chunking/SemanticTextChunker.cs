@@ -237,7 +237,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     {
                         currentSegmentWords.RemoveAt(currentSegmentWords.Count - 1);
                         var segmentText = string.Join(" ", currentSegmentWords);
-                        
+
                         // Find the actual position in the original text
                         var actualStartIndex = segment.text.IndexOf(segmentText, StringComparison.Ordinal);
                         if (actualStartIndex >= 0)
