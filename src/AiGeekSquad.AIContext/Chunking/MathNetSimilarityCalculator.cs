@@ -18,9 +18,9 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when vectors have different dimensions.</exception>
         public double CalculateCosineSimilarity(Vector<double> vector1, Vector<double> vector2)
         {
-            if (vector1 == null)
+            if (vector1 is null)
                 throw new ArgumentNullException(nameof(vector1));
-            if (vector2 == null)
+            if (vector2 is null)
                 throw new ArgumentNullException(nameof(vector2));
             if (vector1.Count != vector2.Count)
                 throw new ArgumentException("Vectors must have the same dimension.");

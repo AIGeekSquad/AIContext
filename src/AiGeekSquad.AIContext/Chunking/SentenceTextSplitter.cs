@@ -42,10 +42,14 @@ namespace AiGeekSquad.AIContext.Chunking
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (text == null)
+            {
                 throw new ArgumentNullException(nameof(text));
+            }
 
             if (string.IsNullOrWhiteSpace(text))
+            {
                 yield break;
+            }
 
             if (_markdownMode)
             {
@@ -421,7 +425,7 @@ namespace AiGeekSquad.AIContext.Chunking
             if (blockStart >= blockEnd)
             {
                 yield break;
-            }   
+            }
 
             var quoteText = processedText.Substring(blockStart, blockEnd - blockStart);
             var lines = quoteText.Split('\n');

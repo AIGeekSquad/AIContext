@@ -48,11 +48,15 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
         public int CountTokens(string text)
         {
-            if (text == null)
+            if (text is null)
+            {
                 throw new ArgumentNullException(nameof(text));
+            }
 
             if (string.IsNullOrEmpty(text))
+            {
                 return 0;
+            }
 
             var encoded = _tokenizer.EncodeToIds(text);
             return encoded.Count;
@@ -143,7 +147,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public static MLTokenCounter CreateForModel(string modelName)
         {
             if (string.IsNullOrWhiteSpace(modelName))
+            {
                 throw new ArgumentException("Model name cannot be null or empty.", nameof(modelName));
+            }
 
             try
             {
@@ -166,7 +172,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public static MLTokenCounter CreateForEncoding(string encodingName)
         {
             if (string.IsNullOrWhiteSpace(encodingName))
+            {
                 throw new ArgumentException("Encoding name cannot be null or empty.", nameof(encodingName));
+            }
 
             try
             {
