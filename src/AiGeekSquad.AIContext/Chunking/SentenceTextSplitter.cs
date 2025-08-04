@@ -367,45 +367,6 @@ namespace AiGeekSquad.AIContext.Chunking
         }
 
         /// <summary>
-        /// Splits paragraphs containing inline elements properly.
-        /// </summary>
-        private IEnumerable<TextSegment> SplitParagraphWithInlines(string paraText, string originalText, List<Inline> inlines, int blockStart)
-        {
-            // Use regex to split by inline code while preserving the inline code elements
-            var pattern = @"(`[^`]+`)";
-            var parts = Regex.Split(paraText, pattern);
-
-            foreach (var part in parts)
-            {
-                if (string.IsNullOrWhiteSpace(part)) continue;
-
-                var trimmedPart = part.Trim();
-                if (trimmedPart.StartsWith("`") && trimmedPart.EndsWith("`"))
-                {
-                    // This is inline code - keep as atomic segment
-                    var originalSegment = FindInOriginalText(trimmedPart, originalText, blockStart);
-                    if (originalSegment != null)
-                        yield return originalSegment;
-                }
-                else
-                {
-                    // Regular text - split by sentences
-                    var sentences = _sentencePattern.Split(trimmedPart).Where(s => !string.IsNullOrWhiteSpace(s));
-                    foreach (var sentence in sentences)
-                    {
-                        var trimmedSentence = sentence.Trim();
-                        if (!string.IsNullOrEmpty(trimmedSentence))
-                        {
-                            var originalSegment = FindInOriginalText(trimmedSentence, originalText, blockStart);
-                            if (originalSegment != null)
-                                yield return originalSegment;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Extracts segments from quote blocks.
         /// </summary>
         private IEnumerable<TextSegment> ExtractQuoteSegments(QuoteBlock quoteBlock, string processedText, string originalText)
