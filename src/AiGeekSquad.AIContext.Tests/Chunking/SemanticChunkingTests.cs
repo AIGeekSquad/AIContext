@@ -228,7 +228,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Assert
             using var _ = new AssertionScope();
             chunks.Should().HaveCountGreaterThan(1, "Should create multiple chunks when text exceeds MaxTokensPerChunk");
-            
+
             // Verify all chunks respect the token limits
             foreach (var chunk in chunks)
             {

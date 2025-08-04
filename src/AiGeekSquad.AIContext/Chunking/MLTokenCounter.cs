@@ -68,7 +68,7 @@ namespace AiGeekSquad.AIContext.Chunking
         public Task<int> CountTokensAsync(string text, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             // Tokenization is typically fast enough to run synchronously
             // But we wrap it in Task.FromResult for the async interface
             var result = CountTokens(text);

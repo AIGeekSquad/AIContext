@@ -544,12 +544,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Assert
             using var _ = new AssertionScope();
-            
- 
+
+
             segments.Should().HaveCount(2);
             segments[0].Text.Should().Be("""He said, "How do you draw an Owl Mr. Crawley ?" to Dr. Tom.""");
             segments[1].Text.Should().Be("No one answered.");
-        
+
         }
         // MARKDOWN TESTS
 
@@ -853,7 +853,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var splitter = new SentenceTextSplitter(markdownMode: true);
-            
+
             // This markdown text is designed to trigger the specific bug where:
             // 1. Markdown preprocessing changes text length
             // 2. blockStart calculated from processedText.Length exceeds originalText.Length
@@ -886,10 +886,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Should not throw ArgumentOutOfRangeException
             await act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-            
+
             // Verify that we got some segments (the exact count may vary based on parsing)
             segments.Should().NotBeEmpty();
-            
+
             // Verify that all segments have valid indices
             foreach (var segment in segments)
             {
@@ -905,7 +905,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var splitter = new SentenceTextSplitter(markdownMode: true);
-            
+
             // This specific pattern triggers the PreprocessMixedContent method which can
             // cause processedText to be longer than originalText, leading to blockStart
             // being out of bounds when used as searchStartHint in FindInOriginalText
@@ -923,7 +923,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             // Should not throw ArgumentOutOfRangeException even when processed text length differs
             await act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-            
+
             // Verify segments are created properly
             segments.Should().NotBeEmpty();
             foreach (var segment in segments)

@@ -100,23 +100,23 @@ namespace AiGeekSquad.AIContext.Chunking
         {
             // Step 1: Preprocess mixed content patterns
             var processedText = PreprocessMixedContent(text);
-            
+
             // Step 2: Parse with Markdig
             var pipeline = new MarkdownPipelineBuilder().Build();
             var document = Markdown.Parse(processedText, pipeline);
-            
+
             // Step 3: Extract segments with proper handling for each block type
             var segments = new List<TextSegment>();
-            
+
             foreach (var block in document)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 segments.AddRange(ExtractSegmentsFromBlock(block, processedText, text));
             }
-            
+
             // Step 4: Handle any remaining unprocessed text
             var processedSegments = HandleUnprocessedText(segments, text);
-            
+
             return processedSegments.OrderBy(s => s.StartIndex);
         }
 
@@ -127,16 +127,18 @@ namespace AiGeekSquad.AIContext.Chunking
         private string PreprocessMixedContent(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
+            {
                 return text;
+            }
 
             var result = text;
-            
+
             // Pattern 1: "sentence. - list item" -> "sentence.\n- list item"
             result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ");
-            
+
             // Pattern 2: "sentence.\nAnother sentence" after list items
             result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2");
-            
+
             return result;
         }
 
@@ -147,9 +149,9 @@ namespace AiGeekSquad.AIContext.Chunking
         {
             var blockStart = Math.Max(0, Math.Min(block.Span.Start, processedText.Length));
             var blockEnd = Math.Max(blockStart, Math.Min(block.Span.End + 1, processedText.Length));
-            
+
             System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Block type: {block.GetType().Name}, Span: {block.Span.Start}-{block.Span.End}");
-            
+
             if (blockStart >= blockEnd)
             {
                 System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Invalid span, skipping block");
@@ -161,38 +163,50 @@ namespace AiGeekSquad.AIContext.Chunking
                 case ListBlock listBlock:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing ListBlock");
                     foreach (var segment in ExtractListSegments(listBlock, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
 
                 case HeadingBlock headingBlock:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing HeadingBlock");
                     foreach (var segment in ExtractHeadingSegments(headingBlock, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
 
                 case CodeBlock codeBlock:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing CodeBlock ({codeBlock.GetType().Name})");
                     foreach (var segment in ExtractCodeBlockSegments(codeBlock, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
 
                 case ParagraphBlock paragraphBlock:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing ParagraphBlock");
                     foreach (var segment in ExtractParagraphSegments(paragraphBlock, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
 
                 case QuoteBlock quoteBlock:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing QuoteBlock");
                     foreach (var segment in ExtractQuoteSegments(quoteBlock, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
 
                 default:
                     System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing unknown block type: {block.GetType().Name}");
                     // Fallback for other block types
                     foreach (var segment in ExtractFallbackSegments(block, processedText, originalText))
+                    {
                         yield return segment;
+                    }
                     break;
             }
         }
@@ -207,7 +221,10 @@ namespace AiGeekSquad.AIContext.Chunking
                 var itemStart = Math.Max(0, Math.Min(listItemBlock.Span.Start, processedText.Length));
                 var itemEnd = Math.Max(itemStart, Math.Min(listItemBlock.Span.End + 1, processedText.Length));
 
-                if (itemStart >= itemEnd) continue;
+                if (itemStart >= itemEnd)
+                {
+                    continue;
+                }
 
                 var itemText = processedText.Substring(itemStart, itemEnd - itemStart);
                 var lines = itemText.Split('\n');
@@ -215,12 +232,17 @@ namespace AiGeekSquad.AIContext.Chunking
                 foreach (var line in lines)
                 {
                     var trimmedLine = line.TrimEnd('\r');
-                    if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+                    if (string.IsNullOrWhiteSpace(trimmedLine))
+                    {
+                        continue;
+                    }
 
                     // For list items, preserve indentation when needed
                     var originalSegment = FindInOriginalTextWithIndentation(trimmedLine, originalText, itemStart);
                     if (originalSegment != null)
+                    {
                         yield return originalSegment;
+                    }
                 }
             }
         }
@@ -233,23 +255,30 @@ namespace AiGeekSquad.AIContext.Chunking
             var blockStart = Math.Max(0, Math.Min(headingBlock.Span.Start, processedText.Length));
             var blockEnd = Math.Max(blockStart, Math.Min(headingBlock.Span.End + 1, processedText.Length));
 
-            if (blockStart >= blockEnd) yield break;
+            if (blockStart >= blockEnd)
+            {
+                yield break;
+            }
 
             var headingText = processedText.Substring(blockStart, blockEnd - blockStart).Trim();
-            
+
             // Handle empty headings - preserve trailing space
             if (string.IsNullOrEmpty(headingText.Replace("#", "").Trim()))
             {
                 var originalHeading = processedText.Substring(blockStart, blockEnd - blockStart);
                 var originalSegment = FindInOriginalTextPreservingWhitespace(originalHeading, originalText, blockStart);
                 if (originalSegment != null)
+                {
                     yield return originalSegment;
+                }
             }
             else
             {
                 var originalSegment = FindInOriginalText(headingText, originalText, blockStart);
                 if (originalSegment != null)
+                {
                     yield return originalSegment;
+                }
             }
         }
 
@@ -264,7 +293,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 // Reconstruct the fenced code block with its original delimiters
                 var fence = new string(fencedCodeBlock.FencedChar, fencedCodeBlock.OpeningFencedCharCount);
                 var info = fencedCodeBlock.Info ?? string.Empty;
-                
+
                 // Get the content lines
                 var contentLines = new List<string>();
                 if (fencedCodeBlock.Lines.Count > 0)
@@ -275,15 +304,15 @@ namespace AiGeekSquad.AIContext.Chunking
                         contentLines.Add(line.ToString());
                     }
                 }
-                
+
                 // Try both \n and \r\n line endings to match the original text
                 var reconstructedWithLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\n");
                 var reconstructedWithCRLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\r\n");
-                
+
                 // Try to find either variant in the original text
                 var originalSegment = FindInOriginalTextPreservingWhitespace(reconstructedWithCRLF, originalText, 0)
                                     ?? FindInOriginalTextPreservingWhitespace(reconstructedWithLF, originalText, 0);
-                
+
                 if (originalSegment != null)
                 {
                     yield return originalSegment;
@@ -294,21 +323,29 @@ namespace AiGeekSquad.AIContext.Chunking
                 // Indented code block - preserve indentation
                 var blockStart = Math.Max(0, Math.Min(codeBlock.Span.Start, processedText.Length));
                 var blockEnd = Math.Max(blockStart, Math.Min(codeBlock.Span.End + 1, processedText.Length));
-                
-                if (blockStart >= blockEnd) yield break;
-                
+
+                if (blockStart >= blockEnd)
+                {
+                    yield break;
+                }
+
                 var codeText = processedText.Substring(blockStart, blockEnd - blockStart);
                 var lines = codeText.Split('\n');
 
                 foreach (var line in lines)
                 {
                     var trimmedLine = line.TrimEnd('\r');
-                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+                    if (string.IsNullOrEmpty(trimmedLine))
+                    {
+                        continue;
+                    }
 
                     // For indented code blocks, preserve the original indentation
                     var originalSegment = FindInOriginalTextWithIndentation(trimmedLine, originalText, blockStart);
                     if (originalSegment != null)
+                    {
                         yield return originalSegment;
+                    }
                 }
             }
         }
@@ -322,7 +359,7 @@ namespace AiGeekSquad.AIContext.Chunking
             reconstructed.Add(fence + info);
             reconstructed.AddRange(contentLines);
             reconstructed.Add(fence);
-            
+
             return string.Join(lineEnding, reconstructed);
         }
 
@@ -334,20 +371,25 @@ namespace AiGeekSquad.AIContext.Chunking
             var blockStart = Math.Max(0, Math.Min(paragraphBlock.Span.Start, processedText.Length));
             var blockEnd = Math.Max(blockStart, Math.Min(paragraphBlock.Span.End + 1, processedText.Length));
 
-            if (blockStart >= blockEnd) yield break;
+            if (blockStart >= blockEnd)
+            {
+                yield break;
+            }
 
             var paraText = processedText.Substring(blockStart, blockEnd - blockStart);
-            var inlines = paragraphBlock.Inline?.ToList() ?? new List<Inline>();
+            var inlines = paragraphBlock.Inline?.ToList() ?? [];
 
             // Check if paragraph contains inline code
             var hasInlineCode = inlines.Any(i => i is CodeInline);
-            
+
             if (hasInlineCode)
             {
                 // Keep paragraphs with inline code as atomic segments
                 var originalSegment = FindInOriginalText(paraText.Trim(), originalText, blockStart);
                 if (originalSegment != null)
+                {
                     yield return originalSegment;
+                }
             }
             else
             {
@@ -360,7 +402,9 @@ namespace AiGeekSquad.AIContext.Chunking
                     {
                         var originalSegment = FindInOriginalText(trimmedSentence, originalText, blockStart);
                         if (originalSegment != null)
+                        {
                             yield return originalSegment;
+                        }
                     }
                 }
             }
@@ -374,7 +418,10 @@ namespace AiGeekSquad.AIContext.Chunking
             var blockStart = Math.Max(0, Math.Min(quoteBlock.Span.Start, processedText.Length));
             var blockEnd = Math.Max(blockStart, Math.Min(quoteBlock.Span.End + 1, processedText.Length));
 
-            if (blockStart >= blockEnd) yield break;
+            if (blockStart >= blockEnd)
+            {
+                yield break;
+            }   
 
             var quoteText = processedText.Substring(blockStart, blockEnd - blockStart);
             var lines = quoteText.Split('\n');
@@ -386,7 +433,9 @@ namespace AiGeekSquad.AIContext.Chunking
 
                 var originalSegment = FindInOriginalText(trimmedLine, originalText, blockStart);
                 if (originalSegment != null)
+                {
                     yield return originalSegment;
+                }
             }
         }
 
@@ -401,7 +450,7 @@ namespace AiGeekSquad.AIContext.Chunking
             if (blockStart >= blockEnd) yield break;
 
             var blockText = processedText.Substring(blockStart, blockEnd - blockStart);
-            
+
             // Handle empty elements specially
             if (string.IsNullOrEmpty(blockText.Trim()))
             {
@@ -429,10 +478,16 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private TextSegment? FindInOriginalText(string text, string originalText, int searchStartHint = 0)
         {
-            if (string.IsNullOrEmpty(text)) return null;
+            if (string.IsNullOrEmpty(text))
+            {
+                return null;
+            }
 
             var trimmedText = text.Trim();
-            if (string.IsNullOrEmpty(trimmedText)) return null;
+            if (string.IsNullOrEmpty(trimmedText))
+            {
+                return null;
+            }
 
             // Ensure searchStartHint is within bounds of originalText
             var safeSearchStart = Math.Max(0, Math.Min(searchStartHint, originalText.Length));
@@ -457,7 +512,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private TextSegment? FindInOriginalTextWithIndentation(string text, string originalText, int searchStartHint = 0)
         {
-            if (string.IsNullOrEmpty(text)) return null;
+            if (string.IsNullOrEmpty(text))
+            {
+                return null;
+            }
 
             // For indented content, preserve the original indentation
             var lines = originalText.Split('\n');
@@ -483,7 +541,10 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private TextSegment? FindInOriginalTextPreservingWhitespace(string text, string originalText, int searchStartHint = 0)
         {
-            if (string.IsNullOrEmpty(text)) return null;
+            if (string.IsNullOrEmpty(text))
+            {
+                return null;
+            }
 
             // Ensure searchStartHint is within bounds of originalText
             var safeSearchStart = Math.Max(0, Math.Min(searchStartHint, originalText.Length));
@@ -515,7 +576,9 @@ namespace AiGeekSquad.AIContext.Chunking
         public static SentenceTextSplitter WithPattern(string pattern)
         {
             if (string.IsNullOrWhiteSpace(pattern))
+            {
                 throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
+            }
 
             return new SentenceTextSplitter(pattern);
         }
@@ -546,7 +609,10 @@ namespace AiGeekSquad.AIContext.Chunking
         public static SentenceTextSplitter WithPatternForMarkdown(string pattern)
         {
             if (string.IsNullOrWhiteSpace(pattern))
+            {
                 throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
+            }
+
             return new SentenceTextSplitter(pattern, true);
         }
     }
