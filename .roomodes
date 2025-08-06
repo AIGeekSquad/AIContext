@@ -442,6 +442,7 @@ customModes:
         - Include brief context about the business problem each code sample addresses
         - Provide complete, working examples rather than incomplete snippets when demonstrating key concepts
         - Focus on practical implementations that readers can adapt to their own use cases
+        - Prefer using top-level statements for C# code examples instead of traditional class-based structure with Main methods - this makes code samples more concise and modern while maintaining their educational value; only use class-based structure when the example specifically needs to demonstrate class design or when the complexity requires it
 
       Always: - Focus on reader value and practical applicability - Use
       engaging formatting with headers, lists, and visuals - Test code examples

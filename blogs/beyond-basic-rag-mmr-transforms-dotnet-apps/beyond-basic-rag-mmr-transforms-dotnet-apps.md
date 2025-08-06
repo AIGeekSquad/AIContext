@@ -60,23 +60,49 @@ Let's say you have these documents in your system:
 
 When someone asks "How do I optimize my application?", traditional semantic search might return the first three documents because they're all highly relevant to "optimization." But now you have three documents about memory management and nothing about databases or caching.
 
+### Seeing the Problem in Action
+
+Let's examine a concrete example that demonstrates how traditional semantic search creates the clustering problem. We'll simulate an e-commerce product search where a customer searches for "wireless headphones" and see how traditional similarity-based ranking fails to provide diverse results.
+
 ```csharp
-// This is how traditional retrieval works
-public async Task<List<Document>> GetRelevantDocuments(string query)
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// E-commerce product search - demonstrating the clustering problem
+
+// Product catalog with similarity scores to query "wireless headphones"
+var products = new[]
 {
-    var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
+    new { Name = "Sony WH-1000XM4 Wireless Headphones", Similarity = 0.95, Category = "Audio" },
+    new { Name = "Bose QuietComfort Wireless Headphones", Similarity = 0.93, Category = "Audio" },
+    new { Name = "Apple AirPods Pro Wireless Earbuds", Similarity = 0.91, Category = "Audio" },
+    new { Name = "Wireless Phone Charger", Similarity = 0.45, Category = "Accessories" },
+    new { Name = "Bluetooth Speaker", Similarity = 0.42, Category = "Audio" },
+    new { Name = "USB-C Cable", Similarity = 0.15, Category = "Accessories" }
+};
+
+Console.WriteLine("Query: 'wireless headphones'");
+Console.WriteLine("\nTraditional search (top 3 most similar):");
+
+var traditionalResults = products
+    .OrderByDescending(p => p.Similarity)
+    .Take(3);
     
-    var allDocuments = await _vectorDatabase.SearchAsync(queryEmbedding, limit: 20);
-    
-    // Just take the top 5 most similar - this causes clustering
-    return allDocuments
-        .OrderByDescending(doc => CalculateSimilarity(queryEmbedding, doc.Embedding))
-        .Take(5)
-        .ToList();
+foreach (var product in traditionalResults)
+{
+    Console.WriteLine($"• {product.Name} (similarity: {product.Similarity})");
 }
+
+var uniqueCategories = traditionalResults.Select(p => p.Category).Distinct().Count();
+Console.WriteLine($"\nProblem: Only {uniqueCategories} category represented - missing accessories!");
 ```
 
-The result is that users get repetitive information instead of comprehensive coverage of their topic.
+**What this example reveals:** Traditional semantic search returns three highly similar products (all headphones with similarity scores above 0.9), but completely misses complementary accessories like wireless chargers that customers often need. The algorithm prioritizes similarity over usefulness, giving users redundant options instead of a comprehensive shopping experience.
+
+This clustering problem becomes even more pronounced in RAG systems where you have limited context space. When your language model can only process 5 documents, having 3 of them say essentially the same thing wastes 60% of your available context.
+
+> **🔍 See the clustering problem in action:** The [`examples/MMRClusteringProblemDemo.cs`](examples/MMRClusteringProblemDemo.cs) file demonstrates this exact issue with a customer support scenario, showing how traditional search returns 3 similar "password reset" solutions while MMR provides diverse approaches across authentication, support, and technical categories.
 
 ## What is Maximum Marginal Relevance?
 
@@ -118,47 +144,66 @@ dotnet add package AiGeekSquad.AIContext
 
 ### Basic Implementation
 
-Here's how to modify your existing document retrieval to use MMR:
+Now let's see how MMR works in practice with a customer support scenario. This example demonstrates how MMR can help a support system provide comprehensive troubleshooting steps instead of repetitive suggestions that all address the same root cause.
 
 ```csharp
+using System;
+using System.Linq;
 using AiGeekSquad.AIContext.Ranking;
+using MathNet.Numerics.LinearAlgebra;
 
-public class RAGService
+// Customer support ticket routing - select diverse solution approaches
+
+// Available solutions for "app crashes on startup"
+// Each vector represents different solution categories: [basic_fixes, system_issues, hardware_problems]
+var solutions = new[]
 {
-    private readonly IEmbeddingService _embeddingService;
-    private readonly IVectorDatabase _vectorDb;
-    
-    public async Task<List<Document>> GetDocumentsWithMMR(string userQuestion)
-    {
-        // Step 1: Generate embedding for the user's question
-        var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(userQuestion);
-        
-        // Step 2: Get more candidates than you need (cast a wider net)
-        var candidates = await _vectorDb.SearchAsync(queryEmbedding, topK: 20);
-        
-        // Step 3: Use MMR to select diverse, relevant documents
-        var selectedIndices = MaximumMarginalRelevance.ComputeMMR(
-            vectors: candidates.Select(c => c.Embedding).ToList(),
-            query: queryEmbedding,
-            lambda: 0.7,  // Start with this value
-            topK: 5       // How many documents you actually want
-        );
-        
-        // Step 4: Return the selected documents
-        return selectedIndices
-            .Select(result => candidates[result.index])
-            .ToList();
-    }
+    ("Clear app cache and data", Vector<double>.Build.DenseOfArray([0.9, 0.1, 0.0])),
+    ("Restart the application", Vector<double>.Build.DenseOfArray([0.85, 0.15, 0.0])),
+    ("Reinstall the app", Vector<double>.Build.DenseOfArray([0.88, 0.12, 0.0])),
+    ("Check system requirements", Vector<double>.Build.DenseOfArray([0.3, 0.8, 0.1])),
+    ("Update device drivers", Vector<double>.Build.DenseOfArray([0.2, 0.1, 0.9])),
+    ("Contact technical support", Vector<double>.Build.DenseOfArray([0.1, 0.9, 0.1]))
+};
+
+// User query: "app won't start"
+var query = Vector<double>.Build.DenseOfArray([0.9, 0.2, 0.1]);
+
+Console.WriteLine("=== Support Ticket: 'App won't start' ===\n");
+
+// Apply MMR to get diverse solutions
+var mmrResults = MaximumMarginalRelevance.ComputeMMR(
+    vectors: solutions.Select(s => s.Item2).ToList(),
+    query: query,
+    lambda: 0.7,  // Balance relevance with diversity
+    topK: 3
+);
+
+Console.WriteLine("Recommended solutions:");
+foreach (var (index, score) in mmrResults)
+{
+    Console.WriteLine($"• {solutions[index].Item1}");
 }
 ```
 
-Steps 1, 2, and 4, you're already doing as part of your traditional RAG pipeline.
+**What MMR accomplished here:** Instead of suggesting three variations of "restart/reinstall/clear cache" (which traditional similarity search would do), MMR selected solutions from different troubleshooting categories. The user gets a comprehensive troubleshooting path: try basic fixes first, then check system compatibility, and finally address potential hardware issues.
+
+This is the core value of MMR - it ensures your AI assistant provides well-rounded guidance rather than tunnel vision on the most obvious solutions.
 
 The key changes from traditional retrieval:
 
 1. Get more candidates initially (20 instead of 5)
 2. Apply MMR to select the final set
 3. Use lambda = 0.7 as a starting point
+
+> **🎯 From Concept to Production**
+> The examples above show MMR's core concepts, but how do you build this into a real application? The [`examples/`](examples/) folder contains complete, production-ready implementations:
+>
+> - **[`SupportTicketRouter.cs`](examples/SupportTicketRouter.cs)** - Customer support routing (similar to the example above)
+> - **[`ProductSearchDemo.cs`](examples/ProductSearchDemo.cs)** - E-commerce product recommendations
+> - **[`EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs)** - Full enterprise RAG service with MMR
+>
+> These files include dependency injection setup, error handling, logging, and everything you need to run them in your own projects.
 
 ## Choosing the Right Lambda Value
 
@@ -184,7 +229,7 @@ The lambda parameter controls how MMR balances relevance and diversity. Here's a
 
 ### Adaptive Lambda Selection
 
-For production systems, consider implementing dynamic lambda selection based on query characteristics (see the [`GetOptimalLambda`](blogs/beyond-basic-rag-mmr-transforms-dotnet-apps/beyond-basic-rag-mmr-transforms-dotnet-apps.md:282) method in the complete implementation below).
+For production systems, consider implementing dynamic lambda selection based on query characteristics. We'll see how this works in practice in the complete implementation that follows.
 
 Now that you understand how to choose the right lambda value, let's see how all these pieces fit together in a production-ready system.
 
@@ -192,222 +237,113 @@ Now that you understand how to choose the right lambda value, let's see how all 
 
 > **🔄 Drop-in replacement:** Upgrade your existing RAG system in 30 minutes.
 
-Building on the basic implementation above, here's how to create an enterprise-grade RAG system with MMR. We'll break this down into manageable components:
+The code snippets above show the core MMR concepts, but how do they all fit together in a production system? Let's bridge from theory to practice with a complete, enterprise-ready implementation.
 
-### 1. Service Architecture & Dependencies
+> **💡 Complete Implementation Available**
+> While this section shows key concepts, you can find the **complete, runnable implementation** in the examples folder:
+> - **[`examples/EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs)** - Full production-ready service (565 lines)
+> - **[`examples/EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs)** - Working demo with multiple scenarios (222 lines)
+>
+> These files include everything: dependency injection setup, comprehensive error handling, logging, caching, mock implementations for testing, and detailed documentation.
 
-First, let's establish the foundational structure:
+### From Snippets to Production: What You'll Find
 
-```csharp
-public class EnterpriseRAGService
-{
-    // Core dependencies for production RAG system
-    private readonly IEmbeddingService _embeddingService;
-    private readonly IVectorDatabase _vectorDb;
-    private readonly ILanguageModel _llm;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<EnterpriseRAGService> _logger;
-    
-    public async Task<RAGResponse> AskQuestionAsync(
-        string question,
-        string userId = null,
-        string domain = "general")
-    {
-        // Create unique request ID for tracing across distributed systems
-        var requestId = Guid.NewGuid().ToString("N")[..8];
-        using var scope = _logger.BeginScope("RequestId: {RequestId}", requestId);
-        
-        try
-        {
-            // PHASE 1: Check for cached responses to avoid redundant processing
-            if (await TryGetCachedResponse(question) is RAGResponse cached)
-            {
-                return cached;
-            }
-            
-            // PHASE 2: Convert question to vector representation
-            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(question);
-            
-            // PHASE 3: Retrieve candidate documents from vector database
-            var candidates = await RetrieveCandidates(queryEmbedding);
-            if (!candidates.Any())
-            {
-                return CreateErrorResponse("I don't have enough information to answer that question.", requestId);
-            }
-            
-            // PHASE 4: Apply MMR to select diverse, relevant documents
-            var selectedDocuments = await ApplyMMRSelection(candidates, queryEmbedding, question, domain);
-            
-            // PHASE 5: Generate final response using selected context
-            var result = await GenerateResponse(question, selectedDocuments, requestId);
-            
-            // Cache successful responses for future use
-            await CacheResponse(question, result);
-            
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "RAG query failed for question: {Question}", question);
-            return CreateErrorResponse("I encountered an error processing your question. Please try again.", requestId);
-        }
-    }
-}
-```
+The complete implementation in [`examples/EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs) demonstrates how all the concepts we've discussed come together in a production-ready system:
 
-### 2. Caching Strategy Implementation
+**🏗️ Enterprise Architecture:**
+- Dependency injection ready with [`IServiceCollection`](examples/EnterpriseRAGService.cs:373) configuration
+- Comprehensive error handling and logging throughout
+- Request tracing with unique IDs for observability
+- Configurable options via [`RAGServiceOptions`](examples/EnterpriseRAGService.cs:268)
+
+**🧠 Intelligent Processing Pipeline:**
+- Two-stage retrieval: retrieve 25 candidates, select 5 with MMR
+- Adaptive lambda selection via [`GetOptimalLambda()`](examples/EnterpriseRAGService.cs:172)
+- Smart caching with TTL to reduce API costs
+- Response metadata for monitoring and debugging
+
+**🔧 Production Features:**
+- Mock implementations for testing ([`MockEmbeddingGenerator`](examples/EnterpriseRAGService.cs:459), [`MockVectorDatabase`](examples/EnterpriseRAGService.cs:485), [`MockLanguageModel`](examples/EnterpriseRAGService.cs:548))
+- Comprehensive response types with source attribution
+- Cancellation token support for async operations
+- Performance optimization patterns
+
+### Key Implementation Highlights
+
+Here are the essential patterns from the complete implementation that make it production-ready:
+
+#### 1. Adaptive Lambda Selection
+
+The [`GetOptimalLambda()`](examples/EnterpriseRAGService.cs:172) method automatically adjusts the relevance-diversity balance:
 
 ```csharp
-private async Task<RAGResponse> TryGetCachedResponse(string question)
-{
-    // Use question hash as cache key for consistent lookups
-    var cacheKey = $"query:{question.GetHashCode():X}";
-    
-    if (_cache.TryGetValue(cacheKey, out RAGResponse cachedResponse))
-    {
-        _logger.LogInformation("Returned cached response for similar query");
-        return cachedResponse;
-    }
-    
-    return null; // No cached response found
-}
+// Query-based selection
+if (questionLower.Contains("how to") || questionLower.Contains("steps"))
+    return 0.8; // Precision needed for procedures
 
-private async Task CacheResponse(string question, RAGResponse result)
+if (questionLower.Contains("compare") || questionLower.Contains("different"))
+    return 0.5; // Diversity needed for comparisons
+
+// Domain-based defaults
+return domain.ToLowerInvariant() switch
 {
-    var cacheKey = $"query:{question.GetHashCode():X}";
-    // Cache for 15 minutes to balance freshness with performance
-    _cache.Set(cacheKey, result, TimeSpan.FromMinutes(15));
-}
+    "support" => 0.8,    // Customer support needs precise answers
+    "research" => 0.6,   // Research benefits from diverse perspectives
+    "legal" => 0.9,      // Legal queries need high precision
+    _ => 0.7             // Balanced default
+};
 ```
 
-### 3. Document Retrieval & MMR Selection
+#### 2. Two-Stage Retrieval Pipeline
+
+The complete [`AskQuestionAsync()`](examples/EnterpriseRAGService.cs:60) method shows the full request lifecycle:
 
 ```csharp
-private async Task<List<DocumentResult>> RetrieveCandidates(float[] queryEmbedding)
-{
-    // Retrieve more candidates than needed to give MMR better selection options
-    // 25 candidates allows for good diversity while maintaining performance
-    return await _vectorDb.SearchAsync(queryEmbedding, topK: 25);
-}
+// 1. Check cache first
+var cacheKey = ComputeCacheKey(question, domain);
+if (_cache.TryGetValue(cacheKey, out RAGResponse cachedResponse))
+    return cachedResponse;
 
-private async Task<List<DocumentResult>> ApplyMMRSelection(
-    List<DocumentResult> candidates,
-    float[] queryEmbedding,
-    string question,
-    string domain)
-{
-    // Dynamically choose lambda based on question type and domain
-    var lambda = GetOptimalLambda(question, domain);
-    
-    // Apply MMR algorithm to balance relevance with diversity
-    var selectedIndices = MaximumMarginalRelevance.ComputeMMR(
-        vectors: candidates.Select(c => c.Embedding).ToList(),
-        query: queryEmbedding,
-        lambda: lambda,
-        topK: 5 // Final number of documents to include in context
-    );
-    
-    // Return the selected documents in order of MMR ranking
-    return selectedIndices
-        .Select(result => candidates[result.index])
-        .ToList();
-}
+// 2. Generate query embedding
+var queryEmbedding = await _embeddingGenerator.GenerateEmbeddingAsync(question);
+
+// 3. Retrieve candidates (cast wide net)
+var candidates = await _vectorDatabase.SearchAsync(queryEmbedding, limit: 25);
+
+// 4. Apply MMR for intelligent selection
+var lambda = GetOptimalLambda(question, domain);
+var selectedDocs = MaximumMarginalRelevance.ComputeMMR(
+    vectors: candidates.Select(c => c.Embedding).ToList(),
+    query: queryEmbedding,
+    lambda: lambda,
+    topK: 5
+);
+
+// 5. Generate response with comprehensive metadata
+var response = new RAGResponse { /* ... detailed response object ... */ };
 ```
 
-### 4. Response Generation & Error Handling
+#### 3. Ready-to-Run Demo
 
-```csharp
-private async Task<RAGResponse> GenerateResponse(
-    string question,
-    List<DocumentResult> contextDocuments,
-    string requestId)
-{
-    // Build context string with clear source attribution
-    var contextText = BuildContextWithMetadata(contextDocuments);
-    
-    // Generate response using language model
-    var response = await _llm.GenerateResponseAsync(question, contextText);
-    
-    // Create comprehensive response object with metadata
-    var result = new RAGResponse
-    {
-        Answer = response,
-        SourceDocuments = contextDocuments.Select(d => d.Title).ToList(),
-        Lambda = GetOptimalLambda(question, "general"), // Store lambda used
-        CandidateCount = contextDocuments.Count,
-        Success = true,
-        RequestId = requestId
-    };
-    
-    _logger.LogInformation(
-        "RAG query completed successfully. Lambda: {Lambda}, Sources: {SourceCount}",
-        result.Lambda, contextDocuments.Count);
-        
-    return result;
-}
+The [`EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs) file shows the service in action with different query types:
 
-private RAGResponse CreateErrorResponse(string message, string requestId)
-{
-    return new RAGResponse
-    {
-        Answer = message,
-        Success = false,
-        RequestId = requestId
-    };
-}
+- **Customer Support**: "How do I reset my password?" (λ = 0.8)
+- **Research**: "Explain machine learning optimization" (λ = 0.6)
+- **Procedural**: "Steps to deploy a web application" (λ = 0.8)
+- **Comparative**: "Compare cloud storage solutions" (λ = 0.5)
+- **Caching demonstration** with performance metrics
+- **Error handling** with edge cases
 
-private string BuildContextWithMetadata(List<DocumentResult> documents)
-{
-    // Format context with clear source numbering for LLM processing
-    return string.Join("\n\n", documents.Select((doc, index) =>
-        $"Source {index + 1} ({doc.Title}):\n{doc.Content}"));
-}
-```
+### Getting Started with the Complete Example
 
-### 5. Adaptive Lambda Selection
+1. **Explore the implementation**: Start with [`examples/EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs) to see the full service
+2. **Run the demo**: Use [`examples/EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs) to see it in action
+3. **Adapt for your needs**: Replace the mock implementations with your actual services
+4. **Configure for production**: Adjust the [`RAGServiceOptions`](examples/EnterpriseRAGService.cs:268) for your use case
 
-```csharp
-private double GetOptimalLambda(string question, string domain)
-{
-    // Apply domain-specific lambda values (see section "Choosing the Right Lambda Value")
-    if (question.Contains("how to") || question.Contains("steps"))
-        return 0.8; // Procedural questions need precision
-        
-    if (question.Contains("compare") || question.Contains("different"))
-        return 0.5; // Comparison questions benefit from diversity
-        
-    return domain switch
-    {
-        "support" => 0.8,
-        "research" => 0.6,
-        "discovery" => 0.4,
-        _ => 0.7 // Default recommended starting value
-    };
-}
-```
+**What this architecture demonstrates:** This isn't just about adding MMR to your existing system - it's about building a robust, scalable service that intelligently adapts its behavior based on the type of question being asked. The complete implementation shows how adaptive lambda selection, two-stage retrieval, and enterprise patterns work together to create a production-ready RAG system.
 
-### 6. Response Data Model
-
-```csharp
-public class RAGResponse
-{
-    public string Answer { get; set; }
-    public List<string> SourceDocuments { get; set; } = new();
-    public double Lambda { get; set; }
-    public int CandidateCount { get; set; }
-    public bool Success { get; set; }
-    public string RequestId { get; set; }
-}
-```
-
-**Enterprise features you get:**
-- **Smart caching**: Avoid redundant embedding generation
-- **Error resilience**: Graceful handling of failures
-- **Performance tracking**: Monitor selection quality
-- **Adaptive lambda**: Automatic tuning based on question type
-- **Source attribution**: Full transparency for users
-
-With this modular architecture, you can easily test, maintain, and scale each component independently. The caching layer alone can significantly reduce costs by avoiding redundant API calls to embedding services.
+The two-stage retrieval pattern (retrieve 25 candidates, select 5 with MMR) is particularly important for performance. You get the benefits of MMR's intelligent selection without the computational overhead of comparing every document in your database.
 
 ## Performance Considerations
 
@@ -431,9 +367,12 @@ For large-scale applications, implement these optimizations in order of impact:
 
 ## Advanced Use Cases: Beyond Simple RAG
 
-While we've focused on traditional RAG systems, MMR's power extends far beyond document retrieval. The same relevance-diversity balance that improves RAG responses can enhance many other AI applications:
+While we've focused on traditional RAG systems, MMR's power extends far beyond document retrieval. The same relevance-diversity balance that improves RAG responses can enhance many other AI applications. Let's explore three practical scenarios where MMR creates significantly better user experiences by preventing the "echo chamber" effect.
 
 ### 1. Recommendation Systems
+
+E-commerce platforms often struggle with recommendation diversity - users see the same type of product repeatedly instead of discovering new categories. Here's how MMR solves this:
+
 ```csharp
 // Recommend diverse products based on user preferences
 var recommendations = MaximumMarginalRelevance.ComputeMMR(
@@ -444,7 +383,12 @@ var recommendations = MaximumMarginalRelevance.ComputeMMR(
 );
 ```
 
+**The impact:** Instead of showing 10 similar smartphones to someone who bought one phone, MMR might recommend 3 phones, 2 cases, 2 chargers, 2 screen protectors, and 1 wireless speaker. Users discover complementary products they didn't know they needed.
+
 ### 2. Content Curation
+
+Newsletter editors and content managers face the challenge of keeping audiences engaged with varied, interesting content rather than repetitive articles on the same narrow topics:
+
 ```csharp
 // Select diverse articles for a newsletter
 var curatedArticles = MaximumMarginalRelevance.ComputeMMR(
@@ -455,7 +399,12 @@ var curatedArticles = MaximumMarginalRelevance.ComputeMMR(
 );
 ```
 
+**The impact:** A tech newsletter about "AI developments" won't just feature 5 articles about ChatGPT. MMR ensures coverage of different AI domains: one on language models, one on computer vision, one on robotics, one on AI ethics, and one on industry applications.
+
 ### 3. Research Paper Discovery
+
+Academic researchers need to explore different perspectives and methodologies within their field, not just papers that use identical approaches:
+
 ```csharp
 // Find papers covering different aspects of a research area
 var diversePapers = MaximumMarginalRelevance.ComputeMMR(
@@ -465,6 +414,8 @@ var diversePapers = MaximumMarginalRelevance.ComputeMMR(
     topK: 15
 );
 ```
+
+**The impact:** A search for "machine learning optimization" returns papers covering different optimization techniques (gradient descent, evolutionary algorithms, reinforcement learning), different domains (computer vision, NLP, robotics), and different evaluation metrics - giving researchers a comprehensive view of the field.
 
 These examples demonstrate MMR's versatility across different domains where balancing relevance with diversity creates better user experiences.
 
@@ -523,7 +474,7 @@ Some things you can check immediately without building complex analytics:
 Ready to implement MMR in your own system? Here's a practical roadmap that minimizes risk while maximizing the chance of success:
 
 **Start Simple:**
-- Begin with λ = 0.7 (see [Lambda selection guide](blogs/beyond-basic-rag-mmr-transforms-dotnet-apps/beyond-basic-rag-mmr-transforms-dotnet-apps.md:161) for details)
+- Begin with λ = 0.7 (see the [Lambda selection guide](#choosing-the-right-lambda-value) above for details)
 - Replace just one retrieval call initially to test impact
 - Measure user feedback before expanding
 
@@ -534,9 +485,11 @@ Ready to implement MMR in your own system? Here's a practical roadmap that minim
 - A/B test different lambda values with real users
 
 **Scale Thoughtfully:**
-- Implement caching and two-stage filtering (see [Performance section](blogs/beyond-basic-rag-mmr-transforms-dotnet-apps/beyond-basic-rag-mmr-transforms-dotnet-apps.md:319))
+- Implement caching and two-stage filtering (see the [complete implementation](examples/EnterpriseRAGService.cs) for production patterns)
 - Document optimal lambda values for your specific use cases
 - Monitor performance impact as you scale
+
+> **🚀 Ready to implement?** The [`examples/EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs) file contains all these best practices in a production-ready implementation you can adapt for your needs.
 
 The key is to start simple, measure the impact, and iterate based on real user behavior rather than assumptions.
 
@@ -546,7 +499,12 @@ The key is to start simple, measure the impact, and iterate based on real user b
 
 ### Complementary Techniques That Amplify MMR
 
+Once you've mastered basic MMR implementation, these advanced patterns can take your RAG system to the next level. Each technique addresses specific challenges that emerge in sophisticated AI applications, combining MMR with other cutting-edge approaches for even better results.
+
 #### **1. Semantic Chunking + MMR**
+
+Traditional chunking splits documents at arbitrary boundaries, but semantic chunking preserves meaning. When combined with MMR, you get the best of both worlds: meaningful chunks that cover diverse aspects of your topic.
+
 ```csharp
 // Break documents intelligently, then apply MMR for optimal diversity
 var chunks = await _semanticChunker.ChunkDocumentAsync(document);
@@ -557,9 +515,15 @@ var selectedChunks = MaximumMarginalRelevance.ComputeMMR(
     topK: 8
 );
 ```
-**Impact:** Get granular, diverse information without losing document context
+
+**Impact:** Instead of getting 8 chunks that all discuss the same concept from a long document, you get chunks covering different aspects - introduction, methodology, results, and conclusions. This gives users a complete understanding rather than repetitive details.
+
+> **💡 See it in action:** The [`EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs) file demonstrates these advanced patterns with working examples you can run and modify.
 
 #### **2. Multi-Vector Retrieval + MMR**
+
+Modern applications often contain different types of content - text, code, images, structured data. This technique uses specialized embeddings for each content type, then applies MMR across the combined results.
+
 ```csharp
 // Use specialized embeddings for different content types
 var textResults = await SearchTextEmbeddings(query);
@@ -573,9 +537,13 @@ var diverseSelection = MaximumMarginalRelevance.ComputeMMR(
     topK: 5
 );
 ```
-**Impact:** Comprehensive answers spanning multiple content modalities
+
+**Impact:** A developer asking "How do I implement authentication?" gets both conceptual explanations AND working code examples, not just 5 similar code snippets or 5 theoretical articles. The diversity spans content types, not just topics.
 
 #### **3. Two-Stage MMR Pipeline**
+
+For complex domains with many subtopics, a single MMR pass might not provide enough diversity. This technique applies MMR twice: first for broad topic coverage, then for focused selection within each topic area.
+
 ```csharp
 // Stage 1: Broad retrieval with MMR for topic diversity
 var topicDiverseResults = MaximumMarginalRelevance.ComputeMMR(
@@ -586,7 +554,10 @@ var finalSelection = MaximumMarginalRelevance.ComputeMMR(
     vectors: topicDiverseResults.Select(r => r.vector).ToList(),
     query: queryEmbedding, lambda: 0.8, topK: 5);
 ```
-**Impact:** Perfect balance of breadth and depth in complex domains
+
+**Impact:** A query about "cloud architecture" first ensures coverage of different cloud aspects (security, scalability, cost, deployment), then selects the most relevant document from each area. You get both breadth AND depth without sacrificing either.
+
+These advanced techniques represent the cutting edge of intelligent content selection, where MMR becomes part of a larger strategy for building truly helpful AI systems.
 
 ### The Real Impact: Better Answers, Happier Users
 
@@ -601,5 +572,13 @@ MMR isn't just a technical optimization - it's about fundamentally improving how
 1. **Start small**: Try MMR on a few test queries to see the difference
 2. **Measure the impact**: Track how often users need to ask follow-up questions
 3. **Iterate**: Adjust your lambda value based on user feedback
+
+> **🚀 Ready to get started?**
+> Everything you need is in the [`examples/`](examples/) folder:
+> - **[`EnterpriseRAGService.cs`](examples/EnterpriseRAGService.cs)** - Complete production service
+> - **[`EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs)** - Working demo with multiple scenarios
+> - **[`MMRExample.cs`](examples/MMRExample.cs)** - Basic MMR usage patterns
+>
+> Clone the repository, run the demos, and adapt the code for your specific use case.
 
 The goal isn't just to implement a new algorithm - it's to build AI systems that genuinely help people accomplish their goals. MMR is one powerful technique to get you there.
