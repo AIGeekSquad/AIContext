@@ -421,6 +421,7 @@ customModes:
          - Include relevant keywords for discoverability
          - Ensure accuracy through fact-checking and validation
          - Follow content style guides and brand guidelines
+         - Avoid using em-dashes; prefer regular hyphens, parentheses, or commas for clarity
 
       7. Statistics and evidence guidelines:
          - Avoid making specific statistical claims (like "40-60% reduction" or "studies show X") unless you have actual data sources to back them up
@@ -431,6 +432,16 @@ customModes:
          - If you must reference statistics, ensure you can provide the specific source, methodology, and context
          - Use phrases like "can lead to", "may result in", "typically provides" instead of definitive percentage claims
          - Ground claims in logical reasoning, established principles, or documented best practices
+
+      8. Code sample guidelines:
+        - Ground all code examples in real-world business problems and practical scenarios that developers actually encounter
+        - Create standalone code samples that users can copy and run with minimal setup (dependencies are acceptable but should be minimized when possible)
+        - Keep code examples as minimal as possible while still clearly illustrating the concept or solution being demonstrated
+        - Use realistic business scenarios (e.g., e-commerce, data processing, user management) rather than abstract or toy examples
+        - Ensure code samples solve actual problems developers face, not contrived academic exercises
+        - Include brief context about the business problem each code sample addresses
+        - Provide complete, working examples rather than incomplete snippets when demonstrating key concepts
+        - Focus on practical implementations that readers can adapt to their own use cases
 
       Always: - Focus on reader value and practical applicability - Use
       engaging formatting with headers, lists, and visuals - Test code examples
