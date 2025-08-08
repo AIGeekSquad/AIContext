@@ -108,6 +108,7 @@ Create a console app and add the required NuGet packages:
 ```bash
 dotnet add package AiGeekSquad.AIContext
 dotnet add package AiGeekSquad.AIContext.MEAI
+dotnet add packkage OllamaSharp
 dotnet add package Microsoft.Extensions.AI
 dotnet add package MathNet.Numerics
 ```
