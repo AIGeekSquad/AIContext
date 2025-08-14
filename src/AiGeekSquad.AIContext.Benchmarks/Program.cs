@@ -24,11 +24,15 @@ public class Program
             case "chunking":
                 RunSemanticChunkingBenchmarks();
                 break;
+            case "ranking":
+            case "engine":
+                RunRankingEngineBenchmarks();
+                break;
             case "all":
                 RunAllBenchmarks();
                 break;
             default:
-                Console.WriteLine($"Unknown benchmark type '{benchmarkType}'. Available options: mmr, semantic, all");
+                Console.WriteLine($"Unknown benchmark type '{benchmarkType}'. Available options: mmr, semantic, ranking, all");
                 Console.WriteLine("Running MMR benchmarks by default...");
                 RunMmrBenchmarks();
                 break;
@@ -66,10 +70,27 @@ public class Program
         DisplaySummary(summary, "Semantic Chunking");
     }
 
+    private static void RunRankingEngineBenchmarks()
+    {
+        Console.WriteLine("=== Ranking Engine Benchmarks ===");
+        Console.WriteLine("Running comprehensive performance benchmarks for the Ranking Engine functionality.");
+        Console.WriteLine("Testing various combinations of:");
+        Console.WriteLine("- Dataset sizes: 100, 10,000, 100,000 items");
+        Console.WriteLine("- Scoring functions: Single, Multiple (3-5), Simple, Complex, Expensive");
+        Console.WriteLine("- Normalization strategies: MinMax, Z-Score, Percentile");
+        Console.WriteLine("- Combination strategies: WeightedSum, RRF, Hybrid");
+        Console.WriteLine("- Ranking types: Full ranking vs Top-K (10, 50)");
+        Console.WriteLine("- Score types: Similarity-only vs Similarity+Dissimilarity");
+        Console.WriteLine();
+
+        var summary = BenchmarkRunner.Run<RankingEngineBenchmarks>();
+        DisplaySummary(summary, "Ranking Engine");
+    }
+
     private static void RunAllBenchmarks()
     {
         Console.WriteLine("=== Running All Benchmarks ===");
-        Console.WriteLine("This will run both MMR and Semantic Chunking benchmarks sequentially.");
+        Console.WriteLine("This will run MMR, Semantic Chunking, and Ranking Engine benchmarks sequentially.");
         Console.WriteLine();
 
         RunMmrBenchmarks();
@@ -77,6 +98,10 @@ public class Program
         Console.WriteLine("Moving to Semantic Chunking benchmarks...");
         Console.WriteLine();
         RunSemanticChunkingBenchmarks();
+        Console.WriteLine();
+        Console.WriteLine("Moving to Ranking Engine benchmarks...");
+        Console.WriteLine();
+        RunRankingEngineBenchmarks();
     }
 
     private static void DisplaySummary(BenchmarkDotNet.Reports.Summary summary, string benchmarkName)
