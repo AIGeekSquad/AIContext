@@ -411,16 +411,51 @@ var recommendations = MaximumMarginalRelevance.ComputeMMR(
 
 ### ⚖️ **Generic Ranking Engine for Multi-Criteria Ranking**
 ```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using AiGeekSquad.AIContext.Ranking;
 using AiGeekSquad.AIContext.Ranking.Normalizers;
 using AiGeekSquad.AIContext.Ranking.Strategies;
 
+// Example document class
+public class Document
+{
+    public string Title { get; set; }
+    public double RelevanceScore { get; set; }
+    public int PopularityRank { get; set; }
+    
+    public Document(string title, double relevanceScore, int popularityRank)
+    {
+        Title = title;
+        RelevanceScore = relevanceScore;
+        PopularityRank = popularityRank;
+    }
+}
+
+// Custom scoring functions
+public class SemanticRelevanceScorer : IScoringFunction<Document>
+{
+    public string Name => "SemanticRelevance";
+    public double ComputeScore(Document item) => item.RelevanceScore;
+    public double[] ComputeScores(IReadOnlyList<Document> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
+public class PopularityScorer : IScoringFunction<Document>
+{
+    public string Name => "Popularity";
+    public double ComputeScore(Document item) => 1.0 / item.PopularityRank;
+    public double[] ComputeScores(IReadOnlyList<Document> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
 // Create documents to rank
 var documents = new List<Document>
 {
-    new("AI Research Paper", "content...", relevanceScore: 0.9, popularityRank: 5),
-    new("ML Tutorial", "content...", relevanceScore: 0.7, popularityRank: 1),
-    new("Data Science Guide", "content...", relevanceScore: 0.8, popularityRank: 3)
+    new("AI Research Paper", relevanceScore: 0.9, popularityRank: 5),
+    new("ML Tutorial", relevanceScore: 0.7, popularityRank: 1),
+    new("Data Science Guide", relevanceScore: 0.8, popularityRank: 3)
 };
 
 // Create scoring functions with weights
