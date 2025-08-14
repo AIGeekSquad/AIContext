@@ -8,6 +8,7 @@ A comprehensive C# library for **AI-powered context management**, providing inte
 
 - **🧠 Semantic Text Chunking**: Intelligent text splitting based on semantic similarity analysis
 - **🎯 Maximum Marginal Relevance (MMR)**: High-performance algorithm for relevance-diversity balance
+- **⚖️ Generic Ranking Engine**: Multi-criteria ranking with weighted scoring functions and normalization strategies
 - **🛠️ Extensible Architecture**: Dependency injection ready with clean interfaces
 - **📊 High Performance**: Optimized for .NET 9.0 with comprehensive benchmarks
 
@@ -120,6 +121,9 @@ The Generic Ranking Engine combines multiple scoring functions with configurable
 - **Extensible architecture** for custom scoring functions and strategies
 
 ```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using AiGeekSquad.AIContext.Ranking;
 using AiGeekSquad.AIContext.Ranking.Normalizers;
 using AiGeekSquad.AIContext.Ranking.Strategies;
