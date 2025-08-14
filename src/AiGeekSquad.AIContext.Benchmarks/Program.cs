@@ -32,7 +32,7 @@ public class Program
                 RunAllBenchmarks();
                 break;
             default:
-                Console.WriteLine($"Unknown benchmark type '{benchmarkType}'. Available options: mmr, semantic (chunking), ranking (engine), all");
+                Console.WriteLine($"Unknown benchmark type '{benchmarkType}'. Available options: mmr, semantic, ranking, all");
                 Console.WriteLine("Running MMR benchmarks by default...");
                 RunMmrBenchmarks();
                 break;
