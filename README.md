@@ -3,6 +3,7 @@
 [![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AIGeekSquad/AIContext)
 
 
 ![AiContext](aicontext128.png)
