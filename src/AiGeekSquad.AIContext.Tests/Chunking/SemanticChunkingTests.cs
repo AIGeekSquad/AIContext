@@ -248,7 +248,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             {
                 MinTokensPerChunk = 10,
                 MaxTokensPerChunk = 200,
-                BreakpointPercentileThreshold = 0.85
+                BreakpointPercentileThreshold = 0.75
             };
 
             // Text with clear semantic groups

@@ -41,6 +41,13 @@ AiContext/
 - **Optimized for large datasets** with O(n²k) complexity
 - **Comprehensive benchmarks** with real performance data
 
+### ⚖️ **Generic Ranking Engine**
+- **Combines multiple scoring functions** with weights (positive for similarity, negative for dissimilarity)
+- **Multiple normalization strategies** (MinMax, ZScore, Percentile) for score standardization
+- **Multiple combination strategies** (WeightedSum, Reciprocal Rank Fusion, Hybrid) for flexible ranking
+- **Extensible architecture** for custom scoring functions and strategies
+- **Fully benchmarked** with performance insights and optimization guidance
+
 ### 🛠️ **Extensible Architecture**
 - **Dependency injection ready** with clean interfaces
 - **Custom text splitters** for domain-specific requirements
@@ -149,6 +156,10 @@ dotnet test --filter "MaximumMarginalRelevanceTests"
 ## 📊 Performance Benchmarks
 
 The project includes comprehensive benchmarks in [`src/AiGeekSquad.AIContext.Benchmarks/`](src/AiGeekSquad.AIContext.Benchmarks/) using **BenchmarkDotNet** for accurate performance measurement.
+
+### ⚖️ Generic Ranking Engine Benchmarks
+
+The [`RankingEngineBenchmarks.cs`](src/AiGeekSquad.AIContext.Benchmarks/RankingEngineBenchmarks.cs) file provides comprehensive performance testing for the Generic Ranking Engine with multiple scoring functions, normalization strategies, and combination approaches.
 
 ### 🎯 MMR Algorithm Benchmarks
 
@@ -397,6 +408,82 @@ var recommendations = MaximumMarginalRelevance.ComputeMMR(
 - **Literature review systems** - Diverse paper selection for comprehensive coverage
 - **Market research** - Balanced sampling from different data sources
 - **Content analysis** - Representative text selection for qualitative research
+
+### ⚖️ **Generic Ranking Engine for Multi-Criteria Ranking**
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using AiGeekSquad.AIContext.Ranking;
+using AiGeekSquad.AIContext.Ranking.Normalizers;
+using AiGeekSquad.AIContext.Ranking.Strategies;
+
+// Example document class
+public class Document
+{
+    public string Title { get; set; }
+    public double RelevanceScore { get; set; }
+    public int PopularityRank { get; set; }
+    
+    public Document(string title, double relevanceScore, int popularityRank)
+    {
+        Title = title;
+        RelevanceScore = relevanceScore;
+        PopularityRank = popularityRank;
+    }
+}
+
+// Custom scoring functions
+public class SemanticRelevanceScorer : IScoringFunction<Document>
+{
+    public string Name => "SemanticRelevance";
+    public double ComputeScore(Document item) => item.RelevanceScore;
+    public double[] ComputeScores(IReadOnlyList<Document> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
+public class PopularityScorer : IScoringFunction<Document>
+{
+    public string Name => "Popularity";
+    public double ComputeScore(Document item) => 1.0 / item.PopularityRank;
+    public double[] ComputeScores(IReadOnlyList<Document> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
+// Create documents to rank
+var documents = new List<Document>
+{
+    new("AI Research Paper", relevanceScore: 0.9, popularityRank: 5),
+    new("ML Tutorial", relevanceScore: 0.7, popularityRank: 1),
+    new("Data Science Guide", relevanceScore: 0.8, popularityRank: 3)
+};
+
+// Create scoring functions with weights
+var scoringFunctions = new List<WeightedScoringFunction<Document>>
+{
+    // Positive weight for similarity (relevance)
+    new(new SemanticRelevanceScorer(), weight: 0.7)
+    {
+        Normalizer = new MinMaxNormalizer()
+    },
+    // Negative weight for dissimilarity (avoid popular but less relevant)
+    new(new PopularityScorer(), weight: -0.3)
+    {
+        Normalizer = new ZScoreNormalizer()
+    }
+};
+
+// Create ranking engine and rank documents
+var engine = new RankingEngine<Document>();
+var results = engine.Rank(documents, scoringFunctions, new WeightedSumStrategy());
+
+foreach (var result in results)
+{
+    Console.WriteLine($"Rank {result.Rank}: {result.Item.Title} (Score: {result.FinalScore:F3})");
+    Console.WriteLine($"  Relevance: {result.ComponentScores["SemanticRelevance"]:F3}");
+    Console.WriteLine($"  Popularity: {result.ComponentScores["Popularity"]:F3}");
+}
+```
 
 ## 🏗️ Architecture
 
