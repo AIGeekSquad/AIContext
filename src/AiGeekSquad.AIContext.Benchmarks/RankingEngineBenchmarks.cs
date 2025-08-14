@@ -28,7 +28,7 @@ public class RankingEngineBenchmarks
     private WeightedScoringFunction<BenchmarkItem> _complexScoringFunction = null!;
     private WeightedScoringFunction<BenchmarkItem> _expensiveScoringFunction = null!;
     private WeightedScoringFunction<BenchmarkItem> _dissimilarityScoringFunction = null!;
-    
+
     // Multiple scoring function combinations
     private List<WeightedScoringFunction<BenchmarkItem>> _multipleScoringFunctions = null!;
     private List<WeightedScoringFunction<BenchmarkItem>> _mixedWeightScoringFunctions = null!;
@@ -44,7 +44,7 @@ public class RankingEngineBenchmarks
     private ReciprocalRankFusionStrategy _rrfStrategy = null!;
     private HybridStrategy _hybridStrategy = null!;
 
-    [Params(100, 10_000, 100_000)]
+    [Params(100, 1000, 5000)]
     public int DatasetSize { get; set; }
 
     [Params(10, 50)]
@@ -54,7 +54,7 @@ public class RankingEngineBenchmarks
     public void GlobalSetup()
     {
         _random = new Random(42); // Fixed seed for reproducibility
-        
+
         // Initialize normalizers
         _minMaxNormalizer = new MinMaxNormalizer();
         _zScoreNormalizer = new ZScoreNormalizer();
@@ -70,8 +70,8 @@ public class RankingEngineBenchmarks
 
         // Generate datasets
         _smallDataset = GenerateDataset(100);
-        _mediumDataset = GenerateDataset(10_000);
-        _largeDataset = GenerateDataset(100_000);
+        _mediumDataset = GenerateDataset(1000);
+        _largeDataset = GenerateDataset(5000);
 
         // Initialize scoring functions
         InitializeScoringFunctions();
@@ -81,19 +81,23 @@ public class RankingEngineBenchmarks
     {
         // Simple scoring function (similarity)
         _simpleScoringFunction = new WeightedScoringFunction<BenchmarkItem>(
-            new SimpleScoringFunction(), 1.0) { Normalizer = _minMaxNormalizer };
+            new SimpleScoringFunction(), 1.0)
+        { Normalizer = _minMaxNormalizer };
 
         // Complex scoring function with multiple calculations
         _complexScoringFunction = new WeightedScoringFunction<BenchmarkItem>(
-            new ComplexScoringFunction(), 1.0) { Normalizer = _minMaxNormalizer };
+            new ComplexScoringFunction(), 1.0)
+        { Normalizer = _minMaxNormalizer };
 
         // Expensive scoring function (simulates heavy computation)
         _expensiveScoringFunction = new WeightedScoringFunction<BenchmarkItem>(
-            new ExpensiveScoringFunction(), 1.0) { Normalizer = _minMaxNormalizer };
+            new ExpensiveScoringFunction(), 1.0)
+        { Normalizer = _minMaxNormalizer };
 
         // Dissimilarity scoring function (negative weight)
         _dissimilarityScoringFunction = new WeightedScoringFunction<BenchmarkItem>(
-            new DissimilarityScoringFunction(), -0.5) { Normalizer = _minMaxNormalizer };
+            new DissimilarityScoringFunction(), -0.5)
+        { Normalizer = _minMaxNormalizer };
 
         // Multiple scoring functions (3-5 functions)
         _multipleScoringFunctions = new List<WeightedScoringFunction<BenchmarkItem>>
@@ -147,8 +151,8 @@ public class RankingEngineBenchmarks
         return DatasetSize switch
         {
             100 => _smallDataset,
-            10_000 => _mediumDataset,
-            100_000 => _largeDataset,
+            1000 => _mediumDataset,
+            5000 => _largeDataset,
             _ => _smallDataset
         };
     }
@@ -206,7 +210,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Normalization_MinMax()
     {
         var dataset = GetDatasetBySize();
-        var functions = _multipleScoringFunctions.Select(f => 
+        var functions = _multipleScoringFunctions.Select(f =>
             new WeightedScoringFunction<BenchmarkItem>(f.Function, f.Weight) { Normalizer = _minMaxNormalizer }).ToList();
         return _engine.Rank(dataset, functions, _weightedSumStrategy);
     }
@@ -218,7 +222,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Normalization_ZScore()
     {
         var dataset = GetDatasetBySize();
-        var functions = _multipleScoringFunctions.Select(f => 
+        var functions = _multipleScoringFunctions.Select(f =>
             new WeightedScoringFunction<BenchmarkItem>(f.Function, f.Weight) { Normalizer = _zScoreNormalizer }).ToList();
         return _engine.Rank(dataset, functions, _weightedSumStrategy);
     }
@@ -230,7 +234,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Normalization_Percentile()
     {
         var dataset = GetDatasetBySize();
-        var functions = _multipleScoringFunctions.Select(f => 
+        var functions = _multipleScoringFunctions.Select(f =>
             new WeightedScoringFunction<BenchmarkItem>(f.Function, f.Weight) { Normalizer = _percentileNormalizer }).ToList();
         return _engine.Rank(dataset, functions, _weightedSumStrategy);
     }
@@ -397,7 +401,7 @@ public class ComplexScoringFunction : IScoringFunction<BenchmarkItem>
         var qualityBoost = Math.Log(1 + item.Quality);
         var popularityFactor = Math.Sqrt(item.Popularity / 1000.0);
         var agePenalty = Math.Exp(-item.Age / 100.0);
-        
+
         return baseScore * qualityBoost * popularityFactor * agePenalty;
     }
 
@@ -418,14 +422,14 @@ public class ExpensiveScoringFunction : IScoringFunction<BenchmarkItem>
     {
         // Simulate expensive computation with Thread.Sleep
         Thread.Sleep(1); // 1ms delay per item
-        
+
         // Complex mathematical operations
         var result = item.Value;
         for (int i = 0; i < 100; i++)
         {
             result = Math.Sin(result) * Math.Cos(item.Quality) + Math.Sqrt(item.Popularity);
         }
-        
+
         return Math.Abs(result);
     }
 
