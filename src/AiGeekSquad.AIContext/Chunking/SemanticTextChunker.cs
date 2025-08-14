@@ -413,10 +413,14 @@ namespace AiGeekSquad.AIContext.Chunking
         private static List<int> IdentifyBreakpoints(List<double> distances, double percentileThreshold)
         {
             if (distances.Count == 0)
+            {
                 return new List<int>();
+            }
 
             var threshold = VectorExtensions.CalculatePercentile(distances, percentileThreshold);
-            return VectorExtensions.FindBreakpoints(distances, threshold).ToList();
+            var breakpoints = VectorExtensions.FindBreakpoints(distances, threshold).ToList();
+            
+            return breakpoints;
         }
 
         /// <summary>

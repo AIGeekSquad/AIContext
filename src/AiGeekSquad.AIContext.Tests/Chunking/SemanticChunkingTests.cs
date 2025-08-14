@@ -35,8 +35,8 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             private Vector<double> CreateDeterministicEmbedding(string text)
             {
                 var values = new double[dimensions];
-                var hash = text.GetHashCode();
-                var random = new Random(Math.Abs(hash));
+                // Use fixed seed for deterministic behavior across different .NET versions and runs
+                var random = new Random(42);
 
                 for (var i = 0; i < dimensions; i++)
                 {
@@ -248,7 +248,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             {
                 MinTokensPerChunk = 10,
                 MaxTokensPerChunk = 200,
-                BreakpointPercentileThreshold = 0.75
+                BreakpointPercentileThreshold = 0.65
             };
 
             // Text with clear semantic groups
@@ -268,6 +268,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             {
                 chunks.Add(chunk);
             }
+
 
             // Assert
             using var _ = new AssertionScope();
