@@ -109,6 +109,82 @@ foreach (var (index, score) in mmrResults)
 // MMR avoids selecting both similar ML documents!
 ```
 
+#### ⚖️ Generic Ranking Engine for Multi-Criteria Ranking
+
+The Generic Ranking Engine combines multiple scoring functions with configurable weights and normalization strategies to rank items based on multiple criteria. It supports positive weights for similarity scoring and negative weights for dissimilarity scoring.
+
+**Key Features:**
+- **Multiple scoring functions** with individual weights and normalizers
+- **Built-in normalizers**: MinMax, ZScore, Percentile
+- **Combination strategies**: WeightedSum, Reciprocal Rank Fusion, Hybrid
+- **Extensible architecture** for custom scoring functions and strategies
+
+```csharp
+using AiGeekSquad.AIContext.Ranking;
+using AiGeekSquad.AIContext.Ranking.Normalizers;
+using AiGeekSquad.AIContext.Ranking.Strategies;
+
+// Example: Ranking search results with multiple criteria
+public class SearchResult
+{
+    public string Title { get; set; }
+    public double RelevanceScore { get; set; }
+    public int PopularityRank { get; set; }
+    public DateTime PublishedDate { get; set; }
+}
+
+// Custom scoring functions
+public class RelevanceScorer : IScoringFunction<SearchResult>
+{
+    public string Name => "Relevance";
+    public double ComputeScore(SearchResult item) => item.RelevanceScore;
+    public double[] ComputeScores(IReadOnlyList<SearchResult> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
+public class PopularityScorer : IScoringFunction<SearchResult>
+{
+    public string Name => "Popularity";
+    public double ComputeScore(SearchResult item) => 1.0 / item.PopularityRank;
+    public double[] ComputeScores(IReadOnlyList<SearchResult> items) =>
+        items.Select(ComputeScore).ToArray();
+}
+
+// Create search results
+var results = new List<SearchResult>
+{
+    new() { Title = "AI Guide", RelevanceScore = 0.9, PopularityRank = 5 },
+    new() { Title = "ML Tutorial", RelevanceScore = 0.7, PopularityRank = 1 },
+    new() { Title = "Data Science", RelevanceScore = 0.8, PopularityRank = 3 }
+};
+
+// Configure scoring functions with weights and normalization
+var scoringFunctions = new List<WeightedScoringFunction<SearchResult>>
+{
+    new(new RelevanceScorer(), weight: 0.7) { Normalizer = new MinMaxNormalizer() },
+    new(new PopularityScorer(), weight: 0.3) { Normalizer = new ZScoreNormalizer() }
+};
+
+// Rank using WeightedSum strategy
+var engine = new RankingEngine<SearchResult>();
+var rankedResults = engine.Rank(results, scoringFunctions, new WeightedSumStrategy());
+
+foreach (var result in rankedResults)
+{
+    Console.WriteLine($"Rank {result.Rank}: {result.Item.Title} (Score: {result.FinalScore:F3})");
+}
+```
+
+**Available Normalizers:**
+- `MinMaxNormalizer`: Scales scores to [0,1] range
+- `ZScoreNormalizer`: Standardizes scores using mean and standard deviation
+- `PercentileNormalizer`: Converts scores to percentile ranks
+
+**Available Strategies:**
+- `WeightedSumStrategy`: Simple weighted combination of normalized scores
+- `ReciprocalRankFusionStrategy`: Combines rankings using reciprocal rank fusion
+- `HybridStrategy`: Combines multiple strategies with configurable weights
+
 ## 🎯 Real-World Examples
 
 ### Complete RAG System Pipeline
