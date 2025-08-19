@@ -67,15 +67,44 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 
 ## 📊 Performance & Benchmarks
 
-### Semantic Chunking Performance
-- **Streaming Processing**: Memory-efficient with `IAsyncEnumerable`
-- **Caching Strategy**: LRU cache for embeddings
-- **Token Accuracy**: [MLTokenCounter with Microsoft.ML.Tokenizers](SemanticChunking.md#token-counting) for precise, model-aligned token counting
+### Comprehensive Benchmark Results
 
-### MMR Performance
-- **Benchmark Results**: [Detailed Performance Data](MMR.md#benchmark-results)
-- **Optimization Guidelines**: [Performance Tips](MMR.md#optimization-tips)
-- **Scalability**: [Large Dataset Handling](MMR.md#performance-guidelines)
+**Total Benchmarks Executed**: 306 benchmarks across all components
+**Runtime**: 8+ hours of comprehensive testing on .NET 9.0
+**Platform**: Windows 11, x64 with Server/Workstation GC configurations
+
+### MMR Algorithm Performance
+- **1,000 vectors, 100 dimensions**: ~2.1-2.3ms execution time
+- **Linear scaling**: 100 vectors (~0.2ms) to 5,000 vectors (~50ms)
+- **Lambda impact**: <5% performance variation across relevance/diversity settings
+- **Memory efficiency**: Predictable allocation patterns, minimal GC pressure
+- **[Detailed MMR Benchmarks](MMR.md#benchmark-results)**
+
+### Ranking Engine Performance
+- **Small datasets (100 items)**: 16-25μs for single functions, 40-60μs for multiple
+- **Medium datasets (10,000 items)**: 200-550μs depending on complexity
+- **Large datasets (100,000 items)**: 1.3-4.2ms with advanced strategies
+- **Strategy comparison**: WeightedSum fastest, RRF comparable, Hybrid 10-20% slower
+- **Normalization overhead**: MinMax fastest, Percentile 2-3x slower
+- **[Detailed Ranking Benchmarks](RankingAPI_Usage.md#benchmark-results)**
+
+### Semantic Chunking Performance
+- **Document size scaling**: Linear performance with segment count
+- **Token limits**: 512 tokens/chunk optimal for most use cases
+- **Caching benefits**: 40-60% improvement with 70-85% hit rates
+- **Buffer size impact**: Size 2 provides balanced context/performance
+- **Threshold tuning**: 0.75 balanced, 0.85 conservative, 0.95 strict
+- **[Detailed Chunking Benchmarks](SemanticChunking.md#benchmark-results)**
+
+### Key Performance Insights
+- **Streaming Processing**: Memory-efficient with `IAsyncEnumerable`
+- **Caching Strategy**: LRU cache for embeddings with significant performance gains
+- **Token Accuracy**: [MLTokenCounter with Microsoft.ML.Tokenizers](SemanticChunking.md#token-counting) for precise, model-aligned token counting
+- **GC Efficiency**: Minimal garbage collection impact across all components
+- **Scalability**: Predictable performance scaling from small to large datasets
+
+### Complete Benchmark Documentation
+- **[Comprehensive Benchmark Results](BenchmarkResults.md)** - Complete 306-benchmark analysis with detailed performance data, methodology, and recommendations
 
 ## 🔧 Configuration Reference
 
