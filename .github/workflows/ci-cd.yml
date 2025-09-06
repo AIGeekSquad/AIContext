@@ -78,7 +78,5 @@ jobs:
         $packages = Get-ChildItem -Path packages -Filter "*.nupkg" | Where-Object { $_.Name -notlike "*symbols*" }
         foreach ($package in $packages) {
           Write-Output "Publishing $($package.Name)..."
-          dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $package.FullName --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
         }
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
