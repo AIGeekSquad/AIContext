@@ -2,11 +2,12 @@
 
 Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerful C# library for AI-powered context management.
 
-## 📚 Documentation Structure
+## 📖 Documentation
 
-### Getting Started
 - **[Main README](../README.md)** - Overview, installation, and quick start examples
 - **[Examples](../examples/)** - Working code examples you can run immediately
+- **[Performance Tuning](PERFORMANCE_TUNING.md)** - Optimization guide for production deployments
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### Core Features
 
