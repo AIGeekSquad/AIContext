@@ -30,7 +30,7 @@ jobs:
       shell: pwsh
       run: |
         $runNumber = $env:GITHUB_RUN_NUMBER
-        $version = "1.0.$runNumber"
+        $version = "1.1.$runNumber"
         Write-Output "version=$version" >> $env:GITHUB_OUTPUT
         Write-Output "Version: $version"
     
