@@ -74,9 +74,11 @@ jobs:
     - name: Publish to NuGet.org
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       shell: pwsh
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       run: |
         $packages = Get-ChildItem -Path packages -Filter "*.nupkg" | Where-Object { $_.Name -notlike "*symbols*" }
         foreach ($package in $packages) {
           Write-Output "Publishing $($package.Name)..."
-          dotnet nuget push $package.FullName --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
         }
