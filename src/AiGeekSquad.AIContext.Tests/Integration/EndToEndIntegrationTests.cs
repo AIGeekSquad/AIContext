@@ -148,7 +148,7 @@ namespace AiGeekSquad.AIContext.Tests.Integration
 
             // MMR should return valid results
             mmrResults.Should().NotBeEmpty("MMR should return results");
-            mmrResults.Should().HaveCount(c => c <= 3, "MMR should not return more than requested");
+            mmrResults.Count.Should().BeLessOrEqualTo(3, "MMR should not return more than requested");
 
             // MMR results should be valid indices
             mmrResults.Should().OnlyContain(r => r.index >= 0 && r.index < chunks.Count,
