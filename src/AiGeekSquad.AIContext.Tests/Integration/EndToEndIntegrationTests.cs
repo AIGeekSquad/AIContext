@@ -50,7 +50,7 @@ namespace AiGeekSquad.AIContext.Tests.Integration
             private Vector<double> CreateSemanticEmbedding(string text)
             {
                 var values = new double[_dimensions];
-                var hash = text.GetHashCode();
+                var hash = BitConverter.ToInt32(System.Security.Cryptography.SHA256.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(text)), 0);
                 var random = new Random(Math.Abs(hash));
 
                 // Base random values
