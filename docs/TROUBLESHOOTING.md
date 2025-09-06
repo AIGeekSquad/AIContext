@@ -109,7 +109,7 @@ try
 catch (Exception ex)
 {
     // Fallback to a simple word-based counter for development
-    console.WriteLine($"Failed to initialize ML tokenizer: {ex.Message}");
+    Console.WriteLine($"Failed to initialize ML tokenizer: {ex.Message}");
     // Implement fallback logic
 }
 ```
