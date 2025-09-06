@@ -552,8 +552,14 @@ public interface ITokenCounter
 
 ## 📖 Documentation
 
+- **[Documentation Hub](docs/README.md)** - Complete documentation overview
 - **[MMR Algorithm](docs/MMR.md)** - Detailed MMR documentation with benchmarks
 - **[Semantic Chunking](docs/SemanticChunking.md)** - In-depth chunking algorithm explanation
+- **[Ranking API Architecture](docs/RankingAPI_Architecture.md)** - Generic ranking engine architecture
+- **[Ranking API Usage](docs/RankingAPI_Usage.md)** - Comprehensive usage guide with examples
+- **[Performance Tuning](docs/PERFORMANCE_TUNING.md)** - Optimization guide for production deployments
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Benchmark Results](docs/BenchmarkResults.md)** - Complete performance analysis
 - **[API Reference](https://github.com/AiGeekSquad/AIContext/wiki/API-Reference)** - Complete API documentation
 - **[Examples](examples/)** - Sample implementations and use cases
 
