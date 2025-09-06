@@ -1,5 +1,5 @@
 # AiGeekSquad.AIContext
-[![Build status](https://ci.appveyor.com/api/projects/status/1xihiiexyrymgxpg?svg=true)](https://ci.appveyor.com/project/colombod/aicontext)
+[![CI/CD](https://github.com/AIGeekSquad/AIContext/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/AIGeekSquad/AIContext/actions/workflows/ci-cd.yml)
 [![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -346,11 +346,11 @@ The benchmarks help identify:
 
 ### Continuous Integration
 
-The project uses **AppVeyor** for continuous integration:
+The project uses **GitHub Actions** for continuous integration:
 - **Automated builds** on every commit
-- **Test execution** across multiple .NET versions
-- **NuGet package generation** for releases
-- **Performance regression detection**
+- **Test execution** with comprehensive coverage
+- **NuGet package generation** and publishing
+- **Version management** with automatic build numbering
 
 ## 💡 Examples & Use Cases
 
