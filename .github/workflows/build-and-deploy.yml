@@ -1,0 +1,128 @@
+name: Build, Test, Analyze and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  SOLUTION_FILE: 'AiContext.sln'
+
+jobs:
+  build-test-analyze-deploy:
+    name: Build, Test, Analyze and Deploy
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed for SonarQube analysis and version calculation
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'zulu'
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Cache SonarQube Cloud packages
+      uses: actions/cache@v4
+      with:
+        path: ~\sonar\cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+    
+    - name: Cache SonarQube Cloud scanner
+      id: cache-sonar-scanner
+      uses: actions/cache@v4
+      with:
+        path: .\.sonar\scanner
+        key: ${{ runner.os }}-sonar-scanner
+        restore-keys: ${{ runner.os }}-sonar-scanner
+    
+    - name: Install SonarQube Cloud scanner
+      if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        New-Item -Path .\.sonar\scanner -ItemType Directory
+        dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+    
+    - name: Calculate version
+      id: version
+      shell: pwsh
+      run: |
+        $runNumber = $env:GITHUB_RUN_NUMBER
+        $version = "1.1.$runNumber"
+        Write-Output "version=$version" >> $env:GITHUB_OUTPUT
+        Write-Output "Version: $version"
+    
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }} --verbosity quiet
+    
+    - name: Update project versions
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.version }}"
+        Get-ChildItem -Path "src" -Filter "*.csproj" -Recurse | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw
+          # Update version only for packable projects
+          if ($content -match '<IsPackable>true</IsPackable>' -or $content -match '<PackageId>') {
+            $content = $content -replace '<Version>.*?</Version>', "<Version>$version</Version>"
+            $content = $content -replace '<PackageVersion>.*?</PackageVersion>', "<PackageVersion>$version</PackageVersion>"
+            $content = $content -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$version</AssemblyVersion>"
+            $content = $content -replace '<FileVersion>.*?</FileVersion>', "<FileVersion>$version</FileVersion>"
+            $content = $content -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>$version</InformationalVersion>"
+            Set-Content -Path $_.FullName -Value $content -NoNewline
+            Write-Output "Updated version in $($_.Name) to $version"
+          }
+        }
+    
+    - name: Begin SonarQube analysis
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      shell: powershell
+      run: |
+        .\.sonar\scanner\dotnet-sonarscanner begin /k:"AIGeekSquad_AIContext" /o:"aigeeksquad" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+    
+    - name: Build solution
+      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+    
+    - name: End SonarQube analysis
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      shell: powershell
+      run: |
+        .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+    
+    - name: Run tests
+      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
+    
+    - name: Create NuGet packages
+      run: dotnet pack ${{ env.SOLUTION_FILE }} --configuration Release --no-build --output packages --include-symbols --include-source
+    
+    - name: Upload packages as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: packages/*.nupkg
+        retention-days: 30
+    
+    - name: Publish to NuGet.org
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      shell: pwsh
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: |
+        $packages = Get-ChildItem -Path packages -Filter "*.nupkg" | Where-Object { $_.Name -notlike "*symbols*" }
+        foreach ($package in $packages) {
+          Write-Output "Publishing $($package.Name)..."
+          dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+        }
