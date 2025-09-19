@@ -74,13 +74,23 @@ public class MicrosoftExtensionsAiEmbeddingGenerator : IEmbeddingGenerator
     /// <returns>An async enumerable of vector embeddings that can be streamed for efficiency with large batches.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="texts"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the embedding generation fails or returns unexpected results.</exception>
-    public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
+    public IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
         IEnumerable<string> texts,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (texts == null)
             throw new ArgumentNullException(nameof(texts));
 
+        return GenerateBatchEmbeddingsAsyncCore(texts, cancellationToken);
+    }
+
+    /// <summary>
+    /// Core implementation for batch embedding generation.
+    /// </summary>
+    private async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsyncCore(
+        IEnumerable<string> texts,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         GeneratedEmbeddings<Embedding<float>> embeddings;
 
         try

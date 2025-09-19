@@ -240,7 +240,7 @@ public static class MaximumMarginalRelevance
         if (k >= vectors.Count)
             return vectors.Select((v, i) => (i, v)).ToList();
 
-        var (queryArray, vectorArrays, querySimilarities) = PreprocessVectorsForMMR(vectors, query);
+        var (_, vectorArrays, querySimilarities) = PreprocessVectorsForMMR(vectors, query);
         var selectedIndices = ExecuteMMRSelection(vectorArrays, querySimilarities, lambda, k);
 
         return selectedIndices.Select(i => (i, vectors[i])).ToList();

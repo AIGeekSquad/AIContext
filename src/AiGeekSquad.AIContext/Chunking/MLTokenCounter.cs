@@ -9,9 +9,10 @@ namespace AiGeekSquad.AIContext.Chunking;
 /// Implementation of <see cref="ITokenCounter"/> using Microsoft.ML.Tokenizers.
 /// Uses GPT-4 tokenizer for accurate token counting compatible with OpenAI models.
 /// </summary>
-public class MLTokenCounter : ITokenCounter , IDisposable
+public class MLTokenCounter : ITokenCounter
 {
     private readonly Tokenizer _tokenizer;
+    private bool _disposed = false;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MLTokenCounter"/> class.
@@ -188,21 +189,29 @@ public class MLTokenCounter : ITokenCounter , IDisposable
     }
 
     /// <summary>
-    /// Releases any resources associated with the tokenizer.
-    /// Note: Microsoft.ML.Tokenizers.Tokenizer doesn't implement IDisposable,
-    /// so no cleanup is actually required for this implementation.
-    /// </summary>
-    public void Release()
-    {
-        // Microsoft.ML.Tokenizers.Tokenizer doesn't implement IDisposable
-        // No cleanup required for this implementation
-    }
-
-    /// <summary>
-    /// Disposes the tokenizer resources by calling Release().
+    /// Disposes the tokenizer resources following the standard dispose pattern.
     /// </summary>
     public void Dispose()
     {
-        Release();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected implementation of dispose pattern.
+    /// </summary>
+    /// <param name="disposing">True if disposing managed resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Microsoft.ML.Tokenizers.Tokenizer doesn't implement IDisposable
+                // No cleanup required for this implementation
+            }
+            
+            _disposed = true;
+        }
     }
 }
