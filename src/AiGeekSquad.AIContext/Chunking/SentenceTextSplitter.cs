@@ -567,7 +567,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <summary>
         /// Handles any text that wasn't processed by markdown parsing.
         /// </summary>
-        private List<TextSegment> HandleUnprocessedText(List<TextSegment> segments)
+        private static List<TextSegment> HandleUnprocessedText(List<TextSegment> segments)
         {
             // For now, just return the segments as-is
             // Could be extended to handle edge cases where some text is missed

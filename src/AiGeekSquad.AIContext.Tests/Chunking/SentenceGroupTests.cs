@@ -1,6 +1,8 @@
 using AiGeekSquad.AIContext.Chunking;
+
 using FluentAssertions;
 using FluentAssertions.Execution;
+
 using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Tests.Chunking;
@@ -67,7 +69,7 @@ public class SentenceGroupTests
         // Arrange
         var sentences = new[] { "Test sentence." };
         var sentenceGroup = new SentenceGroup(sentences, 0, 14);
-        var embedding = Vector<double>.Build.Dense(new double[] { 0.1, 0.2, 0.3 });
+        var embedding = Vector<double>.Build.Dense([0.1, 0.2, 0.3]);
 
         // Act
         sentenceGroup.Embedding = embedding;
