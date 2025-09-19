@@ -123,7 +123,7 @@ public class RankingEngineEdgeCasesTests
         // Arrange
         var engine = new RankingEngine<Document>();
         var documents = RankingTestHelpers.CreateTestDocuments();
-        var emptyScoringFunctions = new WeightedScoringFunction<Document>[0];
+        var emptyScoringFunctions = Array.Empty<WeightedScoringFunction<Document>>();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => engine.Rank(documents, emptyScoringFunctions));
