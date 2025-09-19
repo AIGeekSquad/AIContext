@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "sonarqube": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "SONARQUBE_TOKEN",
+        "-e",
+        "SONARQUBE_ORG",
+        "mcp/sonarqube"
+      ],
+      "env": {
+        "SONARQUBE_TOKEN": "1bc49b31c3f452cc5e1b4f5a17a68e039934b05b",
+        "SONARQUBE_ORG": "aigeeksquad"
+      },
+      "alwaysAllow": [
+        "change_sonar_issue_status",
+        "search_my_sonarqube_projects",
+        "analyze_code_snippet",
+        "search_sonar_issues_in_projects"
+      ]
+    }
+  }
+}

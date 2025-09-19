@@ -229,16 +229,45 @@ public static class MaximumMarginalRelevance
         double lambda = 0.5,
         int? topK = null)
     {
-        // Parameter validation
+        ValidateMMRParameters(vectors, query, lambda);
+
+        if (vectors == null || vectors.Count == 0)
+            return new List<(int, Vector<double>)>();
+
+        var k = Math.Min(topK ?? vectors.Count, vectors.Count);
+        if (k <= 0)
+            return new List<(int, Vector<double>)>();
+        if (k >= vectors.Count)
+            return vectors.Select((v, i) => (i, v)).ToList();
+
+        var (queryArray, vectorArrays, querySimilarities) = PreprocessVectorsForMMR(vectors, query);
+        var selectedIndices = ExecuteMMRSelection(vectorArrays, querySimilarities, lambda, k);
+
+        return selectedIndices.Select(i => (i, vectors[i])).ToList();
+    }
+
+    /// <summary>
+    /// Validates parameters for MMR computation.
+    /// </summary>
+    private static void ValidateMMRParameters(List<Vector<double>> vectors, Vector<double> query, double lambda)
+    {
         if (query == null)
             throw new ArgumentNullException(nameof(query), "Query vector cannot be null.");
 
         if (lambda < 0.0 || lambda > 1.0)
             throw new ArgumentException($"Lambda must be between 0.0 and 1.0, but was {lambda}.", nameof(lambda));
 
-        if (vectors == null || vectors.Count == 0) return new List<(int, Vector<double>)>();
+        if (vectors != null && vectors.Count > 0)
+        {
+            ValidateVectorDimensions(vectors, query);
+        }
+    }
 
-        // Validate vector dimensions consistency
+    /// <summary>
+    /// Validates that all vectors have consistent dimensions.
+    /// </summary>
+    private static void ValidateVectorDimensions(List<Vector<double>> vectors, Vector<double> query)
+    {
         var expectedDimensions = query.Count;
         for (var i = 0; i < vectors.Count; i++)
         {
@@ -249,11 +278,15 @@ public static class MaximumMarginalRelevance
                     nameof(vectors));
             }
         }
+    }
 
-        var k = Math.Min(topK ?? vectors.Count, vectors.Count);
-        if (k <= 0) return new List<(int, Vector<double>)>();
-        if (k >= vectors.Count) return vectors.Select((v, i) => (i, v)).ToList();
-
+    /// <summary>
+    /// Preprocesses vectors and computes query similarities for MMR.
+    /// </summary>
+    private static (double[] queryArray, double[][] vectorArrays, double[] querySimilarities) PreprocessVectorsForMMR(
+        List<Vector<double>> vectors,
+        Vector<double> query)
+    {
         var queryArray = query.ToArray();
         var vectorArrays = vectors.Select(v => v.ToArray()).ToArray();
 
@@ -264,63 +297,87 @@ public static class MaximumMarginalRelevance
             querySimilarities[i] = 1.0 - Distance.Cosine(vectorArrays[i], queryArray);
         }
 
+        return (queryArray, vectorArrays, querySimilarities);
+    }
+
+    /// <summary>
+    /// Executes the iterative MMR selection process.
+    /// </summary>
+    private static List<int> ExecuteMMRSelection(double[][] vectorArrays, double[] querySimilarities, double lambda, int k)
+    {
         var selectedIndices = new List<int>(k);
-        var remainingIndices = new bool[vectors.Count];
+        var remainingIndices = new bool[vectorArrays.Length];
         Array.Fill(remainingIndices, true);
 
-        // Iteratively select k items using MMR scoring
         for (var iteration = 0; iteration < k; iteration++)
         {
-            var bestIndex = -1;
-            var bestScore = double.MinValue;
-
-            // Evaluate all remaining candidates
-            for (var i = 0; i < vectors.Count; i++)
-            {
-                if (!remainingIndices[i]) continue;
-
-                // Relevance component: similarity to query
-                var relevanceScore = lambda * querySimilarities[i];
-
-                // Diversity component: dissimilarity to already selected items
-                double diversityScore;
-                if (selectedIndices.Count == 0)
-                {
-                    // First selection: only diversity weight matters
-                    diversityScore = 1.0 - lambda;
-                }
-                else
-                {
-                    // Compute average similarity (not maximum) to already selected items
-                    var avgSimilarity = 0.0;
-                    for (var j = 0; j < selectedIndices.Count; j++)
-                    {
-                        var similarity = 1.0 - Distance.Cosine(vectorArrays[i], vectorArrays[selectedIndices[j]]);
-                        avgSimilarity += similarity;
-                    }
-                    avgSimilarity /= selectedIndices.Count;
-
-                    // Diversity score: higher when less similar to selected items
-                    diversityScore = (1.0 - lambda) * (1.0 - avgSimilarity);
-                }
-
-                var totalScore = relevanceScore + diversityScore;
-
-                if (totalScore > bestScore)
-                {
-                    bestScore = totalScore;
-                    bestIndex = i;
-                }
-            }
-
-            // Break if no valid candidate found
+            var bestIndex = FindBestMMRCandidate(vectorArrays, querySimilarities, selectedIndices, remainingIndices, lambda);
+            
             if (bestIndex == -1) break;
 
-            // Select the best candidate
             selectedIndices.Add(bestIndex);
             remainingIndices[bestIndex] = false;
         }
 
-        return selectedIndices.Select(i => (i, vectors[i])).ToList();
+        return selectedIndices;
+    }
+
+    /// <summary>
+    /// Finds the best MMR candidate from remaining vectors.
+    /// </summary>
+    private static int FindBestMMRCandidate(double[][] vectorArrays, double[] querySimilarities,
+        List<int> selectedIndices, bool[] remainingIndices, double lambda)
+    {
+        var bestIndex = -1;
+        var bestScore = double.MinValue;
+
+        for (var i = 0; i < vectorArrays.Length; i++)
+        {
+            if (!remainingIndices[i]) continue;
+
+            var mmrScore = CalculateMMRScore(vectorArrays, querySimilarities, selectedIndices, i, lambda);
+
+            if (mmrScore > bestScore)
+            {
+                bestScore = mmrScore;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    /// <summary>
+    /// Calculates the MMR score for a candidate vector.
+    /// </summary>
+    private static double CalculateMMRScore(double[][] vectorArrays, double[] querySimilarities,
+        List<int> selectedIndices, int candidateIndex, double lambda)
+    {
+        var relevanceScore = lambda * querySimilarities[candidateIndex];
+        var diversityScore = CalculateDiversityScore(vectorArrays, selectedIndices, candidateIndex, lambda);
+
+        return relevanceScore + diversityScore;
+    }
+
+    /// <summary>
+    /// Calculates the diversity score component for MMR.
+    /// </summary>
+    private static double CalculateDiversityScore(double[][] vectorArrays, List<int> selectedIndices,
+        int candidateIndex, double lambda)
+    {
+        if (selectedIndices.Count == 0)
+        {
+            return 1.0 - lambda;
+        }
+
+        var avgSimilarity = 0.0;
+        for (var j = 0; j < selectedIndices.Count; j++)
+        {
+            var similarity = 1.0 - Distance.Cosine(vectorArrays[candidateIndex], vectorArrays[selectedIndices[j]]);
+            avgSimilarity += similarity;
+        }
+        avgSimilarity /= selectedIndices.Count;
+
+        return (1.0 - lambda) * (1.0 - avgSimilarity);
     }
 }
