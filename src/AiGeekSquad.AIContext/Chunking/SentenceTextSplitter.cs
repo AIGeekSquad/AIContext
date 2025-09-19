@@ -338,7 +338,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Extracts segments from fenced code blocks (```code```).
     /// </summary>
-    private IEnumerable<TextSegment> ExtractFencedCodeBlockSegments(FencedCodeBlock fencedCodeBlock, string originalText)
+    private static IEnumerable<TextSegment> ExtractFencedCodeBlockSegments(FencedCodeBlock fencedCodeBlock, string originalText)
     {
         var fence = new string(fencedCodeBlock.FencedChar, fencedCodeBlock.OpeningFencedCharCount);
         var info = fencedCodeBlock.Info ?? string.Empty;
@@ -386,7 +386,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Extracts segments from indented code blocks (4+ spaces or tab indentation).
     /// </summary>
-    private IEnumerable<TextSegment> ExtractIndentedCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractIndentedCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
     {
         var (blockStart, blockEnd) = GetValidBlockBounds(codeBlock, processedText);
         if (blockStart >= blockEnd)

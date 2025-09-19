@@ -76,7 +76,7 @@ public class MicrosoftExtensionsAiEmbeddingGenerator : IEmbeddingGenerator
     /// <exception cref="InvalidOperationException">Thrown when the embedding generation fails or returns unexpected results.</exception>
     public IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
         IEnumerable<string> texts,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (texts == null)
             throw new ArgumentNullException(nameof(texts));
