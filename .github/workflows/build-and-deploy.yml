@@ -85,17 +85,15 @@ jobs:
           }
         }
     
-    - name: Build and analyze with SonarQube
+    - name: Build, test and analyze with SonarQube
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       shell: powershell
       run: |
-        .\.sonar\scanner\dotnet-sonarscanner begin /k:"AIGeekSquad_AIContext" /o:"aigeeksquad" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
+        .\.sonar\scanner\dotnet-sonarscanner begin /k:"AIGeekSquad_AIContext" /o:"aigeeksquad" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/*Tests.cs,**/Benchmarks/**/*"
         dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+        dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults/ -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura%2Copencover
         .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
-    
-    - name: Run tests
-      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
     
     - name: Create NuGet packages
       run: dotnet pack ${{ env.SOLUTION_FILE }} --configuration Release --no-build --output packages --include-symbols --include-source
