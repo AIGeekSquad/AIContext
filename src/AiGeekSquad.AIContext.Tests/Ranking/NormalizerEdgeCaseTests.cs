@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using AiGeekSquad.AIContext.Ranking.Normalizers;
 using FluentAssertions;
 using FluentAssertions.Execution;
@@ -10,6 +12,22 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
     /// </summary>
     public class NormalizerEdgeCaseTests
     {
+        // Test constants to avoid magic numbers
+        private const double TestValue1 = 1.0;
+        private const double TestValue2 = 2.0;
+        private const double TestValue3 = 3.0;
+        private const double TestValue4 = 4.0;
+        private const double TestValue5 = 5.0;
+        private const double RepeatedValue = 5.0;
+        private const double SingleTestValue = 42.0;
+        private const double NormalizedHalf = 0.5;
+        private const double SmallTolerance = 0.001;
+        private const double LargeNegativeValue = -1000.0;
+        private const double LargePositiveValue = 1000.0;
+        private const double LargeValue2 = 20.0;
+        private const double ExpectedMean = 3.0;
+        private const double ExpectedStdDev = 1.5811388300841898; // sqrt(2.5)
+
         #region MinMaxNormalizer Tests
 
         [Fact]
@@ -17,13 +35,13 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new MinMaxNormalizer();
-            var scores = new[] { 5.0, 5.0, 5.0, 5.0 };
+            var scores = new[] { RepeatedValue, RepeatedValue, RepeatedValue, RepeatedValue };
 
             // Act
             var result = normalizer.Normalize(scores);
 
             // Assert
-            result.Should().OnlyContain(x => x == 0.5, "when all scores are identical, MinMax normalization should return 0.5");
+            result.Should().OnlyContain(x => x == NormalizedHalf, "when all scores are identical, MinMax normalization should return 0.5");
         }
 
         [Fact]
@@ -31,14 +49,14 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new MinMaxNormalizer();
-            var scores = new[] { 42.0 };
+            var scores = new[] { SingleTestValue };
 
             // Act
             var result = normalizer.Normalize(scores);
 
             // Assert
             result.Should().HaveCount(1);
-            result[0].Should().Be(0.5, "single score should normalize to 0.5");
+            result[0].Should().Be(NormalizedHalf, "single score should normalize to 0.5");
         }
 
         [Fact]
@@ -60,7 +78,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new MinMaxNormalizer();
-            var scores = new[] { 1.0, 3.0, 5.0, 7.0, 9.0 };
+            var scores = new[] { TestValue1, TestValue3, TestValue5, 7.0, 9.0 };
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -68,9 +86,9 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             // Assert
             using var _ = new AssertionScope();
             result.Should().HaveCount(5);
-            result[0].Should().BeApproximately(0.0, 0.001); // Min value -> 0
-            result[4].Should().BeApproximately(1.0, 0.001); // Max value -> 1
-            result[2].Should().BeApproximately(0.5, 0.001); // Middle value -> 0.5
+            result[0].Should().BeApproximately(0.0, SmallTolerance); // Min value -> 0
+            result[4].Should().BeApproximately(1.0, SmallTolerance); // Max value -> 1
+            result[2].Should().BeApproximately(NormalizedHalf, SmallTolerance); // Middle value -> 0.5
             result.Should().OnlyContain(x => x >= 0.0 && x <= 1.0);
         }
 
@@ -83,7 +101,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new ZScoreNormalizer();
-            var scores = new[] { 3.0, 3.0, 3.0, 3.0 };
+            var scores = new[] { TestValue3, TestValue3, TestValue3, TestValue3 };
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -97,7 +115,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new ZScoreNormalizer();
-            var scores = new[] { 42.0 };
+            var scores = new[] { SingleTestValue };
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -126,7 +144,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new ZScoreNormalizer();
-            var scores = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 }; // Mean = 3.0, StdDev = sqrt(2.5)
+            var scores = new[] { TestValue1, TestValue2, TestValue3, TestValue4, TestValue5 }; // Mean = 3.0, StdDev = sqrt(2.5)
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -137,12 +155,12 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             
             // Mean should be approximately 0
             var mean = result.Average();
-            mean.Should().BeApproximately(0.0, 0.001);
+            mean.Should().BeApproximately(0.0, SmallTolerance);
             
             // Standard deviation should be approximately 1
             var variance = result.Select(x => Math.Pow(x - mean, 2)).Average();
             var stdDev = Math.Sqrt(variance);
-            stdDev.Should().BeApproximately(1.0, 0.001);
+            stdDev.Should().BeApproximately(1.0, SmallTolerance);
         }
 
         #endregion
@@ -168,14 +186,14 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new PercentileNormalizer();
-            var scores = new[] { 42.0 };
+            var scores = new[] { SingleTestValue };
 
             // Act
             var result = normalizer.Normalize(scores);
 
             // Assert
             result.Should().HaveCount(1);
-            result[0].Should().Be(0.5, "single score should normalize to 0.5");
+            result[0].Should().Be(NormalizedHalf, "single score should normalize to 0.5");
         }
 
         [Fact]
@@ -197,7 +215,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new PercentileNormalizer();
-            var scores = new[] { 1.0, 5.0, 10.0, 15.0, 20.0 };
+            var scores = new[] { TestValue1, TestValue5, 10.0, 15.0, LargeValue2 };
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -216,7 +234,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new PercentileNormalizer();
-            var scores = new[] { 1.0, 2.0, 2.0, 2.0, 5.0 }; // Multiple duplicates
+            var scores = new[] { TestValue1, TestValue2, TestValue2, TestValue2, TestValue5 }; // Multiple duplicates
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -236,7 +254,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         {
             // Arrange
             var normalizer = new PercentileNormalizer();
-            var scores = new[] { double.MinValue, -1000.0, 0.0, 1000.0, double.MaxValue };
+            var scores = new[] { double.MinValue, LargeNegativeValue, 0.0, LargePositiveValue, double.MaxValue };
 
             // Act
             var result = normalizer.Normalize(scores);
@@ -259,7 +277,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var minMaxNormalizer = new MinMaxNormalizer();
             var zScoreNormalizer = new ZScoreNormalizer();
             var percentileNormalizer = new PercentileNormalizer();
-            var scores = new[] { 1.0, 3.0, 7.0, 12.0, 20.0 };
+            var scores = new[] { TestValue1, TestValue3, 7.0, 12.0, LargeValue2 };
 
             // Act
             var minMaxResult = minMaxNormalizer.Normalize(scores);
@@ -280,7 +298,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var minMaxNormalizer = new MinMaxNormalizer();
             var zScoreNormalizer = new ZScoreNormalizer();
             var percentileNormalizer = new PercentileNormalizer();
-            var scores = new[] { 5.0, 1.0, 8.0, 3.0, 12.0 };
+            var scores = new[] { TestValue5, TestValue1, 8.0, TestValue3, 12.0 };
 
             // Act
             var minMaxResult = minMaxNormalizer.Normalize(scores);

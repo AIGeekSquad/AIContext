@@ -13,15 +13,32 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 {
     public class VectorExtensionsTests
     {
+        // Test constants to avoid magic numbers
+        private const double DefaultPercentile = 0.5;
+        private const double SmallTolerance = 0.001;
+        private const double TestValue1 = 1.0;
+        private const double TestValue2 = 2.0;
+        private const double TestValue3 = 3.0;
+        private const double TestValue4 = 4.0;
+        private const double TestValue5 = 5.0;
+        private const double TestThreshold = 0.5;
+        private const double TestValueNegative = -0.1;
+        private const double TestValueAboveOne = 1.1;
+        private const double TestSingleValue = 42.0;
+        private const string DistancesParameterName = "distances";
+        private const string PercentileParameterName = "percentile";
+        private const string ValuesParameterName = "values";
+        private const string TestParameterName = "testParam";
+
         #region CalculatePercentile Tests
 
         [Fact]
         public void CalculatePercentile_WithNullDistances_ThrowsArgumentNullException()
         {
             // Act & Assert
-            var act = () => VectorUtils.CalculatePercentile(null!, 0.5);
+            var act = () => VectorUtils.CalculatePercentile(null!, DefaultPercentile);
             act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("distances");
+                .WithParameterName(DistancesParameterName);
         }
 
         [Theory]
@@ -30,12 +47,12 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CalculatePercentile_WithInvalidPercentile_ThrowsArgumentException(double percentile)
         {
             // Arrange
-            var distances = new[] { 1.0, 2.0, 3.0 };
+            var distances = new[] { TestValue1, TestValue2, TestValue3 };
 
             // Act & Assert
             var act = () => VectorUtils.CalculatePercentile(distances, percentile);
             act.Should().Throw<ArgumentException>()
-                .WithParameterName("percentile")
+                .WithParameterName(PercentileParameterName)
                 .WithMessage("Percentile must be between 0.0 and 1.0.*");
         }
 
@@ -46,7 +63,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var distances = Array.Empty<double>();
 
             // Act
-            var result = VectorUtils.CalculatePercentile(distances, 0.5);
+            var result = VectorUtils.CalculatePercentile(distances, DefaultPercentile);
 
             // Assert
             result.Should().Be(0.0);
@@ -56,26 +73,26 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CalculatePercentile_WithSingleDistance_ReturnsThatValue()
         {
             // Arrange
-            var distances = new[] { 5.0 };
+            var distances = new[] { TestValue5 };
 
             // Act
-            var result = VectorUtils.CalculatePercentile(distances, 0.5);
+            var result = VectorUtils.CalculatePercentile(distances, DefaultPercentile);
 
             // Assert
-            result.Should().Be(5.0);
+            result.Should().Be(TestValue5);
         }
 
         [Fact]
         public void CalculatePercentile_WithNaNAndInfinityValues_FiltersThemOut()
         {
             // Arrange
-            var distances = new[] { 1.0, double.NaN, 2.0, double.PositiveInfinity, 3.0, double.NegativeInfinity };
+            var distances = new[] { TestValue1, double.NaN, TestValue2, double.PositiveInfinity, TestValue3, double.NegativeInfinity };
 
             // Act
-            var result = VectorUtils.CalculatePercentile(distances, 0.5);
+            var result = VectorUtils.CalculatePercentile(distances, DefaultPercentile);
 
             // Assert
-            result.Should().Be(2.0); // Median of [1.0, 2.0, 3.0]
+            result.Should().Be(TestValue2); // Median of [1.0, 2.0, 3.0]
         }
 
         [Theory]
@@ -85,26 +102,26 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CalculatePercentile_WithMultipleValues_ReturnsCorrectPercentile(double percentile, double expected)
         {
             // Arrange
-            var distances = new[] { 1.0, 2.0, 3.0, 4.0 };
+            var distances = new[] { TestValue1, TestValue2, TestValue3, TestValue4 };
 
             // Act
             var result = VectorUtils.CalculatePercentile(distances, percentile);
 
             // Assert
-            result.Should().BeApproximately(expected, 0.001);
+            result.Should().BeApproximately(expected, SmallTolerance);
         }
 
         [Fact]
         public void CalculatePercentile_WithUnsortedValues_SortsThem()
         {
             // Arrange
-            var distances = new[] { 4.0, 1.0, 3.0, 2.0 };
+            var distances = new[] { TestValue4, TestValue1, TestValue3, TestValue2 };
 
             // Act
-            var result = VectorUtils.CalculatePercentile(distances, 0.5);
+            var result = VectorUtils.CalculatePercentile(distances, DefaultPercentile);
 
             // Assert
-            result.Should().BeApproximately(2.5, 0.001); // Median of sorted [1.0, 2.0, 3.0, 4.0]
+            result.Should().BeApproximately(2.5, SmallTolerance); // Median of sorted [1.0, 2.0, 3.0, 4.0]
         }
 
         #endregion
@@ -115,9 +132,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void FindBreakpoints_WithNullDistances_ThrowsArgumentNullException()
         {
             // Act & Assert
-            var act = () => VectorUtils.FindBreakpoints(null!, 1.0);
+            var act = () => VectorUtils.FindBreakpoints(null!, TestValue1);
             act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("distances");
+                .WithParameterName(DistancesParameterName);
         }
 
         [Fact]
@@ -127,7 +144,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var distances = Array.Empty<double>();
 
             // Act
-            var result = VectorUtils.FindBreakpoints(distances, 1.0);
+            var result = VectorUtils.FindBreakpoints(distances, TestValue1);
 
             // Assert
             result.Should().BeEmpty();
@@ -138,10 +155,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var distances = new[] { 0.1, 0.2, 0.3, 0.4 };
-            var threshold = 0.5;
 
             // Act
-            var result = VectorUtils.FindBreakpoints(distances, threshold);
+            var result = VectorUtils.FindBreakpoints(distances, TestThreshold);
 
             // Assert
             result.Should().BeEmpty();
@@ -152,10 +168,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var distances = new[] { 0.1, 0.8, 0.3, 0.9, 0.2 };
-            var threshold = 0.5;
 
             // Act
-            var result = VectorUtils.FindBreakpoints(distances, threshold);
+            var result = VectorUtils.FindBreakpoints(distances, TestThreshold);
 
             // Assert
             result.Should().Equal(1, 3); // Indices where values 0.8 and 0.9 are located
@@ -166,10 +181,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var distances = new[] { 0.1, double.NaN, 0.8, double.PositiveInfinity, 0.9 };
-            var threshold = 0.5;
 
             // Act
-            var result = VectorUtils.FindBreakpoints(distances, threshold);
+            var result = VectorUtils.FindBreakpoints(distances, TestThreshold);
 
             // Assert
             result.Should().Equal(2, 4); // Indices where values 0.8 and 0.9 are located
@@ -179,11 +193,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void FindBreakpoints_WithExactThresholdValue_IncludesIt()
         {
             // Arrange
-            var distances = new[] { 0.1, 0.5, 0.3, 0.5, 0.2 };
-            var threshold = 0.5;
+            var distances = new[] { 0.1, TestThreshold, 0.3, TestThreshold, 0.2 };
 
             // Act
-            var result = VectorUtils.FindBreakpoints(distances, threshold);
+            var result = VectorUtils.FindBreakpoints(distances, TestThreshold);
 
             // Assert
             result.Should().Equal(1, 3); // Both exact matches included
@@ -199,7 +212,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Act & Assert
             var act = () => VectorUtils.CreateVector((double[])null!);
             act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("values");
+                .WithParameterName(ValuesParameterName);
         }
 
         [Fact]
@@ -208,7 +221,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             // Act & Assert
             var act = () => VectorUtils.CreateVector((IEnumerable<double>)null!);
             act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("values");
+                .WithParameterName(ValuesParameterName);
         }
 
         [Fact]
@@ -229,7 +242,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CreateVector_WithValidArray_ReturnsCorrectVector()
         {
             // Arrange
-            var values = new[] { 1.0, 2.0, 3.0, 4.0 };
+            var values = new[] { TestValue1, TestValue2, TestValue3, TestValue4 };
 
             // Act
             var result = VectorUtils.CreateVector(values);
@@ -244,7 +257,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CreateVector_WithValidEnumerable_ReturnsCorrectVector()
         {
             // Arrange
-            var values = new List<double> { 1.0, 2.0, 3.0, 4.0 };
+            var values = new List<double> { TestValue1, TestValue2, TestValue3, TestValue4 };
 
             // Act
             var result = VectorUtils.CreateVector(values);
@@ -263,9 +276,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void ValidateVector_WithNullVector_ThrowsArgumentNullException()
         {
             // Act & Assert
-            var act = () => VectorUtils.ValidateVector(null!, "testParam");
+            var act = () => VectorUtils.ValidateVector(null!, TestParameterName);
             act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("testParam");
+                .WithParameterName(TestParameterName);
         }
 
         [Fact]
@@ -275,9 +288,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var vector = Vector<double>.Build.Dense(0);
 
             // Act & Assert
-            var act = () => VectorUtils.ValidateVector(vector, "testParam");
+            var act = () => VectorUtils.ValidateVector(vector, TestParameterName);
             act.Should().Throw<ArgumentException>()
-                .WithParameterName("testParam")
+                .WithParameterName(TestParameterName)
                 .WithMessage("Vector cannot have zero dimension.*");
         }
 
@@ -285,10 +298,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void ValidateVector_WithValidVector_DoesNotThrow()
         {
             // Arrange
-            var vector = Vector<double>.Build.Dense(new[] { 1.0, 2.0, 3.0 });
+            var vector = Vector<double>.Build.Dense(new[] { TestValue1, TestValue2, TestValue3 });
 
             // Act & Assert
-            var act = () => VectorUtils.ValidateVector(vector, "testParam");
+            var act = () => VectorUtils.ValidateVector(vector, TestParameterName);
             act.Should().NotThrow();
         }
 
@@ -323,15 +336,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CalculateDistanceStatistics_WithNaNAndInfinityValues_FiltersThemOut()
         {
             // Arrange
-            var distances = new[] { 1.0, double.NaN, 2.0, double.PositiveInfinity, 3.0, double.NegativeInfinity };
+            var distances = new[] { TestValue1, double.NaN, TestValue2, double.PositiveInfinity, TestValue3, double.NegativeInfinity };
 
             // Act
             var result = VectorUtils.CalculateDistanceStatistics(distances);
 
             // Assert
-            result.mean.Should().BeApproximately(2.0, 0.001);
-            result.min.Should().Be(1.0);
-            result.max.Should().Be(3.0);
+            result.mean.Should().BeApproximately(TestValue2, SmallTolerance);
+            result.min.Should().Be(TestValue1);
+            result.max.Should().Be(TestValue3);
             result.standardDeviation.Should().BeGreaterThan(0);
         }
 
@@ -339,16 +352,18 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void CalculateDistanceStatistics_WithValidDistances_ReturnsCorrectStatistics()
         {
             // Arrange
-            var distances = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
+            var distances = new[] { TestValue1, TestValue2, TestValue3, TestValue4, TestValue5 };
+            const double expectedMean = 3.0;
+            const double expectedStdDev = 1.5811388300841898; // sqrt(2.5)
 
             // Act
             var result = VectorUtils.CalculateDistanceStatistics(distances);
 
             // Assert
-            result.mean.Should().BeApproximately(3.0, 0.001);
-            result.min.Should().Be(1.0);
-            result.max.Should().Be(5.0);
-            result.standardDeviation.Should().BeApproximately(Math.Sqrt(2.5), 0.001);
+            result.mean.Should().BeApproximately(expectedMean, SmallTolerance);
+            result.min.Should().Be(TestValue1);
+            result.max.Should().Be(TestValue5);
+            result.standardDeviation.Should().BeApproximately(expectedStdDev, SmallTolerance);
         }
 
         [Fact]

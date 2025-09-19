@@ -10,6 +10,29 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 {
     public class EmbeddingCacheTests
     {
+        // Test constants to avoid magic numbers
+        private const int DefaultMaxCacheSize = 1000;
+        private const int CustomMaxSize = 500;
+        private const int SmallMaxSize = 2;
+        private const int TaskCount = 10;
+        private const int OperationsPerTask = 20;
+        private const int LongTextLength = 10000;
+        private const double TestValue1 = 1.0;
+        private const double TestValue2 = 2.0;
+        private const double TestValue3 = 3.0;
+        private const double TestValue4 = 4.0;
+        private const double TestValue5 = 5.0;
+        private const double TestValue6 = 6.0;
+        
+        private const string TestText = "test text";
+        private const string TestText1 = "text1";
+        private const string TestText2 = "text2";
+        private const string TestText3 = "text3";
+        private const string TestText4 = "text4";
+        private const string NewText = "new_text";
+        private const string NonExistentText = "non-existent text";
+        private const string UnicodeText = "Hello 世界 🌍 Здравствуй мир";
+
         #region Constructor Tests
 
         [Fact]
@@ -19,21 +42,18 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var cache = new EmbeddingCache();
 
             // Assert
-            cache.MaxCacheSize.Should().Be(1000);
+            cache.MaxCacheSize.Should().Be(DefaultMaxCacheSize);
             cache.Count.Should().Be(0);
         }
 
         [Fact]
         public void Constructor_WithCustomMaxSize_SetsCorrectProperties()
         {
-            // Arrange
-            const int maxSize = 500;
-
             // Act
-            var cache = new EmbeddingCache(maxSize);
+            var cache = new EmbeddingCache(CustomMaxSize);
 
             // Assert
-            cache.MaxCacheSize.Should().Be(maxSize);
+            cache.MaxCacheSize.Should().Be(CustomMaxSize);
             cache.Count.Should().Be(0);
         }
 
@@ -64,7 +84,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             var cache = new EmbeddingCache();
 
             // Act
-            var result = cache.TryGetEmbedding("non-existent text", out var embedding);
+            var result = cache.TryGetEmbedding(NonExistentText, out var embedding);
 
             // Assert
             result.Should().BeFalse();
@@ -76,12 +96,11 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var text = "test text";
-            var originalEmbedding = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
-            cache.StoreEmbedding(text, originalEmbedding);
+            var originalEmbedding = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
+            cache.StoreEmbedding(TestText, originalEmbedding);
 
             // Act
-            var result = cache.TryGetEmbedding(text, out var retrievedEmbedding);
+            var result = cache.TryGetEmbedding(TestText, out var retrievedEmbedding);
 
             // Assert
             result.Should().BeTrue();
@@ -100,7 +119,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var embedding = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
+            var embedding = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
 
             // Act
             cache.StoreEmbedding(text!, embedding);
@@ -114,10 +133,9 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var text = "test text";
 
             // Act
-            cache.StoreEmbedding(text, null!);
+            cache.StoreEmbedding(TestText, null!);
 
             // Assert
             cache.Count.Should().Be(0);
@@ -128,16 +146,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var text = "test text";
-            var embedding = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
+            var embedding = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
 
             // Act
-            cache.StoreEmbedding(text, embedding);
+            cache.StoreEmbedding(TestText, embedding);
 
             // Assert
             cache.Count.Should().Be(1);
             
-            var result = cache.TryGetEmbedding(text, out var retrievedEmbedding);
+            var result = cache.TryGetEmbedding(TestText, out var retrievedEmbedding);
             result.Should().BeTrue();
             retrievedEmbedding!.ToArray().Should().Equal(embedding.ToArray());
         }
@@ -147,19 +164,18 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var text = "test text";
-            var embedding1 = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
-            var embedding2 = Vector<double>.Build.DenseOfArray(new[] { 4.0, 5.0, 6.0 });
+            var embedding1 = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
+            var embedding2 = Vector<double>.Build.DenseOfArray(new[] { TestValue4, TestValue5, TestValue6 });
 
             // Act
-            cache.StoreEmbedding(text, embedding1);
-            cache.StoreEmbedding(text, embedding2);
+            cache.StoreEmbedding(TestText, embedding1);
+            cache.StoreEmbedding(TestText, embedding2);
 
             // Assert
             cache.Count.Should().Be(1);
             
             // Should retrieve the first embedding (due to TryAdd behavior)
-            var result = cache.TryGetEmbedding(text, out var retrievedEmbedding);
+            var result = cache.TryGetEmbedding(TestText, out var retrievedEmbedding);
             result.Should().BeTrue();
             retrievedEmbedding!.ToArray().Should().Equal(embedding1.ToArray());
         }
@@ -184,15 +200,14 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             }
 
             // Act - Add one more to trigger eviction
-            var newText = "new_text";
             var newEmbedding = Vector<double>.Build.DenseOfArray(new[] { 10.0, 11.0, 12.0 });
-            cache.StoreEmbedding(newText, newEmbedding);
+            cache.StoreEmbedding(NewText, newEmbedding);
 
             // Assert
             cache.Count.Should().BeLessOrEqualTo(maxSize);
             
             // The new embedding should be stored
-            var result = cache.TryGetEmbedding(newText, out var retrievedEmbedding);
+            var result = cache.TryGetEmbedding(NewText, out var retrievedEmbedding);
             result.Should().BeTrue();
             retrievedEmbedding!.ToArray().Should().Equal(newEmbedding.ToArray());
         }
@@ -201,19 +216,18 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void StoreEmbedding_WithSmallMaxSize_HandlesEvictionCorrectly()
         {
             // Arrange
-            const int maxSize = 2;
-            var cache = new EmbeddingCache(maxSize);
+            var cache = new EmbeddingCache(SmallMaxSize);
             
             // Fill cache to capacity
-            cache.StoreEmbedding("text1", Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0 }));
-            cache.StoreEmbedding("text2", Vector<double>.Build.DenseOfArray(new[] { 3.0, 4.0 }));
+            cache.StoreEmbedding(TestText1, Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2 }));
+            cache.StoreEmbedding(TestText2, Vector<double>.Build.DenseOfArray(new[] { TestValue3, TestValue4 }));
             
             // Act - Add more to trigger multiple evictions
-            cache.StoreEmbedding("text3", Vector<double>.Build.DenseOfArray(new[] { 5.0, 6.0 }));
-            cache.StoreEmbedding("text4", Vector<double>.Build.DenseOfArray(new[] { 7.0, 8.0 }));
+            cache.StoreEmbedding(TestText3, Vector<double>.Build.DenseOfArray(new[] { TestValue5, TestValue6 }));
+            cache.StoreEmbedding(TestText4, Vector<double>.Build.DenseOfArray(new[] { 7.0, 8.0 }));
 
             // Assert
-            cache.Count.Should().BeLessOrEqualTo(maxSize);
+            cache.Count.Should().BeLessOrEqualTo(SmallMaxSize);
         }
 
         #endregion
@@ -269,14 +283,13 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task ConcurrentOperations_DoNotCauseExceptions()
         {
             // Arrange
-            var cache = new EmbeddingCache(100);
-            const int taskCount = 10;
-            const int operationsPerTask = 20;
+            const int cacheSize = 100;
+            var cache = new EmbeddingCache(cacheSize);
 
             // Act
-            var tasks = Enumerable.Range(0, taskCount).Select(taskId => Task.Run(() =>
+            var tasks = Enumerable.Range(0, TaskCount).Select(taskId => Task.Run(() =>
             {
-                for (var i = 0; i < operationsPerTask; i++)
+                for (var i = 0; i < OperationsPerTask; i++)
                 {
                     var text = $"task_{taskId}_text_{i}";
                     var embedding = Vector<double>.Build.DenseOfArray(new[] { (double)taskId, (double)i });
@@ -312,10 +325,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             
             // Arrange
             var cache = new EmbeddingCache();
-            var text1 = "Some text content";
-            var text2 = "Different content";
-            var embedding1 = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
-            var embedding2 = Vector<double>.Build.DenseOfArray(new[] { 4.0, 5.0, 6.0 });
+            const string text1 = "Some text content";
+            const string text2 = "Different content";
+            var embedding1 = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
+            var embedding2 = Vector<double>.Build.DenseOfArray(new[] { TestValue4, TestValue5, TestValue6 });
 
             // Act
             cache.StoreEmbedding(text1, embedding1);
@@ -336,16 +349,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var unicodeText = "Hello 世界 🌍 Здравствуй мир";
-            var embedding = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
+            var embedding = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
 
             // Act
-            cache.StoreEmbedding(unicodeText, embedding);
+            cache.StoreEmbedding(UnicodeText, embedding);
 
             // Assert
             cache.Count.Should().Be(1);
             
-            var result = cache.TryGetEmbedding(unicodeText, out var retrievedEmbedding);
+            var result = cache.TryGetEmbedding(UnicodeText, out var retrievedEmbedding);
             result.Should().BeTrue();
             retrievedEmbedding!.ToArray().Should().Equal(embedding.ToArray());
         }
@@ -355,8 +367,8 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var cache = new EmbeddingCache();
-            var longText = new string('A', 10000); // Very long text
-            var embedding = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });
+            var longText = new string('A', LongTextLength); // Very long text
+            var embedding = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
 
             // Act
             cache.StoreEmbedding(longText, embedding);
