@@ -84,8 +84,8 @@ dotnet build --configuration Release
 # Run all tests
 dotnet test
 
-# Run tests with coverage
-dotnet test --collect:"XPlat Code Coverage"
+# Run tests with coverage (generates both Cobertura and OpenCover formats)
+dotnet test --collect:"XPlat Code Coverage" --results-directory ./TestResults/ -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura%2Copencover
 
 # Run specific test projects
 dotnet test src/AiGeekSquad.AIContext.Tests/
@@ -127,7 +127,7 @@ dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Relea
 
 The library includes comprehensive test coverage:
 
-- **44 unit tests** covering all core functionality
+- **217 unit tests** covering all core functionality
 - **Real implementation testing** (no mocks for core algorithms)
 - **Edge case handling** with robust fallback mechanisms
 - **Performance testing** with benchmarks
