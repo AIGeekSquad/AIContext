@@ -325,7 +325,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// Extracts segments from code blocks, preserving indentation and whitespace.
     /// For fenced code blocks, reconstructs the original markdown syntax with delimiters.
     /// </summary>
-    private IEnumerable<TextSegment> ExtractCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractCodeBlockSegments(CodeBlock codeBlock, string processedText, string originalText)
     {
         if (codeBlock is FencedCodeBlock fencedCodeBlock)
         {
