@@ -1,5 +1,4 @@
 # AiGeekSquad.AIContext
-[![CI/CD](https://github.com/AIGeekSquad/AIContext/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/AIGeekSquad/AIContext/actions/workflows/ci-cd.yml)
 [![NuGet Version](https://img.shields.io/nuget/v/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/AiGeekSquad.AIContext)](https://www.nuget.org/packages/AiGeekSquad.AIContext/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
