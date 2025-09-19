@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/benchmarks/">
+    <Project Path="src/AiGeekSquad.AIContext.Benchmarks/AiGeekSquad.AIContext.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/Examples.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="src/AiGeekSquad.AIContext.Tests/AiGeekSquad.AIContext.Tests.csproj" />
+  </Folder>
+  <Project Path="src/AiGeekSquad.AIContext.MEAI/AiGeekSquad.AIContext.MEAI.csproj" />
+  <Project Path="src/AiGeekSquad.AIContext/AiGeekSquad.AIContext.csproj" />
+</Solution>
