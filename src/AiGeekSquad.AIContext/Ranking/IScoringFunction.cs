@@ -6,7 +6,7 @@ namespace AiGeekSquad.AIContext.Ranking;
 /// Represents a function that scores items of type T.
 /// </summary>
 /// <typeparam name="T">The type of items to score.</typeparam>
-public interface IScoringFunction<T>
+public interface IScoringFunction<in T>
 {
     /// <summary>
     /// Gets the name of this scoring function for debugging/logging.

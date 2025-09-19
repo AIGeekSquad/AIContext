@@ -198,6 +198,9 @@ public class MLTokenCounter : ITokenCounter , IDisposable
         // No cleanup required for this implementation
     }
 
+    /// <summary>
+    /// Disposes the tokenizer resources by calling Release().
+    /// </summary>
     public void Dispose()
     {
         Release();

@@ -30,7 +30,7 @@ internal class MathNetSimilarityCalculator : ISimilarityCalculator
         var magnitude1 = vector1.L2Norm();
         var magnitude2 = vector2.L2Norm();
 
-        if (magnitude1 == 0.0 || magnitude2 == 0.0)
+        if (Math.Abs(magnitude1) < 1e-10 || Math.Abs(magnitude2) < 1e-10)
             return 0.0;
 
         // Calculate cosine similarity: (v1 · v2) / (||v1|| * ||v2||)

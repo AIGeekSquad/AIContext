@@ -31,8 +31,8 @@ public class ZScoreNormalizer : IScoreNormalizer
         var variance = scores.Select(s => Math.Pow(s - mean, 2)).Average();
         var stdDev = Math.Sqrt(variance);
 
-        // If standard deviation is 0, all scores are the same
-        if (stdDev == 0)
+        // If standard deviation is effectively 0 (within floating point precision), all scores are the same
+        if (Math.Abs(stdDev) < 1e-10)
             return scores.Select(_ => 0.0).ToArray();
 
         return scores.Select(s => (s - mean) / stdDev).ToArray();

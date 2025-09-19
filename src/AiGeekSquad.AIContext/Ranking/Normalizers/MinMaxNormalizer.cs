@@ -30,8 +30,8 @@ public class MinMaxNormalizer : IScoreNormalizer
         var max = scores.Max();
         var range = max - min;
 
-        // If all scores are the same, return 0.5 for all
-        if (range == 0)
+        // If all scores are the same (within floating point precision), return 0.5 for all
+        if (Math.Abs(range) < 1e-10)
             return scores.Select(_ => 0.5).ToArray();
 
         return scores.Select(s => (s - min) / range).ToArray();

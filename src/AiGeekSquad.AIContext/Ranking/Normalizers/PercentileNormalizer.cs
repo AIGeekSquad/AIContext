@@ -42,8 +42,8 @@ public class PercentileNormalizer : IScoreNormalizer
             }
             else
             {
-                // Find the first occurrence of this value
-                while (rank > 0 && sorted[rank - 1] == scores[i])
+                // Find the first occurrence of this value (with floating point tolerance)
+                while (rank > 0 && Math.Abs(sorted[rank - 1] - scores[i]) < 1e-10)
                 {
                     rank--;
                 }

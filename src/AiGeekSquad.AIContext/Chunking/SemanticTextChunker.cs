@@ -92,6 +92,21 @@ public class SemanticTextChunker
         if (string.IsNullOrWhiteSpace(text))
             yield break;
 
+        await foreach (var chunk in ChunkAsyncCore(text, options, metadata, cancellationToken))
+        {
+            yield return chunk;
+        }
+    }
+
+    /// <summary>
+    /// Core implementation for asynchronously chunking text using semantic similarity analysis.
+    /// </summary>
+    private async IAsyncEnumerable<TextChunk> ChunkAsyncCore(
+        string text,
+        SemanticChunkingOptions options,
+        IDictionary<string, object>? metadata,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         // Step 1: Split text into segments using the text splitter
         var segments = new List<(string text, int startIndex, int endIndex)>();
         await foreach (var segment in _textSplitter.SplitAsync(text, cancellationToken))
@@ -211,72 +226,170 @@ public class SemanticTextChunker
         SemanticChunkingOptions options,
         CancellationToken cancellationToken)
     {
-        var result = new List<(string text, int startIndex, int endIndex)>();
-        var text = segment.text;
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
+        var words = segment.text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
         if (words.Length <= 1)
         {
-            // Single word that's too long - this is an edge case but we'll include it anyway
-            // Log warning that this might cause embedding generation issues
-            result.Add(segment);
-            return result;
+            return HandleSingleWordSegment(segment);
         }
 
+        return await ProcessWordsIntoSegments(words, segment, options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Handles the edge case where a segment contains only a single word that exceeds token limits.
+    /// </summary>
+    private static List<(string text, int startIndex, int endIndex)> HandleSingleWordSegment(
+        (string text, int startIndex, int endIndex) segment)
+    {
+        // Single word that's too long - this is an edge case but we'll include it anyway
+        // Log warning that this might cause embedding generation issues
+        return new List<(string text, int startIndex, int endIndex)> { segment };
+    }
+
+    /// <summary>
+    /// Processes words into segments that respect token limits.
+    /// </summary>
+    private async Task<List<(string text, int startIndex, int endIndex)>> ProcessWordsIntoSegments(
+        string[] words,
+        (string text, int startIndex, int endIndex) segment,
+        SemanticChunkingOptions options,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<(string text, int startIndex, int endIndex)>();
         var currentSegmentWords = new List<string>();
         var currentStartIndex = segment.startIndex;
 
         for (int i = 0; i < words.Length; i++)
         {
-            currentSegmentWords.Add(words[i]);
-            var testText = string.Join(" ", currentSegmentWords);
-            var tokenCount = await _tokenCounter.CountTokensAsync(testText, cancellationToken);
+            var (shouldCreateSegment, newStartIndex) = await ProcessNextWord(
+                words[i], currentSegmentWords, segment, options, result, currentStartIndex, cancellationToken);
 
-            if (tokenCount > options.MaxTokensPerChunk)
+            if (shouldCreateSegment)
             {
-                // Remove the last word and create a segment
-                if (currentSegmentWords.Count > 1)
-                {
-                    currentSegmentWords.RemoveAt(currentSegmentWords.Count - 1);
-                    var segmentText = string.Join(" ", currentSegmentWords);
-
-                    // Find the actual position in the original text
-                    var actualStartIndex = segment.text.IndexOf(segmentText, StringComparison.Ordinal);
-                    if (actualStartIndex >= 0)
-                    {
-                        actualStartIndex += segment.startIndex;
-                        result.Add((segmentText, actualStartIndex, actualStartIndex + segmentText.Length));
-                    }
-                    else
-                    {
-                        // Fallback to approximate positioning
-                        result.Add((segmentText, currentStartIndex, currentStartIndex + segmentText.Length));
-                    }
-
-                    // Start new segment with the current word
-                    currentSegmentWords.Clear();
-                    currentSegmentWords.Add(words[i]);
-                    currentStartIndex = actualStartIndex >= 0 ? actualStartIndex + segmentText.Length + 1 : currentStartIndex + segmentText.Length + 1;
-                }
-                else
-                {
-                    // Single word is too long - add it anyway (edge case)
-                    var singleWordText = currentSegmentWords[0];
-                    result.Add((singleWordText, currentStartIndex, currentStartIndex + singleWordText.Length));
-                    currentSegmentWords.Clear();
-                    currentStartIndex += singleWordText.Length + 1;
-                }
+                currentStartIndex = newStartIndex;
             }
         }
 
-        // Add remaining words as the last segment
+        AddFinalSegment(currentSegmentWords, result, currentStartIndex, segment.endIndex);
+        return result;
+    }
+
+    /// <summary>
+    /// Processes the next word and determines if a segment should be created.
+    /// </summary>
+    private async Task<(bool shouldCreateSegment, int newStartIndex)> ProcessNextWord(
+        string word,
+        List<string> currentSegmentWords,
+        (string text, int startIndex, int endIndex) segment,
+        SemanticChunkingOptions options,
+        List<(string text, int startIndex, int endIndex)> result,
+        int currentStartIndex,
+        CancellationToken cancellationToken)
+    {
+        currentSegmentWords.Add(word);
+        var testText = string.Join(" ", currentSegmentWords);
+        var tokenCount = await _tokenCounter.CountTokensAsync(testText, cancellationToken);
+
+        if (tokenCount > options.MaxTokensPerChunk)
+        {
+            return HandleTokenLimitExceeded(word, currentSegmentWords, segment, result, currentStartIndex);
+        }
+
+        return (false, currentStartIndex);
+    }
+
+    /// <summary>
+    /// Handles the case when adding a word would exceed the token limit.
+    /// </summary>
+    private static (bool shouldCreateSegment, int newStartIndex) HandleTokenLimitExceeded(
+        string word,
+        List<string> currentSegmentWords,
+        (string text, int startIndex, int endIndex) segment,
+        List<(string text, int startIndex, int endIndex)> result,
+        int currentStartIndex)
+    {
+        if (currentSegmentWords.Count > 1)
+        {
+            return CreateSegmentFromWords(word, currentSegmentWords, segment, result, currentStartIndex);
+        }
+        
+        return HandleSingleWordExceedsLimit(currentSegmentWords, result, currentStartIndex);
+    }
+
+    /// <summary>
+    /// Creates a segment from accumulated words and starts a new segment.
+    /// </summary>
+    private static (bool shouldCreateSegment, int newStartIndex) CreateSegmentFromWords(
+        string currentWord,
+        List<string> currentSegmentWords,
+        (string text, int startIndex, int endIndex) segment,
+        List<(string text, int startIndex, int endIndex)> result,
+        int currentStartIndex)
+    {
+        // Remove the last word and create a segment
+        currentSegmentWords.RemoveAt(currentSegmentWords.Count - 1);
+        var segmentText = string.Join(" ", currentSegmentWords);
+
+        var (actualStartIndex, endIndex) = FindSegmentPosition(segmentText, segment, currentStartIndex);
+        result.Add((segmentText, actualStartIndex, endIndex));
+
+        // Start new segment with the current word
+        currentSegmentWords.Clear();
+        currentSegmentWords.Add(currentWord);
+        var newStartIndex = endIndex + 1;
+
+        return (true, newStartIndex);
+    }
+
+    /// <summary>
+    /// Handles the case where a single word exceeds the token limit.
+    /// </summary>
+    private static (bool shouldCreateSegment, int newStartIndex) HandleSingleWordExceedsLimit(
+        List<string> currentSegmentWords,
+        List<(string text, int startIndex, int endIndex)> result,
+        int currentStartIndex)
+    {
+        // Single word is too long - add it anyway (edge case)
+        var singleWordText = currentSegmentWords[0];
+        result.Add((singleWordText, currentStartIndex, currentStartIndex + singleWordText.Length));
+        currentSegmentWords.Clear();
+        return (true, currentStartIndex + singleWordText.Length + 1);
+    }
+
+    /// <summary>
+    /// Finds the actual position of a segment in the original text.
+    /// </summary>
+    private static (int startIndex, int endIndex) FindSegmentPosition(
+        string segmentText,
+        (string text, int startIndex, int endIndex) segment,
+        int fallbackStartIndex)
+    {
+        var actualStartIndex = segment.text.IndexOf(segmentText, StringComparison.Ordinal);
+        if (actualStartIndex >= 0)
+        {
+            actualStartIndex += segment.startIndex;
+            return (actualStartIndex, actualStartIndex + segmentText.Length);
+        }
+        
+        // Fallback to approximate positioning
+        return (fallbackStartIndex, fallbackStartIndex + segmentText.Length);
+    }
+
+    /// <summary>
+    /// Adds any remaining words as the final segment.
+    /// </summary>
+    private static void AddFinalSegment(
+        List<string> currentSegmentWords,
+        List<(string text, int startIndex, int endIndex)> result,
+        int currentStartIndex,
+        int segmentEndIndex)
+    {
         if (currentSegmentWords.Count > 0)
         {
             var finalSegmentText = string.Join(" ", currentSegmentWords);
-            result.Add((finalSegmentText, currentStartIndex, Math.Min(currentStartIndex + finalSegmentText.Length, segment.endIndex)));
+            result.Add((finalSegmentText, currentStartIndex, Math.Min(currentStartIndex + finalSegmentText.Length, segmentEndIndex)));
         }
-
-        return result;
     }
 
     /// <summary>
