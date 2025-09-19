@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -458,13 +459,20 @@ namespace AiGeekSquad.AIContext.Examples
     /// </summary>
     public class MockEmbeddingGenerator : IEmbeddingGenerator
     {
-        private readonly Random _random = new();
+        private readonly RandomNumberGenerator _randomGenerator = RandomNumberGenerator.Create();
 
         public Task<Vector<double>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
         {
             // Generate a mock 384-dimensional embedding (typical for sentence transformers)
-            var embedding = Vector<double>.Build.Dense(384, i => _random.NextDouble() - 0.5);
+            var embedding = Vector<double>.Build.Dense(384, i => GetNextDouble() - 0.5);
             return Task.FromResult(embedding.Normalize(2)); // L2 normalize
+        }
+
+        private double GetNextDouble()
+        {
+            var bytes = new byte[8];
+            _randomGenerator.GetBytes(bytes);
+            return BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
         }
 
         public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
@@ -476,6 +484,11 @@ namespace AiGeekSquad.AIContext.Examples
                 yield return await GenerateEmbeddingAsync(text, cancellationToken);
             }
         }
+
+        public void Dispose()
+        {
+            _randomGenerator?.Dispose();
+        }
     }
 
     /// <summary>
@@ -485,7 +498,7 @@ namespace AiGeekSquad.AIContext.Examples
     public class MockVectorDatabase : IVectorDatabase
     {
         private readonly List<DocumentCandidate> _documents;
-        private readonly Random _random = new();
+        private readonly RandomNumberGenerator _randomGenerator = RandomNumberGenerator.Create();
 
         public MockVectorDatabase()
         {
@@ -532,12 +545,24 @@ namespace AiGeekSquad.AIContext.Examples
                     Content = $"This is mock content for document {i} in the {category} category. " +
                              $"It contains relevant information that would be useful for answering questions " +
                              $"related to {category} topics.",
-                    Embedding = Vector<double>.Build.Dense(384, j => _random.NextDouble() - 0.5).Normalize(2),
+                    Embedding = Vector<double>.Build.Dense(384, j => GetNextDouble() - 0.5).Normalize(2),
                     Source = $"source_{category}.pdf"
                 });
             }
 
             return documents;
+        }
+
+        private double GetNextDouble()
+        {
+            var bytes = new byte[8];
+            _randomGenerator.GetBytes(bytes);
+            return BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+        }
+
+        public void Dispose()
+        {
+            _randomGenerator?.Dispose();
         }
     }
 

@@ -1,12 +1,13 @@
+using Markdig;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Markdig;
-using Markdig.Syntax;
-using Markdig.Syntax.Inlines;
 
 namespace AiGeekSquad.AIContext.Chunking
 {
@@ -19,6 +20,7 @@ namespace AiGeekSquad.AIContext.Chunking
     {
         private readonly Regex _sentencePattern;
         private readonly bool _markdownMode;
+        private readonly TimeSpan _regexTimeout = TimeSpan.FromSeconds(10);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SentenceTextSplitter"/> class.
@@ -29,7 +31,7 @@ namespace AiGeekSquad.AIContext.Chunking
         public SentenceTextSplitter(string? pattern = null, bool markdownMode = false)
         {
             var defaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
-            _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled);
+            _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled, _regexTimeout);
             _markdownMode = markdownMode;
         }
 
@@ -138,10 +140,10 @@ namespace AiGeekSquad.AIContext.Chunking
             var result = text;
 
             // Pattern 1: "sentence. - list item" -> "sentence.\n- list item"
-            result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ");
+            result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ", RegexOptions.None, _regexTimeout);
 
             // Pattern 2: "sentence.\nAnother sentence" after list items
-            result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2");
+            result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2", RegexOptions.None, _regexTimeout);
 
             return result;
         }
