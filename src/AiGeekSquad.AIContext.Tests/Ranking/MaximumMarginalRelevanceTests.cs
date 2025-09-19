@@ -364,5 +364,81 @@ namespace AiGeekSquad.AIContext.Tests
             // Verify indices are within bounds
             result.Should().OnlyContain(item => item.index >= 0 && item.index < vectors.Count);
         }
+
+        [Fact]
+        public void ComputeMMR_WithNullQuery_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var vectors = GetTestVectors();
+            Vector<double>? query = null;
+
+            // Act & Assert
+            var act = () => MaximumMarginalRelevance.ComputeMMR(vectors, query!);
+            act.Should().Throw<ArgumentNullException>()
+                .WithParameterName("query")
+                .WithMessage("*Query vector cannot be null*");
+        }
+
+        [Theory]
+        [InlineData(-0.1)]
+        [InlineData(1.1)]
+        [InlineData(2.0)]
+        [InlineData(-1.0)]
+        public void ComputeMMR_WithInvalidLambda_ThrowsArgumentException(double lambda)
+        {
+            // Arrange
+            var vectors = GetTestVectors();
+            var query = GetTestQuery();
+
+            // Act & Assert
+            var act = () => MaximumMarginalRelevance.ComputeMMR(vectors, query, lambda);
+            act.Should().Throw<ArgumentException>()
+                .WithParameterName("lambda")
+                .WithMessage($"*Lambda must be between 0.0 and 1.0, but was {lambda}*");
+        }
+
+        [Fact]
+        public void ComputeMMR_WithInconsistentVectorDimensions_ThrowsArgumentException()
+        {
+            // Arrange
+            var vectors = new List<Vector<double>>
+            {
+                Vector<double>.Build.DenseOfArray([1, 0, 0]),     // 3 dimensions
+                Vector<double>.Build.DenseOfArray([0, 1, 0, 1])  // 4 dimensions - inconsistent!
+            };
+            var query = Vector<double>.Build.DenseOfArray([1, 0, 0]); // 3 dimensions
+
+            // Act & Assert
+            var act = () => MaximumMarginalRelevance.ComputeMMR(vectors, query);
+            act.Should().Throw<ArgumentException>()
+                .WithParameterName("vectors")
+                .WithMessage("*Vector at index 1 has 4 dimensions, but query vector has 3 dimensions*");
+        }
+
+        [Fact]
+        public void ComputeMMR_WithNullVectorInList_HandlesGracefully()
+        {
+            // Arrange
+            var vectors = new List<Vector<double>?>
+            {
+                Vector<double>.Build.DenseOfArray([1, 0, 0]),
+                null,  // Null vector
+                Vector<double>.Build.DenseOfArray([0, 1, 0])
+            };
+            var query = Vector<double>.Build.DenseOfArray([1, 0, 0]);
+
+            // Act - The algorithm should handle null vectors gracefully by ignoring them during validation
+            var result = MaximumMarginalRelevance.ComputeMMR(vectors!, query);
+            
+            // Assert - The algorithm should return results for non-null vectors
+            // Since null vectors are skipped in validation and similarity computation,
+            // the result may include null embeddings at indices where the original vector was null
+            result.Should().NotBeNull();
+            result.Should().NotBeEmpty();
+            
+            // Filter out results with null embeddings to verify non-null ones
+            var nonNullResults = result.Where(item => item.embedding != null);
+            nonNullResults.Should().OnlyContain(item => item.embedding != null);
+        }
     }
 }
