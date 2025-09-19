@@ -9,7 +9,7 @@ on:
 
 env:
   DOTNET_VERSION: '9.0.x'
-  SOLUTION_FILE: 'AiContext.sln'
+  SOLUTION_FILE: 'AiContext.slnx'
 
 jobs:
   build-test-analyze-deploy:

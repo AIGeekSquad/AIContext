@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../src/AiGeekSquad.AIContext/AiGeekSquad.AIContext.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="EnterpriseRAGService.cs" />
+    <Compile Remove="EnterpriseRAGServiceDemo.cs" />
+    <Compile Remove="MMRClusteringProblemDemo.cs" />
+    <Compile Remove="ProductSearchDemo.cs" />
+    <Compile Remove="SupportTicketRouter.cs" />
+  </ItemGroup>
+
+</Project>

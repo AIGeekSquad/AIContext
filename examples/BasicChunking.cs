@@ -54,7 +54,7 @@ public class BasicChunkingExample
         
         // Process chunks
         var chunkNumber = 1;
-        await foreach (var chunk in chunker.ChunkAsync(text, metadata, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, metadata))
         {
             Console.WriteLine($"Chunk {chunkNumber}:");
             Console.WriteLine($"  Text: {chunk.Text.Trim()}");
@@ -97,6 +97,15 @@ public class SimpleEmbeddingGenerator : IEmbeddingGenerator
             yield return embedding;
         }
     }
+
+    public async Task<Vector<double>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+    {
+        // Simulate API call delay
+        await Task.Delay(10, cancellationToken);
+        
+        // Use the same logic as the batch method
+        return GenerateEmbedding(text);
+    }
     
     private Vector<double> GenerateEmbedding(string text)
     {
@@ -114,16 +123,16 @@ public class SimpleEmbeddingGenerator : IEmbeddingGenerator
         // Add semantic meaning based on keywords
         var keywords = new Dictionary<string, int>
         {
-            ["artificial", "intelligence", "ai", "machine", "learning"] = 0,
-            ["business", "company", "customer", "service"] = 100,
-            ["future", "technology", "computer", "vision"] = 200,
-            ["ethical", "privacy", "bias", "concerns"] = 300
+            { "artificial intelligence ai machine learning", 0 },
+            { "business company customer service", 100 },
+            { "future technology computer vision", 200 },
+            { "ethical privacy bias concerns", 300 }
         };
         
         var textLower = text.ToLowerInvariant();
         foreach (var (keywordGroup, startIndex) in keywords)
         {
-            var keywordList = keywordGroup.Split(", ");
+            var keywordList = keywordGroup.Split(' ');
             var strength = keywordList.Count(keyword => textLower.Contains(keyword)) * 0.3;
             
             for (int i = 0; i < 50 && startIndex + i < EmbeddingDimensions; i++)

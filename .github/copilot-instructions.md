@@ -64,7 +64,7 @@ Console.WriteLine($"Found {results.Count} results");
 ### CI/CD Validation
 - **Always run tests before committing**: `dotnet test` to ensure CI will pass
 - **Check SonarQube requirements**: Build must succeed for GitHub Actions SonarQube analysis
-- **AppVeyor builds**: Solution builds on Windows with `dotnet build AiContext.sln --configuration Release`
+- **AppVeyor builds**: Solution builds on Windows with `dotnet build AiContext.slnx --configuration Release`
 
 ## Repository Structure
 
@@ -75,8 +75,8 @@ Console.WriteLine($"Found {results.Count} results");
 - **`src/AiGeekSquad.AIContext.MEAI/`** - Microsoft.Extensions.AI integration (.NET Standard 2.1)
 
 ### Solution File
-- **Main solution**: `AiContext.sln` - Use this for solution-wide operations
-- Build entire solution: `dotnet build AiContext.sln --configuration Release`
+- **Main solution**: `AiContext.slnx` - Use this for solution-wide operations
+- Build entire solution: `dotnet build AiContext.slnx --configuration Release`
 
 ### Important Directories
 - **`docs/`** - Documentation including detailed algorithm explanations
@@ -131,7 +131,7 @@ Console.WriteLine($"Found {results.Count} results");
 ### NuGet Package
 - **Package ID**: `AiGeekSquad.AIContext`
 - **Target**: .NET Standard 2.1 for broad compatibility
-- **Build for packaging**: `dotnet pack AiContext.sln --configuration Release --no-build --output packages`
+- **Build for packaging**: `dotnet pack AiContext.slnx --configuration Release --no-build --output packages`
 
 ## Timeout Requirements - CRITICAL
 
