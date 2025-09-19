@@ -9,11 +9,17 @@ namespace AiGeekSquad.AIContext.Tests.Chunking;
 
 public class SentenceGroupTests
 {
+    // Static readonly fields to avoid repeated array allocations in tests
+    private static readonly string[] TwoSentencesArray = ["First sentence.", "Second sentence."];
+    private static readonly string[] SingleSentenceArray = ["Test sentence."];
+    private static readonly string[] ShortTextArray = ["Short text."];
+    private static readonly string[] LongTextArray = [new string('A', 150)];
+
     [Fact]
     public void Constructor_WithValidParameters_CreatesInstance()
     {
         // Arrange
-        var sentences = new[] { "First sentence.", "Second sentence." };
+        var sentences = TwoSentencesArray;
         var startIndex = 0;
         var endIndex = 30;
 
@@ -67,7 +73,7 @@ public class SentenceGroupTests
     public void Embedding_WhenSet_UpdatesHasEmbeddingProperty()
     {
         // Arrange
-        var sentences = new[] { "Test sentence." };
+        var sentences = SingleSentenceArray;
         var sentenceGroup = new SentenceGroup(sentences, 0, 14);
         var embedding = Vector<double>.Build.Dense([0.1, 0.2, 0.3]);
 
@@ -84,7 +90,7 @@ public class SentenceGroupTests
     public void ToString_WithShortText_ReturnsFullText()
     {
         // Arrange
-        var sentences = new[] { "Short text." };
+        var sentences = ShortTextArray;
         var sentenceGroup = new SentenceGroup(sentences, 0, 11);
 
         // Act
@@ -98,8 +104,7 @@ public class SentenceGroupTests
     public void ToString_WithLongText_TruncatesText()
     {
         // Arrange
-        var longText = new string('A', 150);
-        var sentences = new[] { longText };
+        var sentences = LongTextArray;
         var sentenceGroup = new SentenceGroup(sentences, 0, 150);
 
         // Act

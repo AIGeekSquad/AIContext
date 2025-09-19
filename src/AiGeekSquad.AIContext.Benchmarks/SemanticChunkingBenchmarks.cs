@@ -1,7 +1,10 @@
-using System.Runtime.CompilerServices;
 using AiGeekSquad.AIContext.Chunking;
+
 using BenchmarkDotNet.Attributes;
+
 using MathNet.Numerics.LinearAlgebra;
+
+using System.Runtime.CompilerServices;
 
 namespace AiGeekSquad.AIContext.Benchmarks;
 
@@ -35,6 +38,10 @@ public class SemanticChunkingBenchmarks
         public Task<int> CountTokensAsync(string text, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(CountTokens(text));
+        }
+
+        public void Dispose()
+        {
         }
     }
 
