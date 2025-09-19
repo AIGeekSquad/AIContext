@@ -1,5 +1,6 @@
 using AiGeekSquad.AIContext.Ranking;
 using AiGeekSquad.AIContext.Tests.Ranking.TestUtilities;
+
 using FluentAssertions;
 using FluentAssertions.Execution;
 
@@ -30,7 +31,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             results[1].Rank.Should().Be(2);
             results[2].Item.Title.Should().Be("Data Science Basics");
             results[2].Rank.Should().Be(3);
-            
+
             // Verify scores are in descending order
             for (int i = 0; i < results.Count - 1; i++)
             {
@@ -57,9 +58,9 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var _ = new AssertionScope();
             results.Should().HaveCount(5);
             results.Should().BeInDescendingOrder(r => r.FinalScore);
-            
+
             // Verify individual scores are captured
-            results.Should().AllSatisfy(r => 
+            results.Should().AllSatisfy(r =>
             {
                 r.IndividualScores.Should().ContainKey("SemanticRelevance");
                 r.IndividualScores.Should().ContainKey("Popularity");
@@ -90,13 +91,13 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var _ = new AssertionScope();
             results.Should().HaveCount(5);
             results.Should().BeInDescendingOrder(r => r.FinalScore);
-            
+
             // Documents with very high popularity (rank 1) should be penalized more
             var highPopularityDoc = results.First(r => r.Item.PopularityRank == 1);
             var lowPopularityDoc = results.First(r => r.Item.PopularityRank == 5);
-            
+
             // The penalty effect should be visible in the final ranking
-            results.Should().AllSatisfy(r => r.FinalScore.Should().NotBeNaN());
+            results.Should().AllSatisfy(r => r.FinalScore.Should().NotBe(double.NaN));
         }
 
         [Fact]
@@ -117,7 +118,7 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var _ = new AssertionScope();
             results.Should().HaveCount(3);
             results.Should().BeInDescendingOrder(r => r.FinalScore);
-            
+
             // With negative weights, documents with lower original relevance should rank higher
             var lowestRelevanceDoc = documents.OrderBy(d => d.RelevanceScore).First();
             results[0].Item.Should().Be(lowestRelevanceDoc);
@@ -142,16 +143,16 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
             var _ = new AssertionScope();
             results.Should().HaveCount(1);
             var result = results[0];
-            
+
             result.Item.Should().NotBeNull();
             result.FinalScore.Should().BeGreaterThan(0);
             result.Rank.Should().Be(1);
-            
+
             result.IndividualScores.Should().ContainKey("SemanticRelevance");
             result.IndividualScores.Should().ContainKey("Popularity");
             result.IndividualScores["SemanticRelevance"].Should().Be(0.95);
             result.IndividualScores["Popularity"].Should().Be(1.0);
-            
+
             result.Metadata.Should().NotBeNull();
             result.Metadata.Should().BeEmpty(); // Initially empty but available
         }
