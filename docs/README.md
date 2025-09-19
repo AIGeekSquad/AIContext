@@ -133,7 +133,7 @@ var results = MaximumMarginalRelevance.ComputeMMR(
 
 ## 🧪 Testing & Quality
 
-- **60 Unit Tests** covering all functionality
+- **217 Unit Tests** covering all functionality
 - **Real Implementation Testing** (no mocks for core algorithms)
 - **Edge Case Coverage** with robust fallback mechanisms
 - **Performance Benchmarks** with reproducible results
