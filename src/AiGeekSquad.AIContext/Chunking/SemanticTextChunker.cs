@@ -78,17 +78,26 @@ public class SemanticTextChunker
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An async enumerable of text chunks with metadata.</returns>
     /// <exception cref="ArgumentNullException">Thrown when text is null.</exception>
-    public async IAsyncEnumerable<TextChunk> ChunkAsync(
+    public IAsyncEnumerable<TextChunk> ChunkAsync(
         string text,
         SemanticChunkingOptions? options = null,
         IDictionary<string, object>? metadata = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (text == null)
             throw new ArgumentNullException(nameof(text));
 
         options ??= SemanticChunkingOptions.Default;
 
+        return ChunkAsyncIterator(text, options, metadata, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<TextChunk> ChunkAsyncIterator(
+        string text,
+        SemanticChunkingOptions options,
+        IDictionary<string, object>? metadata,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(text))
             yield break;
 
