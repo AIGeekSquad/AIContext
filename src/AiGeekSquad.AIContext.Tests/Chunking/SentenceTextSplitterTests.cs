@@ -940,7 +940,7 @@ public class SentenceTextSplitterTests
             var splitter = new SentenceTextSplitter(markdownMode: true);
 
             // This markdown contains a thematic break (horizontal rule) which creates a ThematicBreakBlock
-            // that is not explicitly handled in the switch statement and will trigger the default case (line 211)
+            // that is not explicitly handled in the switch statement and will trigger the default case
             var markdownWithThematicBreak = """
                 First paragraph before break.
 
