@@ -1,12 +1,12 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-
-using Microsoft.Extensions.AI;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using MathNet.Numerics.LinearAlgebra;
+using Microsoft.Extensions.AI;
+using IEmbeddingGenerator = AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator;
 
 namespace AiGeekSquad.AIContext.MEAI
 {
@@ -15,9 +15,9 @@ namespace AiGeekSquad.AIContext.MEAI
     /// by wrapping a Microsoft.Extensions.AI IEmbeddingGenerator.
     /// This enables seamless integration between Microsoft's AI abstractions and the AIContext library.
     /// </summary>
-    public class MicrosoftExtensionsAiEmbeddingGenerator : Chunking.IEmbeddingGenerator
+    public class MicrosoftExtensionsAiEmbeddingGenerator : IEmbeddingGenerator
     {
-        private readonly Microsoft.Extensions.AI.IEmbeddingGenerator<string, Embedding<float>> _innerGenerator;
+        private readonly IEmbeddingGenerator<string, Embedding<float>> _innerGenerator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MicrosoftExtensionsAiEmbeddingGenerator"/> class.
@@ -25,7 +25,7 @@ namespace AiGeekSquad.AIContext.MEAI
         /// <param name="innerGenerator">The Microsoft Extensions AI embedding generator to wrap.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="innerGenerator"/> is null.</exception>
         public MicrosoftExtensionsAiEmbeddingGenerator(
-            Microsoft.Extensions.AI.IEmbeddingGenerator<string, Embedding<float>> innerGenerator)
+            IEmbeddingGenerator<string, Embedding<float>> innerGenerator)
         {
             _innerGenerator = innerGenerator ?? throw new ArgumentNullException(nameof(innerGenerator));
         }
@@ -73,7 +73,7 @@ namespace AiGeekSquad.AIContext.MEAI
         /// <exception cref="InvalidOperationException">Thrown when the embedding generation fails or returns unexpected results.</exception>
         public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
             IEnumerable<string> texts,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (texts == null)
                 throw new ArgumentNullException(nameof(texts));

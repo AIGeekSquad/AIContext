@@ -1,10 +1,7 @@
-using AiGeekSquad.AIContext.Chunking;
-
-using BenchmarkDotNet.Attributes;
-
-using MathNet.Numerics.LinearAlgebra;
-
 using System.Runtime.CompilerServices;
+using AiGeekSquad.AIContext.Chunking;
+using BenchmarkDotNet.Attributes;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Benchmarks;
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MathNet.Numerics.LinearAlgebra;
@@ -18,7 +19,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="endIndex">The ending index in the original text.</param>
         public SentenceGroup(IEnumerable<string> sentences, int startIndex, int endIndex)
         {
-            Sentences = sentences?.ToList() ?? throw new System.ArgumentNullException(nameof(sentences));
+            Sentences = sentences?.ToList() ?? throw new ArgumentNullException(nameof(sentences));
             StartIndex = startIndex;
             EndIndex = endIndex;
             CombinedText = string.Join(" ", Sentences);

@@ -1,7 +1,7 @@
-using Microsoft.ML.Tokenizers;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.ML.Tokenizers;
 
 namespace AiGeekSquad.AIContext.Chunking
 {

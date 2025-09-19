@@ -1,9 +1,8 @@
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.Statistics;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.Statistics;
 
 namespace AiGeekSquad.AIContext.Chunking
 {
@@ -55,10 +54,8 @@ namespace AiGeekSquad.AIContext.Chunking
             {
                 return sortedDistances[index] * (1 - frac) + sortedDistances[index + 1] * frac;
             }
-            else
-            {
-                return sortedDistances[index];
-            }
+
+            return sortedDistances[index];
         }
 
         /// <summary>

@@ -4,10 +4,12 @@ using Markdig.Syntax.Inlines;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AiGeekSquad.AIContext.Chunking
 {
@@ -21,6 +23,7 @@ namespace AiGeekSquad.AIContext.Chunking
         private readonly Regex _sentencePattern;
         private readonly bool _markdownMode;
         private readonly TimeSpan _regexTimeout = TimeSpan.FromSeconds(10);
+        private const string DefaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SentenceTextSplitter"/> class.
@@ -30,8 +33,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="markdownMode">If true, enables markdown-aware splitting (preserves code blocks, lists, headers, inline code, links/images).</param>
         public SentenceTextSplitter(string? pattern = null, bool markdownMode = false)
         {
-            var defaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
-            _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled, _regexTimeout);
+            _sentencePattern = new Regex(pattern ?? DefaultPattern, RegexOptions.Compiled, _regexTimeout);
             _markdownMode = markdownMode;
         }
 
@@ -59,7 +61,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     yield return segment;
-                    await System.Threading.Tasks.Task.Yield();
+                    await Task.Yield();
                 }
                 yield break;
             }
@@ -86,7 +88,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     }
                 }
 
-                await System.Threading.Tasks.Task.Yield();
+                await Task.Yield();
             }
 
             if (sentenceBoundaries.Length == 0 || sentenceBoundaries.All(string.IsNullOrWhiteSpace))
@@ -121,7 +123,7 @@ namespace AiGeekSquad.AIContext.Chunking
             }
 
             // Step 4: Handle any remaining unprocessed text
-            var processedSegments = HandleUnprocessedText(segments, text);
+            var processedSegments = HandleUnprocessedText(segments);
 
             return processedSegments.OrderBy(s => s.StartIndex);
         }
@@ -156,18 +158,18 @@ namespace AiGeekSquad.AIContext.Chunking
             var blockStart = Math.Max(0, Math.Min(block.Span.Start, processedText.Length));
             var blockEnd = Math.Max(blockStart, Math.Min(block.Span.End + 1, processedText.Length));
 
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Block type: {block.GetType().Name}, Span: {block.Span.Start}-{block.Span.End}");
+            Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Block type: {block.GetType().Name}, Span: {block.Span.Start}-{block.Span.End}");
 
             if (blockStart >= blockEnd)
             {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Invalid span, skipping block");
+                Debug.WriteLine("[DEBUG] ExtractSegmentsFromBlock - Invalid span, skipping block");
                 yield break;
             }
 
             switch (block)
             {
                 case ListBlock listBlock:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing ListBlock");
+                    Debug.WriteLine("[DEBUG] ExtractSegmentsFromBlock - Processing ListBlock");
                     foreach (var segment in ExtractListSegments(listBlock, processedText, originalText))
                     {
                         yield return segment;
@@ -175,7 +177,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     break;
 
                 case HeadingBlock headingBlock:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing HeadingBlock");
+                    Debug.WriteLine("[DEBUG] ExtractSegmentsFromBlock - Processing HeadingBlock");
                     foreach (var segment in ExtractHeadingSegments(headingBlock, processedText, originalText))
                     {
                         yield return segment;
@@ -183,7 +185,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     break;
 
                 case CodeBlock codeBlock:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing CodeBlock ({codeBlock.GetType().Name})");
+                    Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing CodeBlock ({codeBlock.GetType().Name})");
                     foreach (var segment in ExtractCodeBlockSegments(codeBlock, processedText, originalText))
                     {
                         yield return segment;
@@ -191,7 +193,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     break;
 
                 case ParagraphBlock paragraphBlock:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing ParagraphBlock");
+                    Debug.WriteLine("[DEBUG] ExtractSegmentsFromBlock - Processing ParagraphBlock");
                     foreach (var segment in ExtractParagraphSegments(paragraphBlock, processedText, originalText))
                     {
                         yield return segment;
@@ -199,7 +201,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     break;
 
                 case QuoteBlock quoteBlock:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing QuoteBlock");
+                    Debug.WriteLine("[DEBUG] ExtractSegmentsFromBlock - Processing QuoteBlock");
                     foreach (var segment in ExtractQuoteSegments(quoteBlock, processedText, originalText))
                     {
                         yield return segment;
@@ -207,7 +209,7 @@ namespace AiGeekSquad.AIContext.Chunking
                     break;
 
                 default:
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing unknown block type: {block.GetType().Name}");
+                    Debug.WriteLine($"[DEBUG] ExtractSegmentsFromBlock - Processing unknown block type: {block.GetType().Name}");
                     // Fallback for other block types
                     foreach (var segment in ExtractFallbackSegments(block, processedText, originalText))
                     {
@@ -304,7 +306,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 var contentLines = new List<string>();
                 if (fencedCodeBlock.Lines.Count > 0)
                 {
-                    for (int i = 0; i < fencedCodeBlock.Lines.Count; i++)
+                    for (var i = 0; i < fencedCodeBlock.Lines.Count; i++)
                     {
                         var line = fencedCodeBlock.Lines.Lines[i];
                         contentLines.Add(line.ToString());
@@ -316,8 +318,8 @@ namespace AiGeekSquad.AIContext.Chunking
                 var reconstructedWithCRLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\r\n");
 
                 // Try to find either variant in the original text
-                var originalSegment = FindInOriginalTextPreservingWhitespace(reconstructedWithCRLF, originalText, 0)
-                                    ?? FindInOriginalTextPreservingWhitespace(reconstructedWithLF, originalText, 0);
+                var originalSegment = FindInOriginalTextPreservingWhitespace(reconstructedWithCRLF, originalText)
+                                    ?? FindInOriginalTextPreservingWhitespace(reconstructedWithLF, originalText);
 
                 if (originalSegment != null)
                 {
@@ -361,8 +363,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// </summary>
         private string ReconstructFencedCodeBlock(string fence, string info, List<string> contentLines, string lineEnding)
         {
-            var reconstructed = new List<string>();
-            reconstructed.Add(fence + info);
+            var reconstructed = new List<string> { fence + info };
             reconstructed.AddRange(contentLines);
             reconstructed.Add(fence);
 
@@ -566,7 +567,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <summary>
         /// Handles any text that wasn't processed by markdown parsing.
         /// </summary>
-        private List<TextSegment> HandleUnprocessedText(List<TextSegment> segments, string originalText)
+        private static List<TextSegment> HandleUnprocessedText(List<TextSegment> segments)
         {
             // For now, just return the segments as-is
             // Could be extended to handle edge cases where some text is missed
@@ -581,12 +582,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when pattern is null or empty.</exception>
         public static SentenceTextSplitter WithPattern(string pattern)
         {
-            if (string.IsNullOrWhiteSpace(pattern))
-            {
-                throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
-            }
-
-            return new SentenceTextSplitter(pattern);
+            return string.IsNullOrWhiteSpace(pattern) ? throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern)) : new SentenceTextSplitter(pattern);
         }
 
         /// <summary>
@@ -614,12 +610,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when pattern is null or empty.</exception>
         public static SentenceTextSplitter WithPatternForMarkdown(string pattern)
         {
-            if (string.IsNullOrWhiteSpace(pattern))
-            {
-                throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
-            }
-
-            return new SentenceTextSplitter(pattern, true);
+            return string.IsNullOrWhiteSpace(pattern) ? throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern)) : new SentenceTextSplitter(pattern, true);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Chunking
 {
@@ -352,7 +353,7 @@ namespace AiGeekSquad.AIContext.Chunking
             if (textsToEmbed.Count > 0)
             {
                 var texts = textsToEmbed.Select(x => x.text);
-                var embeddingsList = new List<MathNet.Numerics.LinearAlgebra.Vector<double>>();
+                var embeddingsList = new List<Vector<double>>();
 
                 await foreach (var embedding in _embeddingGenerator.GenerateBatchEmbeddingsAsync(texts, cancellationToken))
                 {

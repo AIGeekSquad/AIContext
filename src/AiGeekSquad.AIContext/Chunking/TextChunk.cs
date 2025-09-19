@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace AiGeekSquad.AIContext.Chunking
@@ -16,7 +17,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="metadata">Optional metadata associated with the chunk.</param>
         public TextChunk(string text, int startIndex, int endIndex, IDictionary<string, object>? metadata = null)
         {
-            Text = text ?? throw new System.ArgumentNullException(nameof(text));
+            Text = text ?? throw new ArgumentNullException(nameof(text));
             StartIndex = startIndex;
             EndIndex = endIndex;
             Metadata = metadata ?? new Dictionary<string, object>();
@@ -53,7 +54,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <returns>A string that represents the current text chunk.</returns>
         public override string ToString()
         {
-            return $"TextChunk[{StartIndex}-{EndIndex}]: {Text.Substring(0, System.Math.Min(Text.Length, 50))}{(Text.Length > 50 ? "..." : "")}";
+            return $"TextChunk[{StartIndex}-{EndIndex}]: {Text.Substring(0, Math.Min(Text.Length, 50))}{(Text.Length > 50 ? "..." : "")}";
         }
     }
 }
