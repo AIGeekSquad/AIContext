@@ -306,7 +306,7 @@ namespace AiGeekSquad.AIContext.Chunking
                 var contentLines = new List<string>();
                 if (fencedCodeBlock.Lines.Count > 0)
                 {
-                    for (int i = 0; i < fencedCodeBlock.Lines.Count; i++)
+                    for (var i = 0; i < fencedCodeBlock.Lines.Count; i++)
                     {
                         var line = fencedCodeBlock.Lines.Lines[i];
                         contentLines.Add(line.ToString());
