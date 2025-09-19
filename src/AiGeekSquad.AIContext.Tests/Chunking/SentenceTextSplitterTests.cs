@@ -1663,5 +1663,219 @@ public class SentenceTextSplitterTests
             segments[2].Text.Should().Be("The manager is Ms. Davis.");
         }
 
+        [Fact]
+        public void WithPatternForMarkdown_WithNullPattern_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var act = () => SentenceTextSplitter.WithPatternForMarkdown(null!);
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("Pattern cannot be null or empty.*");
+        }
+
+        [Fact]
+        public void WithPatternForMarkdown_WithEmptyPattern_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var act = () => SentenceTextSplitter.WithPatternForMarkdown("");
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("Pattern cannot be null or empty.*");
+        }
+
+        [Fact]
+        public void WithPatternForMarkdown_WithWhitespacePattern_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var act = () => SentenceTextSplitter.WithPatternForMarkdown("   ");
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("Pattern cannot be null or empty.*");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithEmptyBlockText_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // This markdown contains empty elements that trigger the fallback segment extraction
+            var markdownWithEmptyBlocks = """
+                
+                
+                
+                """;
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithEmptyBlocks))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            // Should handle empty content gracefully without throwing exceptions
+            segments.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithInvalidSpanBounds_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // This text is designed to potentially cause span boundary issues
+            var problematicText = "A";
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(problematicText))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().ContainSingle();
+            segments[0].Text.Should().Be("A");
+            segments[0].StartIndex.Should().Be(0);
+            segments[0].EndIndex.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithFencedCodeBlockDifferentLineEndings_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // Test with different line endings to cover both reconstruction paths
+            var markdownWithCRLF = "```csharp\r\nvar x = 1;\r\n```";
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithCRLF))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().ContainSingle();
+            segments[0].Text.Should().Contain("```csharp");
+            segments[0].Text.Should().Contain("var x = 1;");
+            segments[0].Text.Should().EndWith("```");
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithIndentedCodeBlockEmptyLines_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // Indented code block with empty lines to test the continue path in line 346-349
+            var markdownWithIndentedCode = """
+                    code line 1
+                    
+                    code line 2
+                """;
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithIndentedCode))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3); // Includes empty line segment
+            segments.Should().Contain(s => s.Text.Contains("code line 1"));
+            segments.Should().Contain(s => s.Text.Contains("code line 2"));
+            segments.Should().Contain(s => s.Text.Trim().Length <= 4); // Empty or whitespace-only segment
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithQuoteBlockEmptyLines_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // Quote block with empty lines to test the continue path in line 439
+            var markdownWithQuote = """
+                > First quote line
+                >
+                > Second quote line
+                """;
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithQuote))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3); // Includes empty quote line
+            segments.Should().Contain(s => s.Text.Contains("First quote line"));
+            segments.Should().Contain(s => s.Text.Contains("Second quote line"));
+            segments.Should().Contain(s => s.Text.Trim().Length <= 1); // Empty or minimal content segment
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithListItemEmptyLines_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // List with empty lines to test the continue path in line 243-246
+            var markdownWithList = """
+                - First item
+                -
+                - Second item
+                """;
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithList))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().HaveCount(3); // Includes empty list item
+            segments.Should().Contain(s => s.Text.Contains("First item"));
+            segments.Should().Contain(s => s.Text.Contains("Second item"));
+            segments.Should().Contain(s => s.Text.Trim().Length <= 1); // Empty or minimal content segment
+        }
+
+        [Fact]
+        public async Task SplitAsync_Markdown_WithFallbackBlockEmptyLines_HandlesCorrectly()
+        {
+            // Arrange
+            var splitter = SentenceTextSplitter.ForMarkdown();
+            
+            // This creates a scenario where fallback segment extraction handles empty lines (line 475)
+            var markdownWithTable = """
+                | Column 1 | Column 2 |
+                |----------|----------|
+                | Value 1  | Value 2  |
+                |          |          |
+                | Value 3  | Value 4  |
+                """;
+
+            // Act
+            var segments = new List<TextSegment>();
+            await foreach (var segment in splitter.SplitAsync(markdownWithTable))
+            {
+                segments.Add(segment);
+            }
+
+            // Assert
+            using var _ = new AssertionScope();
+            segments.Should().NotBeEmpty();
+            // Should contain table content and skip empty table rows
+            segments.Should().Contain(s => s.Text.Contains("Column 1"));
+            segments.Should().Contain(s => s.Text.Contains("Value 1"));
+        }
+
         #endregion
 }
