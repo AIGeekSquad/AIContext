@@ -247,7 +247,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Extracts segments from list blocks, handling nested lists properly.
     /// </summary>
-    private IEnumerable<TextSegment> ExtractListSegments(ListBlock listBlock, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractListSegments(ListBlock listBlock, string processedText, string originalText)
     {
         return listBlock.OfType<ListItemBlock>()
             .SelectMany(listItemBlock => ProcessListItem(listItemBlock, processedText, originalText));
@@ -289,7 +289,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Extracts segments from heading blocks.
     /// </summary>
-    private IEnumerable<TextSegment> ExtractHeadingSegments(HeadingBlock headingBlock, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractHeadingSegments(HeadingBlock headingBlock, string processedText, string originalText)
     {
         var blockStart = Math.Max(0, Math.Min(headingBlock.Span.Start, processedText.Length));
         var blockEnd = Math.Max(blockStart, Math.Min(headingBlock.Span.End + 1, processedText.Length));
@@ -372,7 +372,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Tries to find a fenced code block in the original text using different line ending styles.
     /// </summary>
-    private TextSegment? TryFindFencedBlockInOriginalText(string fence, string info, List<string> contentLines, string originalText)
+    private static TextSegment? TryFindFencedBlockInOriginalText(string fence, string info, List<string> contentLines, string originalText)
     {
         // Try both \n and \r\n line endings to match the original text
         var reconstructedWithLF = ReconstructFencedCodeBlock(fence, info, contentLines, "\n");
@@ -420,7 +420,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Processes a single line from an indented code block.
     /// </summary>
-    private TextSegment? ProcessIndentedCodeLine(string line, string originalText, int blockStart)
+    private static TextSegment? ProcessIndentedCodeLine(string line, string originalText, int blockStart)
     {
         var trimmedLine = line.TrimEnd('\r');
         if (string.IsNullOrEmpty(trimmedLine))
@@ -494,7 +494,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Extracts segments from quote blocks.
     /// </summary>
-    private IEnumerable<TextSegment> ExtractQuoteSegments(QuoteBlock quoteBlock, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractQuoteSegments(QuoteBlock quoteBlock, string processedText, string originalText)
     {
         var blockStart = Math.Max(0, Math.Min(quoteBlock.Span.Start, processedText.Length));
         var blockEnd = Math.Max(blockStart, Math.Min(quoteBlock.Span.End + 1, processedText.Length));
@@ -523,7 +523,7 @@ public class SentenceTextSplitter : ITextSplitter
     /// <summary>
     /// Fallback segment extraction for unhandled block types.
     /// </summary>
-    private IEnumerable<TextSegment> ExtractFallbackSegments(Block block, string processedText, string originalText)
+    private static IEnumerable<TextSegment> ExtractFallbackSegments(Block block, string processedText, string originalText)
     {
         var blockStart = Math.Max(0, Math.Min(block.Span.Start, processedText.Length));
         var blockEnd = Math.Max(blockStart, Math.Min(block.Span.End + 1, processedText.Length));
