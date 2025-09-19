@@ -29,7 +29,7 @@ namespace AiGeekSquad.AIContext.Chunking
         public SentenceTextSplitter(string? pattern = null, bool markdownMode = false)
         {
             var defaultPattern = @"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!Prof\.)(?<!Sr\.)(?<!Jr\.)(?<=[.!?])\s+(?=[A-Z])";
-            _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled);
+            _sentencePattern = new Regex(pattern ?? defaultPattern, RegexOptions.Compiled, TimeSpan.FromSeconds(1));
             _markdownMode = markdownMode;
         }
 
@@ -138,10 +138,10 @@ namespace AiGeekSquad.AIContext.Chunking
             var result = text;
 
             // Pattern 1: "sentence. - list item" -> "sentence.\n- list item"
-            result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ");
+            result = Regex.Replace(result, @"([.!?])\s+([-*+])\s", "$1\n$2 ", RegexOptions.None, TimeSpan.FromSeconds(1));
 
             // Pattern 2: "sentence.\nAnother sentence" after list items
-            result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2");
+            result = Regex.Replace(result, @"([-*+]\s+[^\n]*)\n([A-Z][^-*+\n]*[.!?])", "$1\n\n$2", RegexOptions.None, TimeSpan.FromSeconds(1));
 
             return result;
         }
