@@ -291,7 +291,7 @@ public static class MaximumMarginalRelevance
                 }
                 else
                 {
-                    // Compute average similarity to already selected items
+                    // Compute average similarity (not maximum) to already selected items
                     var avgSimilarity = 0.0;
                     for (var j = 0; j < selectedIndices.Count; j++)
                     {
