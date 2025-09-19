@@ -22,8 +22,6 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         private const double TestValue4 = 4.0;
         private const double TestValue5 = 5.0;
         private const double TestThreshold = 0.5;
-        private const double TestValueNegative = -0.1;
-        private const double TestValueAboveOne = 1.1;
         private const double TestSingleValue = 42.0;
         private const string DistancesParameterName = "distances";
         private const string PercentileParameterName = "percentile";
@@ -353,17 +351,15 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         {
             // Arrange
             var distances = new[] { TestValue1, TestValue2, TestValue3, TestValue4, TestValue5 };
-            const double expectedMean = 3.0;
-            const double expectedStdDev = 1.5811388300841898; // sqrt(2.5)
 
             // Act
             var result = VectorUtils.CalculateDistanceStatistics(distances);
 
             // Assert
-            result.mean.Should().BeApproximately(expectedMean, SmallTolerance);
+            result.mean.Should().BeApproximately(3.0, SmallTolerance);
             result.min.Should().Be(TestValue1);
             result.max.Should().Be(TestValue5);
-            result.standardDeviation.Should().BeApproximately(expectedStdDev, SmallTolerance);
+            result.standardDeviation.Should().BeApproximately(1.5811388300841898, SmallTolerance);
         }
 
         [Fact]

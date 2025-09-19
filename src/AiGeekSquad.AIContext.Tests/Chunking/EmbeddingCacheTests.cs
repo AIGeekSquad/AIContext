@@ -188,11 +188,10 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public void StoreEmbedding_WhenCacheIsFull_EvictsOldEntries()
         {
             // Arrange
-            const int maxSize = 5;
-            var cache = new EmbeddingCache(maxSize);
+            var cache = new EmbeddingCache(5);
             
             // Fill cache to capacity
-            for (var i = 0; i < maxSize; i++)
+            for (var i = 0; i < 5; i++)
             {
                 var text = $"text_{i}";
                 var embedding = Vector<double>.Build.DenseOfArray(new[] { (double)i, (double)i + 1, (double)i + 2 });
@@ -204,7 +203,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             cache.StoreEmbedding(NewText, newEmbedding);
 
             // Assert
-            cache.Count.Should().BeLessOrEqualTo(maxSize);
+            cache.Count.Should().BeLessOrEqualTo(5);
             
             // The new embedding should be stored
             var result = cache.TryGetEmbedding(NewText, out var retrievedEmbedding);
@@ -283,8 +282,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
         public async Task ConcurrentOperations_DoNotCauseExceptions()
         {
             // Arrange
-            const int cacheSize = 100;
-            var cache = new EmbeddingCache(cacheSize);
+            var cache = new EmbeddingCache(100);
 
             // Act
             var tasks = Enumerable.Range(0, TaskCount).Select(taskId => Task.Run(() =>
@@ -325,22 +323,20 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
             
             // Arrange
             var cache = new EmbeddingCache();
-            const string text1 = "Some text content";
-            const string text2 = "Different content";
             var embedding1 = Vector<double>.Build.DenseOfArray(new[] { TestValue1, TestValue2, TestValue3 });
             var embedding2 = Vector<double>.Build.DenseOfArray(new[] { TestValue4, TestValue5, TestValue6 });
 
             // Act
-            cache.StoreEmbedding(text1, embedding1);
-            cache.StoreEmbedding(text2, embedding2);
+            cache.StoreEmbedding("Some text content", embedding1);
+            cache.StoreEmbedding("Different content", embedding2);
 
             // Assert
             cache.Count.Should().Be(2);
             
-            cache.TryGetEmbedding(text1, out var retrieved1).Should().BeTrue();
+            cache.TryGetEmbedding("Some text content", out var retrieved1).Should().BeTrue();
             retrieved1!.ToArray().Should().Equal(embedding1.ToArray());
             
-            cache.TryGetEmbedding(text2, out var retrieved2).Should().BeTrue();
+            cache.TryGetEmbedding("Different content", out var retrieved2).Should().BeTrue();
             retrieved2!.ToArray().Should().Equal(embedding2.ToArray());
         }
 

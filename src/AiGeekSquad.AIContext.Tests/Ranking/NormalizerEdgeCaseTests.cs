@@ -25,8 +25,6 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
         private const double LargeNegativeValue = -1000.0;
         private const double LargePositiveValue = 1000.0;
         private const double LargeValue2 = 20.0;
-        private const double ExpectedMean = 3.0;
-        private const double ExpectedStdDev = 1.5811388300841898; // sqrt(2.5)
 
         #region MinMaxNormalizer Tests
 
@@ -307,31 +305,23 @@ namespace AiGeekSquad.AIContext.Tests.Ranking
 
             // Assert
             using var _ = new AssertionScope();
-            
-            // All normalizers should preserve the relative ordering
-            var originalOrder = scores.Select((score, index) => new { score, index })
-                                    .OrderBy(x => x.score)
-                                    .Select(x => x.index)
-                                    .ToArray();
 
-            var minMaxOrder = minMaxResult.Select((score, index) => new { score, index })
-                                         .OrderBy(x => x.score)
-                                         .Select(x => x.index)
-                                         .ToArray();
-
-            var zScoreOrder = zScoreResult.Select((score, index) => new { score, index })
-                                         .OrderBy(x => x.score)
-                                         .Select(x => x.index)
-                                         .ToArray();
-
-            var percentileOrder = percentileResult.Select((score, index) => new { score, index })
-                                                 .OrderBy(x => x.score)
-                                                 .Select(x => x.index)
-                                                 .ToArray();
+            var originalOrder = GetIndexesOrderedByScore(scores);
+            var minMaxOrder = GetIndexesOrderedByScore(minMaxResult);
+            var zScoreOrder = GetIndexesOrderedByScore(zScoreResult);
+            var percentileOrder = GetIndexesOrderedByScore(percentileResult);
 
             minMaxOrder.Should().Equal(originalOrder, "MinMax normalizer should preserve ordering");
             zScoreOrder.Should().Equal(originalOrder, "Z-Score normalizer should preserve ordering");
             percentileOrder.Should().Equal(originalOrder, "Percentile normalizer should preserve ordering");
+        }
+
+        private static int[] GetIndexesOrderedByScore(double[] scores)
+        {
+            return scores.Select((score, index) => new { score, index })
+                        .OrderBy(x => x.score)
+                        .Select(x => x.index)
+                        .ToArray();
         }
 
         #endregion
