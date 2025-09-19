@@ -51,27 +51,13 @@ public class MMRExample
     }
     
     private static void DemonstrateMMR(
-        List<Vector<double>> documents, 
-        string[] titles, 
-        Vector<double> query, 
-        double lambda, 
+        List<Vector<double>> documents,
+        string[] titles,
+        Vector<double> query,
+        double lambda,
         string description)
     {
-        Console.WriteLine($"--- {description} (λ = {lambda}) ---");
-        
-        var results = MaximumMarginalRelevance.ComputeMMR(
-            vectors: documents,
-            query: query,
-            lambda: lambda,
-            topK: 5
-        );
-        
-        foreach (var (index, _) in results)
-        {
-            var relevanceScore = CalculateCosineSimilarity(query, documents[index]);
-            Console.WriteLine($"  {index}: {titles[index]} (relevance: {relevanceScore:F3})");
-        }
-        Console.WriteLine();
+        MMRExampleUtilities.ExecuteAndDisplayMMR(documents, titles, query, lambda, description);
     }
     
     private static List<Vector<double>> CreateSampleDocuments()
@@ -101,17 +87,6 @@ public class MMRExample
         };
     }
     
-    private static double CalculateCosineSimilarity(Vector<double> a, Vector<double> b)
-    {
-        var dotProduct = a.DotProduct(b);
-        var magnitudeA = Math.Sqrt(a.DotProduct(a));
-        var magnitudeB = Math.Sqrt(b.DotProduct(b));
-        
-        if (magnitudeA == 0 || magnitudeB == 0)
-            return 0.0;
-            
-        return dotProduct / (magnitudeA * magnitudeB);
-    }
 }
 
 /// <summary>
@@ -162,15 +137,9 @@ public class RAGSystemExample
             topK: 4       // Limit context for LLM
         );
         
-        Console.WriteLine("\nSelected Context (using MMR with λ = 0.8):");
-        foreach (var (index, _) in selectedIndices)
-        {
-            var relevance = CalculateCosineSimilarity(queryEmbedding, contextCandidates[index].embedding);
-            Console.WriteLine($"  {index}: {contextCandidates[index].text} (relevance: {relevance:F3})");
-        }
+        MMRExampleUtilities.DisplayContextResults(selectedIndices, contextCandidates, queryEmbedding, "Selected Context (using MMR with λ = 0.8)");
         
         // Show what pure relevance would select
-        Console.WriteLine("\nFor comparison - Pure Relevance Selection (λ = 1.0):");
         var pureRelevance = MaximumMarginalRelevance.ComputeMMR(
             vectors: contextCandidates.Select(c => c.embedding).ToList(),
             query: queryEmbedding,
@@ -178,24 +147,9 @@ public class RAGSystemExample
             topK: 4
         );
         
-        foreach (var (index, _) in pureRelevance)
-        {
-            var relevance = CalculateCosineSimilarity(queryEmbedding, contextCandidates[index].embedding);
-            Console.WriteLine($"  {index}: {contextCandidates[index].text} (relevance: {relevance:F3})");
-        }
+        MMRExampleUtilities.DisplayContextResults(pureRelevance, contextCandidates, queryEmbedding, "For comparison - Pure Relevance Selection (λ = 1.0)");
         
         Console.WriteLine("\nNotice how MMR (λ = 0.8) provides more diverse context while maintaining relevance!");
     }
     
-    private static double CalculateCosineSimilarity(Vector<double> a, Vector<double> b)
-    {
-        var dotProduct = a.DotProduct(b);
-        var magnitudeA = Math.Sqrt(a.DotProduct(a));
-        var magnitudeB = Math.Sqrt(b.DotProduct(b));
-        
-        if (magnitudeA == 0 || magnitudeB == 0)
-            return 0.0;
-            
-        return dotProduct / (magnitudeA * magnitudeB);
-    }
 }

@@ -582,12 +582,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when pattern is null or empty.</exception>
         public static SentenceTextSplitter WithPattern(string pattern)
         {
-            if (string.IsNullOrWhiteSpace(pattern))
-            {
-                throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
-            }
-
-            return new SentenceTextSplitter(pattern);
+            return string.IsNullOrWhiteSpace(pattern) ? throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern)) : new SentenceTextSplitter(pattern);
         }
 
         /// <summary>
@@ -615,12 +610,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <exception cref="ArgumentException">Thrown when pattern is null or empty.</exception>
         public static SentenceTextSplitter WithPatternForMarkdown(string pattern)
         {
-            if (string.IsNullOrWhiteSpace(pattern))
-            {
-                throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
-            }
-
-            return new SentenceTextSplitter(pattern, true);
+            return string.IsNullOrWhiteSpace(pattern) ? throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern)) : new SentenceTextSplitter(pattern, true);
         }
     }
 }
