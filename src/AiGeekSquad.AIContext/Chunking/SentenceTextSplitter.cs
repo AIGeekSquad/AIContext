@@ -90,11 +90,13 @@ public class SentenceTextSplitter : ITextSplitter
         }
 
         // Split text into sentences using the regex pattern
-        // Removed .ToArray() call to avoid unnecessary memory allocation
+        // Optimized: no unnecessary materialization, track if any valid sentences found
         var sentenceBoundaries = _sentencePattern.Split(text)
             .Where(s => !string.IsNullOrWhiteSpace(s));
 
         var currentIndex = 0;
+        var foundValidSentences = false;
+        
         foreach (var sentence in sentenceBoundaries)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -108,15 +110,15 @@ public class SentenceTextSplitter : ITextSplitter
                     var endIndex = startIndex + trimmedSentence.Length;
                     yield return new TextSegment(trimmedSentence, startIndex, endIndex);
                     currentIndex = endIndex;
+                    foundValidSentences = true;
                 }
             }
 
             await Task.Yield();
         }
 
-        // Check if no valid sentences were found by converting to list only when needed
-        var boundariesList = sentenceBoundaries.ToList();
-        if (boundariesList.Count == 0 || boundariesList.All(string.IsNullOrWhiteSpace))
+        // If no valid sentences were found, return the entire text as one segment
+        if (!foundValidSentences)
         {
             var trimmedText = text.Trim();
             if (!string.IsNullOrEmpty(trimmedText))
