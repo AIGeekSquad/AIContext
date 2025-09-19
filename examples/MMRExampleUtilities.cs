@@ -20,7 +20,8 @@ public static class MMRExampleUtilities
         var magnitudeA = Math.Sqrt(a.DotProduct(a));
         var magnitudeB = Math.Sqrt(b.DotProduct(b));
         
-        if (magnitudeA == 0 || magnitudeB == 0)
+        const double epsilon = 1e-10;
+        if (magnitudeA < epsilon || magnitudeB < epsilon)
             return 0.0;
             
         return dotProduct / (magnitudeA * magnitudeB);
