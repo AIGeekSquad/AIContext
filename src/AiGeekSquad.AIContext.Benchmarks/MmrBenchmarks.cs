@@ -1,7 +1,5 @@
 using AiGeekSquad.AIContext.Ranking;
-
 using BenchmarkDotNet.Attributes;
-
 using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Benchmarks;

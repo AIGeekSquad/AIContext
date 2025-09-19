@@ -1,8 +1,6 @@
 using AiGeekSquad.AIContext.Ranking;
-
 using FluentAssertions;
 using FluentAssertions.Execution;
-
 using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Tests

@@ -1,9 +1,10 @@
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using AiGeekSquad.AIContext.Chunking;
 using AiGeekSquad.AIContext.Ranking;
-
 using FluentAssertions;
 using FluentAssertions.Execution;
-
 using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Tests.Integration
@@ -35,7 +36,7 @@ namespace AiGeekSquad.AIContext.Tests.Integration
 
             public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
                 IEnumerable<string> texts,
-                [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+                [EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
                 foreach (var text in texts)
                 {
@@ -50,7 +51,7 @@ namespace AiGeekSquad.AIContext.Tests.Integration
             private Vector<double> CreateSemanticEmbedding(string text)
             {
                 var values = new double[_dimensions];
-                var hash = BitConverter.ToInt32(System.Security.Cryptography.SHA256.Create().ComputeHash(System.Text.Encoding.UTF8.GetBytes(text)), 0);
+                var hash = BitConverter.ToInt32(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(text)), 0);
                 var random = new Random(Math.Abs(hash));
 
                 // Base random values

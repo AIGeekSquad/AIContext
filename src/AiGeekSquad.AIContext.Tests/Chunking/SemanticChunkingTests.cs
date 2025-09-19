@@ -1,8 +1,7 @@
+using System.Runtime.CompilerServices;
 using AiGeekSquad.AIContext.Chunking;
-
 using FluentAssertions;
 using FluentAssertions.Execution;
-
 using MathNet.Numerics.LinearAlgebra;
 
 namespace AiGeekSquad.AIContext.Tests.Chunking
@@ -24,7 +23,7 @@ namespace AiGeekSquad.AIContext.Tests.Chunking
 
             public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
                 IEnumerable<string> texts,
-                [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+                [EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
                 foreach (var text in texts)
                 {

@@ -1,5 +1,5 @@
+using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
-using AiGeekSquad.AIContext.Benchmarks;
 
 namespace AiGeekSquad.AIContext.Benchmarks;
 
@@ -104,7 +104,7 @@ public class Program
         RunRankingEngineBenchmarks();
     }
 
-    private static void DisplaySummary(BenchmarkDotNet.Reports.Summary summary, string benchmarkName)
+    private static void DisplaySummary(Summary summary, string benchmarkName)
     {
         Console.WriteLine();
         Console.WriteLine($"=== {benchmarkName} Benchmark Summary ===");

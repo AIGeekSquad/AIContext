@@ -1,6 +1,6 @@
+using System.Runtime.CompilerServices;
 using AiGeekSquad.AIContext.Chunking;
 using MathNet.Numerics.LinearAlgebra;
-using System.Runtime.CompilerServices;
 
 namespace AiGeekSquad.AIContext.Examples;
 

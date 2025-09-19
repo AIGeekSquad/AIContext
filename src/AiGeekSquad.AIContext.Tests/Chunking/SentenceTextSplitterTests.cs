@@ -1,5 +1,4 @@
 using AiGeekSquad.AIContext.Chunking;
-
 using FluentAssertions;
 using FluentAssertions.Execution;
 

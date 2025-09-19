@@ -1,11 +1,8 @@
-using System;
-using System.Linq;
-using FluentAssertions;
-using FluentAssertions.Execution;
 using AiGeekSquad.AIContext.Ranking;
 using AiGeekSquad.AIContext.Ranking.Normalizers;
 using AiGeekSquad.AIContext.Tests.Ranking.TestUtilities;
-using Xunit;
+using FluentAssertions;
+using FluentAssertions.Execution;
 
 namespace AiGeekSquad.AIContext.Tests.Ranking
 {

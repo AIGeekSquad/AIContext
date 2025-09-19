@@ -29,7 +29,7 @@ public class MMRExample
         };
         
         // User query: interested in machine learning
-        var query = Vector<double>.Build.DenseOfArray(new double[] 
+        var query = Vector<double>.Build.DenseOfArray(new[] 
         { 
             0.9, 0.1, 0.0, 0.0, 0.0  // Strong signal for ML/tech content
         });
@@ -80,24 +80,24 @@ public class MMRExample
         return new List<Vector<double>>
         {
             // Machine Learning cluster
-            Vector<double>.Build.DenseOfArray(new double[] { 0.8, 0.2, 0.0, 0.0, 0.0 }), // ML intro
-            Vector<double>.Build.DenseOfArray(new double[] { 0.85, 0.15, 0.0, 0.0, 0.0 }), // Advanced ML (similar)
+            Vector<double>.Build.DenseOfArray(new[] { 0.8, 0.2, 0.0, 0.0, 0.0 }), // ML intro
+            Vector<double>.Build.DenseOfArray(new[] { 0.85, 0.15, 0.0, 0.0, 0.0 }), // Advanced ML (similar)
             
             // Sports cluster  
-            Vector<double>.Build.DenseOfArray(new double[] { 0.1, 0.8, 0.1, 0.0, 0.0 }), // Basketball
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.9, 0.1, 0.0, 0.0 }), // Football (similar)
+            Vector<double>.Build.DenseOfArray(new[] { 0.1, 0.8, 0.1, 0.0, 0.0 }), // Basketball
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.9, 0.1, 0.0, 0.0 }), // Football (similar)
             
             // Cooking cluster
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.1, 0.8, 0.1, 0.0 }), // Italian cooking
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.0, 0.9, 0.1, 0.0 }), // French cooking (similar)
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.1, 0.8, 0.1, 0.0 }), // Italian cooking
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.9, 0.1, 0.0 }), // French cooking (similar)
             
             // Environment cluster
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.0, 0.1, 0.8, 0.1 }), // Climate change
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.0, 0.0, 0.9, 0.1 }), // Conservation (similar)
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.1, 0.8, 0.1 }), // Climate change
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.0, 0.9, 0.1 }), // Conservation (similar)
             
             // Finance cluster
-            Vector<double>.Build.DenseOfArray(new double[] { 0.1, 0.0, 0.0, 0.1, 0.8 }), // Stock market
-            Vector<double>.Build.DenseOfArray(new double[] { 0.0, 0.0, 0.0, 0.1, 0.9 })  // Investment (similar)
+            Vector<double>.Build.DenseOfArray(new[] { 0.1, 0.0, 0.0, 0.1, 0.8 }), // Stock market
+            Vector<double>.Build.DenseOfArray(new[] { 0.0, 0.0, 0.0, 0.1, 0.9 })  // Investment (similar)
         };
     }
     
@@ -127,25 +127,25 @@ public class RAGSystemExample
         var contextCandidates = new List<(string text, Vector<double> embedding)>
         {
             ("Machine learning is a subset of artificial intelligence.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.9, 0.1, 0.0 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.9, 0.1, 0.0 })),
             ("Deep learning uses neural networks with multiple layers.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.85, 0.15, 0.0 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.85, 0.15, 0.0 })),
             ("Artificial intelligence can solve complex problems.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.8, 0.2, 0.0 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.8, 0.2, 0.0 })),
             ("Natural language processing helps computers understand text.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.7, 0.1, 0.2 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.7, 0.1, 0.2 })),
             ("Computer vision enables machines to interpret images.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.6, 0.1, 0.3 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.6, 0.1, 0.3 })),
             ("Robotics combines AI with mechanical engineering.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.4, 0.2, 0.4 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.4, 0.2, 0.4 })),
             ("Data science involves extracting insights from data.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.3, 0.4, 0.3 })),
+             Vector<double>.Build.DenseOfArray(new[] { 0.3, 0.4, 0.3 })),
             ("Statistics provides foundation for machine learning.", 
-             Vector<double>.Build.DenseOfArray(new double[] { 0.5, 0.3, 0.2 }))
+             Vector<double>.Build.DenseOfArray(new[] { 0.5, 0.3, 0.2 }))
         };
         
         // User question about AI applications
-        var queryEmbedding = Vector<double>.Build.DenseOfArray(new double[] { 0.8, 0.1, 0.1 });
+        var queryEmbedding = Vector<double>.Build.DenseOfArray(new[] { 0.8, 0.1, 0.1 });
         
         Console.WriteLine("User Question: 'What are the applications of artificial intelligence?'");
         Console.WriteLine("\nAvailable Context Chunks:");

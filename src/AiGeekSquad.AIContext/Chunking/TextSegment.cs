@@ -1,3 +1,5 @@
+using System;
+
 namespace AiGeekSquad.AIContext.Chunking
 {
     /// <summary>
@@ -13,7 +15,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <param name="endIndex">The ending index of the segment in the original text.</param>
         public TextSegment(string text, int startIndex, int endIndex)
         {
-            Text = text ?? throw new System.ArgumentNullException(nameof(text));
+            Text = text ?? throw new ArgumentNullException(nameof(text));
             StartIndex = startIndex;
             EndIndex = endIndex;
         }
@@ -44,7 +46,7 @@ namespace AiGeekSquad.AIContext.Chunking
         /// <returns>A string that represents the current text segment.</returns>
         public override string ToString()
         {
-            return $"TextSegment[{StartIndex}-{EndIndex}]: {Text.Substring(0, System.Math.Min(Text.Length, 50))}{(Text.Length > 50 ? "..." : "")}";
+            return $"TextSegment[{StartIndex}-{EndIndex}]: {Text.Substring(0, Math.Min(Text.Length, 50))}{(Text.Length > 50 ? "..." : "")}";
         }
     }
 }
