@@ -33,7 +33,6 @@ internal class MathNetSimilarityCalculator : ISimilarityCalculator
         if (Math.Abs(magnitude1) < 1e-10 || Math.Abs(magnitude2) < 1e-10)
             return 0.0;
 
-        // Calculate cosine similarity: (v1 · v2) / (||v1|| * ||v2||)
         var dotProduct = vector1.DotProduct(vector2);
         var similarity = dotProduct / (magnitude1 * magnitude2);
 

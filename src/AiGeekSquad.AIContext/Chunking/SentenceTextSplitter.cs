@@ -51,15 +51,22 @@ public class SentenceTextSplitter : ITextSplitter
     /// Asynchronously splits the specified text into sentence segments.
     /// If markdown mode is enabled, preserves markdown blocks, lists, headers, inline code, links, and images as atomic segments.
     /// </summary>
-    public async IAsyncEnumerable<TextSegment> SplitAsync(
+    public IAsyncEnumerable<TextSegment> SplitAsync(
         string text,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (text == null)
         {
             throw new ArgumentNullException(nameof(text));
         }
 
+        return SplitAsyncIterator(text, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<TextSegment> SplitAsyncIterator(
+        string text,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(text))
         {
             yield break;
