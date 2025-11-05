@@ -705,7 +705,7 @@ public class ContextRendererTests
         var result = await renderer.RenderContextAsync("topic", freshnessWeight: 1.0, tokenBudget: 100, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().NotBeEmpty();
+        result[0].Content.Should().Contain("Recent message about topic");
     }
 
     [Fact]
