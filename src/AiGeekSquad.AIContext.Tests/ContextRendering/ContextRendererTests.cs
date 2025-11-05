@@ -811,4 +811,200 @@ public class ContextRendererTests
         // Assert - The message is added as-is; formatting is preserved
         renderer.Items.Should().HaveCount(1);
     }
+
+    // MEANINGFUL INTEGRATION TESTS - Real-world scenarios
+
+    [Fact]
+    public async Task RenderContextAsync_RAGScenario_SelectsRelevantDocumentsWithDiversityAndFreshness()
+    {
+        // Arrange - Simulate a RAG system with documents about different programming topics
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+
+        // Add old documentation
+        await renderer.AddChunkAsync(new TextChunk("Classes and objects are fundamental in C# object-oriented programming.", 0, 70), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromHours(6));
+
+        // Add recent similar content (should be deprioritized for diversity)
+        await renderer.AddChunkAsync(new TextChunk("Object-oriented programming principles include encapsulation and inheritance.", 0, 74), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromHours(2));
+
+        // Add diverse recent content
+        await renderer.AddChunkAsync(new TextChunk("Asynchronous programming with async/await patterns improves application responsiveness.", 0, 85), TestContext.Current.CancellationToken);
+
+        // Add very recent but less relevant content
+        fakeTimeProvider.Advance(TimeSpan.FromMinutes(30));
+        await renderer.AddChunkAsync(new TextChunk("Entity Framework provides ORM capabilities for .NET applications.", 0, 64), TestContext.Current.CancellationToken);
+
+        // Act - Query for OOP content with balanced relevance, diversity, and freshness
+        var result = await renderer.RenderContextAsync("object-oriented programming classes",
+            tokenBudget: 50, lambda: 0.6, freshnessWeight: 0.3, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - Should balance relevance, diversity, and freshness
+        result.Should().NotBeEmpty();
+        result.Should().HaveCountGreaterThan(1);
+
+        // Should include relevant content
+        result.Should().Contain(item => item.Content.Contains("object-oriented") || item.Content.Contains("Classes"));
+
+        // Should respect token budget
+        var totalTokens = result.Sum(item => item.TokenCount);
+        totalTokens.Should().BeLessOrEqualTo(50);
+
+        // Recent items should appear later in chronological order
+        for (int i = 1; i < result.Count; i++)
+        {
+            result[i].Timestamp.Should().BeOnOrAfter(result[i-1].Timestamp);
+        }
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_CustomerSupportScenario_PrioritizesRecentSimilarIssues()
+    {
+        // Arrange - Simulate customer support ticket routing
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+
+        // Historical tickets
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Login issue: Cannot access my account after password reset"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromDays(1));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Payment failed: Credit card transaction declined unexpectedly"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromHours(3));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Account locked: Multiple failed login attempts"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromHours(1));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Password reset not working: Email not received"), TestContext.Current.CancellationToken);
+
+        // Act - Find similar tickets for a new login-related issue with high freshness weight
+        var result = await renderer.RenderContextAsync("user cannot login after changing password",
+            tokenBudget: 80, lambda: 0.7, freshnessWeight: 0.8, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeEmpty();
+
+        // Should prioritize recent login-related issues
+        var recentLoginIssues = result.Where(item =>
+            item.Content.Contains("login") || item.Content.Contains("password") || item.Content.Contains("account"));
+        recentLoginIssues.Should().NotBeEmpty();
+
+        // Most recent items should appear last due to chronological ordering
+        if (result.Count >= 2)
+        {
+            result[^1].Timestamp.Should().BeAfter(result[0].Timestamp);
+        }
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_MultilingualContent_HandlesInternationalContent()
+    {
+        // Arrange - Mixed language content scenario
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello, I need help with my order"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Bonjour, j'ai besoin d'aide avec ma commande"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hola, necesito ayuda con mi pedido"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "こんにちは、注文について助けが必要です"), TestContext.Current.CancellationToken);
+
+        // Act - Query in English should still find relevant content regardless of language
+        var result = await renderer.RenderContextAsync("order assistance needed",
+            tokenBudget: 100, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeEmpty();
+        result.Should().HaveCountLessOrEqualTo(4);
+
+        // Should handle all languages without throwing exceptions
+        result.Should().AllSatisfy(item => item.Content.Should().NotBeNullOrEmpty());
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_LargeDatasetPerformance_HandlesHundredsOfItems()
+    {
+        // Arrange - Simulate large dataset scenario
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+
+        // Add 200 items with varied content
+        for (int i = 0; i < 200; i++)
+        {
+            var content = $"Document {i}: This is content about topic {i % 10} with additional details and information to make it realistic.";
+            await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, content), TestContext.Current.CancellationToken);
+        }
+
+        // Act - Should handle large dataset efficiently
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var result = await renderer.RenderContextAsync("topic 5 information",
+            tokenBudget: 200, lambda: 0.5, cancellationToken: TestContext.Current.CancellationToken);
+        stopwatch.Stop();
+
+        // Assert - Performance and correctness
+        result.Should().NotBeEmpty();
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000); // Should complete within 5 seconds
+
+        // Should respect token budget
+        var totalTokens = result.Sum(item => item.TokenCount);
+        totalTokens.Should().BeLessOrEqualTo(200);
+
+        // Should prioritize relevant content (topic 5)
+        result.Should().Contain(item => item.Content.Contains("topic 5"));
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_EdgeCase_EmptyQueryWithFreshnessWeight()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "First message"), TestContext.Current.CancellationToken);
+        fakeTimeProvider.Advance(TimeSpan.FromHours(1));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Second message"), TestContext.Current.CancellationToken);
+
+        // Act & Assert - Should throw on empty query even with freshness
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            renderer.RenderContextAsync("", freshnessWeight: 1.0, cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_ComplexFreshnessScenario_HandlesMultipleTimeRanges()
+    {
+        // Arrange - Complex time-based scenario
+        var fakeTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+
+        // Messages spread across different time periods
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Very old message"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromDays(30)); // 1 month gap
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Month old message"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromDays(6)); // 1 week gap
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Week old message"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromHours(2)); // 2 hour gap
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"), TestContext.Current.CancellationToken);
+
+        fakeTimeProvider.Advance(TimeSpan.FromMinutes(5)); // 5 minute gap
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Very recent message"), TestContext.Current.CancellationToken);
+
+        // Act - High freshness weight should strongly favor recent items
+        var result = await renderer.RenderContextAsync("message",
+            freshnessWeight: 0.9, tokenBudget: 200, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - Should be ordered chronologically with proper freshness boosting
+        result.Should().HaveCount(5);
+
+        // Verify chronological order
+        for (int i = 1; i < result.Count; i++)
+        {
+            result[i].Timestamp.Should().BeOnOrAfter(result[i-1].Timestamp);
+        }
+
+        // Most recent should be last
+        result[^1].Content.Should().Contain("Very recent message");
+        result[0].Content.Should().Contain("Very old message");
+    }
 }

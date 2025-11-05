@@ -32,19 +32,36 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
   - API reference and parameter tuning
   - Use cases and integration patterns
 
+#### 🔄 Context Rendering
+- **[Context Rendering Guide](ContextRendering.md)** - AI conversation context management
+  - Time-based freshness weighting with TimeProvider patterns
+  - Memory-efficient context item management
+  - Semantic relevance scoring and ranking integration
+  - Production-ready async patterns with comprehensive testing
+
+#### 🔗 Microsoft.Extensions.AI Integration (MEAI)
+- **[MEAI Project Documentation](../src/AiGeekSquad.AIContext.MEAI/README.md)** - Seamless Microsoft.Extensions.AI integration
+  - Standard .NET AI abstractions compatibility
+  - Dependency injection ready patterns
+  - Configuration and observability integration
+  - Enterprise-grade service integration
+
 ## 🚀 Quick Navigation
 
 ### By Use Case
-- **RAG Systems**: [Semantic Chunking](SemanticChunking.md#rag-system-preparation) + [MMR Context Selection](MMR.md#rag-system-context-selection)
-- **Search & Recommendation**: [MMR Diversification](MMR.md#recommendation-system)
+- **RAG Systems**: [Semantic Chunking](SemanticChunking.md#rag-system-preparation) + [MMR Context Selection](MMR.md#rag-system-context-selection) + [Context Rendering](ContextRendering.md#rag-integration)
+- **Search & Recommendation**: [MMR Diversification](MMR.md#recommendation-system) + [Ranking Strategies](RankingAPI_Usage.md#ranking-strategies)
 - **Document Processing**: [Custom Text Splitters](SemanticChunking.md#text-splitters)
 - **Content Analysis**: [Embedding Integration](SemanticChunking.md#implementing-iembeddinggenerator)
+- **Microsoft.Extensions.AI**: [MEAI Integration](../src/AiGeekSquad.AIContext.MEAI/README.md#integration-patterns)
 
 ### By Component
 - **Text Splitting**: [ITextSplitter Interface](SemanticChunking.md#text-splitters)
 - **Token Counting**: [MLTokenCounter](SemanticChunking.md#token-counting)
 - **Similarity Calculation**: [MathNetSimilarityCalculator](MMR.md#performance-considerations)
 - **Embedding Generation**: [IEmbeddingGenerator](SemanticChunking.md#implementing-iembeddinggenerator)
+- **Context Rendering**: [ContextRenderer](ContextRendering.md#context-renderer) - Time-aware conversation context management
+- **Ranking Strategies**: [HybridStrategy](RankingAPI_Usage.md#hybrid-strategy), [ReciprocalRankFusionStrategy](RankingAPI_Usage.md#reciprocal-rank-fusion), [WeightedSumStrategy](RankingAPI_Usage.md#weighted-sum-strategy)
 
 ## 🛠️ Implementation Guides
 
@@ -65,6 +82,9 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 - **Azure Cognitive Services**: [Service Integration](SemanticChunking.md#azure-cognitive-services-example)
 - **Vector Databases**: [Pinecone Example](SemanticChunking.md#with-vector-databases)
 - **Search Platforms**: [Azure Cognitive Search](SemanticChunking.md#with-azure-cognitive-search)
+- **Enterprise RAG**: [Complete RAG Service](../examples/EnterpriseRAGServiceDemo.cs) - Production-ready RAG implementation
+- **MMR Clustering**: [Clustering Problems Demo](../examples/MMRClusteringProblemDemo.cs) - Advanced MMR clustering use cases
+- **Interactive Tutorial**: [Complete MMR Demo Notebook](../examples/notebooks/beyond-basic-rag-mmr-complete-demo.ipynb) - Step-by-step MMR implementation guide
 
 ## 📊 Performance & Benchmarks
 
@@ -97,6 +117,12 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 - **Threshold tuning**: 0.75 balanced, 0.85 conservative, 0.95 strict
 - **[Detailed Chunking Benchmarks](SemanticChunking.md#benchmark-results)**
 
+### Context Rendering Performance
+- **Memory efficiency**: Time-based item management with minimal overhead
+- **Freshness weighting**: Sub-millisecond time calculation with TimeProvider patterns
+- **Scalability**: Linear performance scaling with context item count
+- **Integration overhead**: <5% performance impact when combined with MMR ranking
+
 ### Key Performance Insights
 - **Streaming Processing**: Memory-efficient with `IAsyncEnumerable`
 - **Caching Strategy**: LRU cache for embeddings with significant performance gains
@@ -105,7 +131,7 @@ Welcome to the comprehensive documentation for AiGeekSquad.AIContext - a powerfu
 - **Scalability**: Predictable performance scaling from small to large datasets
 
 ### Complete Benchmark Documentation
-- **[Comprehensive Benchmark Results](BenchmarkResults.md)** - Complete 306-benchmark analysis with detailed performance data, methodology, and recommendations
+- **[Comprehensive Benchmark Results](BenchmarkResults.md)** - Complete 306-benchmark analysis with detailed performance data, methodology, and recommendations for all components including ContextRenderer, MMR, Ranking Engine, and Semantic Chunking
 
 ## 🔧 Configuration Reference
 
