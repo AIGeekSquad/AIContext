@@ -5,7 +5,8 @@
       "Bash(dotnet test)",
       "Bash(git add .github/copilot-instructions.md CLAUDE.md AGENTS.md)",
       "Bash(git commit -m \"$(cat <<''EOF''\nEnhances GitHub Copilot instructions with comprehensive development patterns\n\nSignificantly expands .github/copilot-instructions.md with critical architectural guidance:\n- Adds interface-driven design patterns and async/cancellation token best practices\n- Includes comprehensive xUnit v3 testing patterns with realistic examples\n- Enforces mandatory .NET CLI usage for all project operations\n- Provides performance standards and quality requirements with validation checklist\n- Integrates Microsoft.Extensions.AI and TimeProvider usage patterns\n- Links to other guidance documents for complete coverage\n\nAlso updates CLAUDE.md with current dependency versions and MEAI integration details,\nand adds TimeProvider testing patterns to AGENTS.md for consistency across all\nguidance documents.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(dotnet test --filter \"RenderContextAsync_WithMaxFreshnessWeight_StronglyPrioritizesRecentItems\" --verbosity normal)"
+      "Bash(dotnet test --filter \"RenderContextAsync_WithMaxFreshnessWeight_StronglyPrioritizesRecentItems\" --verbosity normal)",
+      "Bash(dotnet run --project examples -- ../debug_freshness_test.cs)"
     ],
     "deny": [],
     "ask": []
