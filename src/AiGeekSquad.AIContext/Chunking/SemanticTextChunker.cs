@@ -588,7 +588,7 @@ public class SemanticTextChunker
         CancellationToken cancellationToken)
     {
         var chunkStartIndex = 0;
-        var allBreakpoints = breakpoints.Concat(new[] { segments.Count - 1 }).Where(bp => bp >= 0).ToList();
+        var allBreakpoints = breakpoints.Concat(new[] { segments.Count - 1 }).ToList();
         var chunks = new List<TextChunk?>();
 
         foreach (var breakpoint in allBreakpoints)
@@ -601,7 +601,7 @@ public class SemanticTextChunker
             }
         }
 
-        return chunks.Where(c => c != null).Cast<TextChunk>().ToList();
+        return chunks.OfType<TextChunk>().ToList();
     }
 
     /// <summary>
