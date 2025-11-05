@@ -17,7 +17,7 @@ public class ContextItem
     /// <param name="timestamp">The timestamp when the item was added. If null, uses current UTC time.</param>
     /// <exception cref="ArgumentException">Thrown when content is null or empty, or tokenCount is negative.</exception>
     /// <exception cref="ArgumentNullException">Thrown when embedding is null.</exception>
-    public ContextItem(string content, Vector<double> embedding, int tokenCount, DateTime? timestamp = null)
+    public ContextItem(string content, Vector<double> embedding, int tokenCount, DateTimeOffset? timestamp = null)
     {
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Content cannot be null or empty.", nameof(content));
@@ -50,7 +50,7 @@ public class ContextItem
     /// <summary>
     /// Gets the timestamp when the item was added to the context.
     /// </summary>
-    public DateTime Timestamp { get; }
+    public DateTimeOffset Timestamp { get; }
 
     /// <summary>
     /// Returns a string representation of the context item.

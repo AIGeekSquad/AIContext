@@ -419,3 +419,5 @@ FodyWeavers.xsd
 *.msp
 
 .idea/.idea.AiContext/.idea/
+
+ai_working/

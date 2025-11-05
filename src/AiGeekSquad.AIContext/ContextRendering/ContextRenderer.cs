@@ -20,18 +20,21 @@ public class ContextRenderer
     private readonly List<ContextItem> _items;
     private readonly ITokenCounter _tokenCounter;
     private readonly IEmbeddingGenerator _embeddingGenerator;
+    private TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ContextRenderer"/> class.
     /// </summary>
     /// <param name="tokenCounter">The token counter for measuring text token counts.</param>
     /// <param name="embeddingGenerator">The embedding generator for creating vector embeddings.</param>
+    /// <param name="timeProvider">The TimeProvider to use, if null it defaults to <see cref="TimeProvider.System"/>m</param>
     /// <exception cref="ArgumentNullException">Thrown when tokenCounter or embeddingGenerator is null.</exception>
-    public ContextRenderer(ITokenCounter tokenCounter, IEmbeddingGenerator embeddingGenerator)
+    public ContextRenderer(ITokenCounter tokenCounter, IEmbeddingGenerator embeddingGenerator, TimeProvider? timeProvider = null)
     {
         _tokenCounter = tokenCounter ?? throw new ArgumentNullException(nameof(tokenCounter));
         _embeddingGenerator = embeddingGenerator ?? throw new ArgumentNullException(nameof(embeddingGenerator));
         _items = [];
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -56,7 +59,7 @@ public class ContextRenderer
         var tokenCount = await _tokenCounter.CountTokensAsync(content, cancellationToken);
         var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(content, cancellationToken);
 
-        var item = new ContextItem(content, embedding, tokenCount);
+        var item = new ContextItem(content, embedding, tokenCount, _timeProvider.GetUtcNow());
         _items.Add(item);
     }
 
@@ -92,7 +95,7 @@ public class ContextRenderer
 
         var tokenCount = await _tokenCounter.CountTokensAsync(chunk.Text, cancellationToken);
         var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(chunk.Text, cancellationToken);
-        var item = new ContextItem(chunk.Text, embedding, tokenCount);
+        var item = new ContextItem(chunk.Text, embedding, tokenCount, _timeProvider.GetUtcNow());
         _items.Add(item);
     }
 
@@ -214,7 +217,7 @@ public class ContextRenderer
             throw new ArgumentException("Query messages cannot be empty.", nameof(queryMessages));
 
         // Combine messages into a single query string
-        var query = string.Join("\n", messageList.Select(m => FormatChatMessage(m)));
+        var query = string.Join("\n", messageList.Select(FormatChatMessage));
 
         return await RenderContextAsync(query, tokenBudget, lambda, freshnessWeight, cancellationToken);
     }
@@ -236,9 +239,10 @@ public class ContextRenderer
             .Select(tc => tc.Text)
             .Where(t => !string.IsNullOrEmpty(t));
 
-        if (textContents != null && textContents.Any())
+        var enumerable = (textContents as string[] ?? textContents?.ToArray()) ?? [];
+        if (textContents != null && enumerable.Any())
         {
-            return $"{message.Role}: {string.Join(" ", textContents)}";
+            return $"{message.Role}: {string.Join(" ", enumerable)}";
         }
 
         // Fallback to role only
