@@ -17,12 +17,14 @@ AiContext/
 │   ├── AiGeekSquad.AIContext/              # Main library package
 │   │   ├── Chunking/                       # Semantic text chunking components
 │   │   ├── Ranking/                        # MMR algorithm implementation
+│   │   ├── ContextRendering/               # Context management and rendering
 │   │   └── README.md                       # NuGet package documentation
 │   ├── AiGeekSquad.AIContext.MEAI/         # Microsoft.Extensions.AI integration
 │   ├── AiGeekSquad.AIContext.Tests/        # Unit tests
 │   └── AiGeekSquad.AIContext.Benchmarks/   # Performance benchmarks
 ├── docs/                                   # Detailed documentation
-├── examples/                               # Usage examples
+├── examples/                               # Usage examples and demos
+│   └── notebooks/                          # Jupyter notebooks with tutorials
 └── README.md                               # This file (repository overview)
 ```
 
@@ -44,9 +46,24 @@ AiContext/
 ### ⚖️ **Generic Ranking Engine**
 - **Combines multiple scoring functions** with weights (positive for similarity, negative for dissimilarity)
 - **Multiple normalization strategies** (MinMax, ZScore, Percentile) for score standardization
-- **Multiple combination strategies** (WeightedSum, Reciprocal Rank Fusion, Hybrid) for flexible ranking
+- **Multiple combination strategies** including:
+  - **[`WeightedSumStrategy`](src/AiGeekSquad.AIContext/Ranking/Strategies/WeightedSumStrategy.cs)** - Fast linear combination (optimal for clear importance hierarchies)
+  - **[`ReciprocalRankFusionStrategy`](src/AiGeekSquad.AIContext/Ranking/Strategies/ReciprocalRankFusionStrategy.cs)** - Handles heterogeneous scoring functions effectively
+  - **[`HybridStrategy`](src/AiGeekSquad.AIContext/Ranking/Strategies/HybridStrategy.cs)** - Combines WeightedSum and RRF with tunable balance
 - **Extensible architecture** for custom scoring functions and strategies
 - **Fully benchmarked** with performance insights and optimization guidance
+
+### 🧾 **Context Rendering**
+- **Intelligent context management** with time-based freshness weighting
+- **MMR-powered context selection** balancing relevance, diversity, and recency
+- **Token budget management** for optimal context window utilization
+- **TimeProvider pattern** for testable time-dependent operations
+
+### 🔗 **Microsoft.Extensions.AI Integration (MEAI)**
+- **Seamless integration** with Microsoft's AI abstractions
+- **Dependency injection ready** for standard .NET DI containers
+- **Embedding provider compatibility** with Microsoft's ecosystem
+- **Configuration patterns** following Microsoft.Extensions standards
 
 ### 🛠️ **Extensible Architecture**
 - **Dependency injection ready** with clean interfaces
@@ -351,6 +368,152 @@ The project uses **GitHub Actions** for continuous integration:
 - **NuGet package generation** and publishing
 - **Version management** with automatic build numbering
 
+## 🧾 Context Rendering
+
+The [`ContextRenderer`](src/AiGeekSquad.AIContext/ContextRendering/ContextRenderer.cs) provides intelligent context management for chat applications and RAG systems, balancing relevance, diversity, and freshness within token budgets.
+
+### Key Features
+
+- **Time-based freshness weighting** with configurable `freshnessWeight` parameter (0.0 to 1.0)
+- **MMR-powered context selection** for optimal relevance-diversity balance
+- **Token budget management** to respect context window limitations
+- **TimeProvider pattern** for testable time-dependent operations
+- **Microsoft.Extensions.AI integration** for chat message handling
+
+### Usage Example
+
+```csharp
+using AiGeekSquad.AIContext.ContextRendering;
+using AiGeekSquad.AIContext.Chunking;
+using Microsoft.Extensions.AI;
+
+// Create context renderer with dependencies
+var tokenCounter = new MLTokenCounter();
+var embeddingGenerator = CreateYourEmbeddingGenerator(); // Your implementation
+var renderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Add chat messages over time
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "What is machine learning?"));
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Machine learning is..."));
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about deep learning"));
+
+// Render context with freshness weighting
+var context = await renderer.RenderContextAsync(
+    query: "deep learning techniques",
+    tokenBudget: 1000,           // Limit context size
+    lambda: 0.7,                 // Favor relevance
+    freshnessWeight: 0.3         // Give some priority to recent messages
+);
+
+// Use context for LLM prompt
+var contextText = string.Join("\n", context.Select(item => item.Content));
+```
+
+### TimeProvider Pattern for Testing
+
+```csharp
+// Production code uses TimeProvider.System by default
+var renderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Testing with FakeTimeProvider for time control
+var fakeTimeProvider = new FakeTimeProvider();
+var testRenderer = new ContextRenderer(tokenCounter, embeddingGenerator, fakeTimeProvider);
+
+await testRenderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message"));
+fakeTimeProvider.Advance(TimeSpan.FromMinutes(10)); // Simulate time passage
+await testRenderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"));
+
+// Test freshness weighting behavior
+var result = await testRenderer.RenderContextAsync("query", freshnessWeight: 0.8);
+// Recent message should be prioritized due to high freshness weight
+```
+
+## 🔗 Microsoft.Extensions.AI Integration (MEAI)
+
+The [`AiGeekSquad.AIContext.MEAI`](src/AiGeekSquad.AIContext.MEAI/) project provides seamless integration with Microsoft's AI abstractions, enabling AIContext components to work with the broader Microsoft.Extensions.AI ecosystem.
+
+### Purpose and Benefits
+
+- **Ecosystem Integration**: Use any embedding generator implementing Microsoft's [`IEmbeddingGenerator<TInput,TEmbedding>`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.ai.iembeddinggenerator-2) interface
+- **Dependency Injection Ready**: Full support for .NET's standard DI container patterns
+- **Provider Flexibility**: Switch between OpenAI, Azure OpenAI, and other providers without code changes
+- **Future-Proof Architecture**: Benefit from updates to both Microsoft's AI abstractions and AIContext libraries
+
+### Installation and Setup
+
+```bash
+# Install the MEAI integration package
+dotnet add package AiGeekSquad.AIContext.MEAI
+```
+
+### Basic Usage
+
+```csharp
+using AiGeekSquad.AIContext.MEAI;
+using AiGeekSquad.AIContext.Chunking;
+using Microsoft.Extensions.AI;
+
+// Use any Microsoft Extensions AI embedding generator
+IEmbeddingGenerator<string, Embedding<float>> microsoftGenerator =
+    CreateYourEmbeddingGenerator(); // Your specific implementation
+
+// Wrap with MEAI adapter
+IEmbeddingGenerator aiContextGenerator =
+    new MicrosoftExtensionsAIEmbeddingGenerator(microsoftGenerator);
+
+// Use with semantic chunking
+var chunker = new SemanticTextChunker(
+    embeddingGenerator: aiContextGenerator,
+    tokenCounter: new MLTokenCounter(),
+    similarityCalculator: new MathNetSimilarityCalculator(),
+    textSplitter: new SentenceTextSplitter()
+);
+
+var chunks = await chunker.ChunkTextAsync("Your document text...");
+```
+
+### Dependency Injection Configuration
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+// Register your Microsoft Extensions AI embedding generator
+builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(provider =>
+{
+    return CreateYourOpenAIEmbeddingGenerator(); // Your implementation
+});
+
+// Register AIContext dependencies
+builder.Services.AddSingleton<ITokenCounter, MLTokenCounter>();
+builder.Services.AddSingleton<ISimilarityCalculator, MathNetSimilarityCalculator>();
+builder.Services.AddSingleton<ITextSplitter, SentenceTextSplitter>();
+
+// Register the MEAI adapter
+builder.Services.AddSingleton<AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator,
+    MicrosoftExtensionsAIEmbeddingGenerator>();
+
+// Register semantic chunker
+builder.Services.AddSingleton<SemanticTextChunker>();
+
+var app = builder.Build();
+
+// Use the chunker
+var chunker = app.Services.GetRequiredService<SemanticTextChunker>();
+```
+
+### Supported Embedding Providers
+
+The MEAI integration works with any embedding provider that implements Microsoft's AI abstractions:
+
+- **OpenAI** - Direct OpenAI API integration
+- **Azure OpenAI** - Azure-hosted OpenAI models
+- **Local Models** - Ollama, LocalAI, and other local inference servers
+- **Cloud Providers** - AWS Bedrock, Google Vertex AI (via compatible adapters)
+- **Custom Providers** - Any implementation of `IEmbeddingGenerator<string, Embedding<float>>`
+
 ## 💡 Examples & Use Cases
 
 ### 🚀 **Complete Working Examples**
@@ -359,6 +522,22 @@ The [`examples/`](examples/) directory contains fully functional demonstrations:
 
 - **[`BasicChunking.cs`](examples/BasicChunking.cs)** - Complete semantic chunking example with sample embedding generator
 - **[`MMRExample.cs`](examples/MMRExample.cs)** - MMR algorithm demonstration with different lambda values and RAG system context
+- **[`EnterpriseRAGServiceDemo.cs`](examples/EnterpriseRAGServiceDemo.cs)** - Production-ready RAG service showcasing two-stage retrieval, caching, and error handling
+- **[`MMRClusteringProblemDemo.cs`](examples/MMRClusteringProblemDemo.cs)** - Demonstrates how MMR solves the clustering problem in document selection
+- **[`beyond-basic-rag-mmr-complete-demo.ipynb`](examples/notebooks/beyond-basic-rag-mmr-complete-demo.ipynb)** - Interactive Jupyter notebook with complete MMR implementation tutorial
+
+### Running Examples
+
+```bash
+# Run the enterprise RAG service demo
+dotnet run --project examples/ --configuration Release EnterpriseRAGServiceDemo
+
+# Run the MMR clustering problem demonstration
+dotnet run --project examples/ --configuration Release MMRClusteringProblemDemo
+
+# Interactive notebook (requires Jupyter)
+jupyter notebook examples/notebooks/beyond-basic-rag-mmr-complete-demo.ipynb
+```
 
 ### 🔍 **RAG Systems (Retrieval Augmented Generation)**
 ```csharp
@@ -534,12 +713,16 @@ public interface ITokenCounter
 ### Built-in Implementations
 
 - **[`MLTokenCounter`](src/AiGeekSquad.AIContext/Chunking/MLTokenCounter.cs)** - GPT-4 compatible tokenizer using Microsoft.ML.Tokenizers
+  - Uses TiktokenTokenizer internally with GPT-4 tokenization standards
+  - Provides accurate token counting for context window management
+  - Seamlessly integrates with semantic chunking workflows
 - **[`SentenceTextSplitter`](src/AiGeekSquad.AIContext/Chunking/SentenceTextSplitter.cs)** - Regex-based sentence splitting with customizable patterns
   - Default pattern is optimized for English text
   - Handles common English titles and abbreviations (Mr., Mrs., Ms., Dr., Prof., Sr., Jr.)
   - Prevents incorrect sentence breaks at abbreviations
 - **[`MathNetSimilarityCalculator`](src/AiGeekSquad.AIContext/Chunking/MathNetSimilarityCalculator.cs)** - Cosine similarity using MathNet.Numerics
-- **[`EmbeddingCache`](src/AiGeekSquad.AIContext/Chunking/EmbeddingCache.cs)** - LRU cache for embedding storage
+- **[`EmbeddingCache`](src/AiGeekSquad.AIContext/Chunking/EmbeddingCache.cs)** - LRU cache for embedding storage with configurable capacity
+- **[`ContextRenderer`](src/AiGeekSquad.AIContext/ContextRendering/ContextRenderer.cs)** - Intelligent context management with time-based freshness weighting
 
 ## 📦 Dependencies
 
@@ -547,6 +730,8 @@ public interface ITokenCounter
 |---------|---------|---------|
 | **MathNet.Numerics** | v5.0.0 | Vector operations and similarity calculations |
 | **Microsoft.ML.Tokenizers** | v0.22.0 | Real tokenization for accurate token counting |
+| **Microsoft.Extensions.AI.Abstractions** | v9.10.0 | AI provider abstractions for MEAI integration |
+| **Microsoft.Bcl.TimeProvider** | v9.0.10 | Time abstraction for testable time-dependent operations |
 | **.NET** | 9.0 | Target framework for optimal performance |
 
 ## 📖 Documentation
