@@ -56,7 +56,11 @@ Priority 2 - Implementation Details:
 Priority 3 - Testing and Examples:
 ├── src/AiGeekSquad.AIContext.Tests/Chunking/SemanticChunkingTests.cs
 ├── src/AiGeekSquad.AIContext.Tests/Ranking/MaximumMarginalRelevanceTests.cs
-└── examples/BasicChunking.cs
+├── examples/BasicChunking.cs
+├── examples/MMRExample.cs
+├── examples/ProductSearchDemo.cs
+├── examples/SupportTicketRouter.cs
+└── examples/EnterpriseRAGService.cs
 ```
 
 ## Work Workflow Guidelines
@@ -74,20 +78,35 @@ Follow these essential workflow practices when working on the AIContext library:
 - **Stay informed** about the libraries and frameworks being used in the specific project context
 
 ### 3. Dependency Management
-- **FluentAssertions package**: Do not upgrade FluentAssertions package beyond version 7.2.0 due to license changes
+- **FluentAssertions constraint**: Do not upgrade FluentAssertions beyond version 7.2.0 due to license changes
 - **Version compatibility**: Always verify compatibility with existing project dependencies before suggesting upgrades
+- **Microsoft.Extensions.AI integration**: The MEAI project provides seamless integration with Microsoft's AI abstractions
 
 ### 4. Development Practices
+- **High Quality standards**: Always use SonarQube for quality monitoring and creating high quality code when available
 - **Test-Driven Development (TDD)**: Always create tests upfront and follow proper TDD practices
 - **Incremental changes**: Make proper and incremental changes following a minimalistic and simplicity-first approach
 - **Compile verification**: Ensure code compiles successfully before proceeding with further changes
 
 ### 5. Workspace Organization
 - **Use `ai_working` folder** for any work that requires tracking state on disk, including:
-  - Plan documents
-  - Temporary work files
-  - Progress tracking documents
-  - Research notes and findings
+  - Plan documents and design notes
+  - Temporary work files and scratch code
+  - Progress tracking documents and status updates
+  - Research notes and findings from external sources
+  - Performance analysis results and comparisons
+  - Draft implementations before integration
+- **Folder structure recommendations**:
+  ```
+  ai_working/
+  ├── plans/           # Planning documents and design decisions
+  ├── research/        # External research and context gathering
+  ├── drafts/         # Work-in-progress code and examples
+  ├── analysis/       # Performance and code analysis results
+  └── temp/           # Temporary files and quick experiments
+  ```
+- **Always add `ai_working/` to `.gitignore`** to prevent accidental commits
+- **Clean up regularly**: Remove obsolete files to maintain focus
 
 ### 6. Project Maintenance
 - **Clean up thoroughly** at the end of tasks to keep the repository clean and focused
@@ -290,6 +309,98 @@ public class SemanticChunkerService
 3. **Integration Testing**: Test complete workflows from text input to final results
 4. **Cancellation Support**: Verify all async operations respect cancellation tokens
 
+## Microsoft.Extensions.AI Integration (MEAI Project)
+
+The `AiGeekSquad.AIContext.MEAI` project provides seamless integration with Microsoft's AI abstractions:
+
+### Key Integration Points
+- **IEmbeddingGenerator compatibility**: Implements Microsoft.Extensions.AI embedding interfaces
+- **Dependency injection ready**: Works with standard .NET DI containers
+- **Configuration patterns**: Follows Microsoft.Extensions configuration patterns
+- **Observability**: Integrates with .NET logging and telemetry
+
+### Working with MEAI
+```csharp
+// ✅ Correct: Using MEAI integration
+services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>, OpenAIEmbeddingGenerator>();
+services.AddSingleton<SemanticTextChunker>();
+
+// Integration with AIContext library
+var chunker = serviceProvider.GetService<SemanticTextChunker>();
+await foreach (var chunk in chunker.ChunkAsync(document))
+{
+    // Process semantically chunked content
+}
+```
+
+### MEAI Best Practices
+- **Follow Microsoft.Extensions patterns**: Use standard configuration and DI patterns
+- **Respect interface boundaries**: Don't bypass the abstraction layers
+- **Test integration points**: Verify compatibility with different embedding providers
+- **Document dependencies**: Clear documentation for required Microsoft.Extensions packages
+
+## Working with Examples
+
+The `examples/` directory contains comprehensive demonstrations:
+
+### Available Examples
+- **`BasicChunking.cs`**: Core semantic chunking with mock embedding generator
+- **`MMRExample.cs`**: Maximum Marginal Relevance algorithm demonstration
+- **`ProductSearchDemo.cs`**: E-commerce search with semantic similarity
+- **`SupportTicketRouter.cs`**: Customer service ticket routing using MMR
+- **`EnterpriseRAGService.cs`**: Complete RAG system implementation
+
+### Example Usage Patterns
+```csharp
+// ✅ Running specific examples
+dotnet run --project examples/ --configuration Release BasicChunking
+dotnet run --project examples/ --configuration Release MMR
+dotnet run --project examples/ --configuration Release ProductSearch
+
+// ✅ Modifying examples for testing
+// Copy example code to test custom scenarios
+// Use examples as integration test templates
+```
+
+### When Creating New Examples
+1. **Follow established patterns**: Use the same structure as existing examples
+2. **Include realistic data**: Don't use trivial test cases
+3. **Document the scenario**: Clear explanation of the use case
+4. **Test thoroughly**: Ensure examples work before committing
+5. **Performance considerations**: Include timing information for benchmarking
+
+## Working with Documentation
+
+The `docs/` directory contains comprehensive technical documentation:
+
+### Available Documentation
+- **`README.md`**: Documentation hub and overview
+- **`MMR.md`**: Detailed MMR algorithm explanation with mathematical foundations
+- **`SemanticChunking.md`**: In-depth semantic chunking algorithm documentation
+- **`RankingAPI_Architecture.md`**: Generic ranking engine architecture details
+- **`RankingAPI_Usage.md`**: Comprehensive usage examples and patterns
+- **`PERFORMANCE_TUNING.md`**: Production optimization guidelines
+- **`TROUBLESHOOTING.md`**: Common issues and solutions
+- **`BenchmarkResults.md`**: Performance analysis and benchmark data
+
+### Documentation Best Practices
+1. **Keep docs synchronized**: Update documentation when changing APIs or behavior
+2. **Reference specific docs**: Link to relevant documentation sections in code comments
+3. **Validate examples**: Ensure all documentation examples compile and run correctly
+4. **Performance context**: Include performance characteristics in API documentation
+5. **Cross-reference**: Maintain consistency between CLAUDE.md, AGENTS.md, and docs/
+
+### When Updating Documentation
+```bash
+# Verify documentation examples work
+cd docs/
+grep -r "```csharp" . | # Find all code examples
+# Test each example for compilation and correctness
+
+# Update cross-references
+# Ensure CLAUDE.md, AGENTS.md, and docs/ are aligned
+```
+
 ## Agent Validation Checklist
 
 Before completing any task on this codebase:
@@ -298,11 +409,14 @@ Before completing any task on this codebase:
 - [ ] Are all public methods documented with XML comments?
 - [ ] Do async methods use `IAsyncEnumerable` where appropriate?
 - [ ] Are tests added with >90% coverage?
-- [ ] Does `dotnet test` pass with all 146+ tests?
+- [ ] Does `dotnet test` pass with all tests?
 - [ ] For performance-critical code, are benchmarks included?
 - [ ] Does the code maintain .NET Standard 2.1 compatibility?
 - [ ] Are proper cancellation token patterns used?
 - [ ] Does the implementation respect the O(n²k) performance characteristics?
+- [ ] Is documentation updated and cross-referenced correctly?
+- [ ] Are examples tested and functional?
+- [ ] Is MEAI integration compatibility maintained?
 
 ## Integration with Existing Tools
 
@@ -319,8 +433,9 @@ dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Relea
 
 ### Working with CI/CD
 
-- **SonarQube Integration**: Ensure code coverage reports are generated correctly
-- **AppVeyor Builds**: Test Windows compatibility with `dotnet build AiContext.slnx --configuration Release`
-- **NuGet Packaging**: Use `dotnet pack` for package generation
+- **GitHub Actions**: Automated builds, testing, SonarQube analysis, and NuGet publishing on main branch
+- **SonarQube Integration**: Ensure code coverage reports are generated correctly using Cobertura and OpenCover formats
+- **Windows Compatibility**: Test with `dotnet build AiContext.slnx --configuration Release`
+- **NuGet Packaging**: Automated packaging and publishing to NuGet.org from main branch
 
 This guidance should help AI agents work effectively with the AIContext library while maintaining code quality, performance standards, and architectural consistency.

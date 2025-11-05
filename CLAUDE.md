@@ -25,7 +25,7 @@ dotnet restore
 dotnet build
 dotnet build --configuration Release
 
-# Run all tests (~2.8 seconds, 146 tests should pass)
+# Run all tests (~2.8 seconds, all tests should pass)
 dotnet test
 
 # Run tests with coverage (generates Cobertura and OpenCover formats for SonarQube)
@@ -146,7 +146,7 @@ public interface ITextSplitter
 
 ### Testing Standards
 
-- **217 unit tests** with >90% coverage requirement
+- **Comprehensive unit tests** with >90% coverage requirement
 - **Real implementation testing** (minimal mocks for core algorithms)
 - **Edge case handling** with robust fallback mechanisms
 - **Performance benchmarks** for all performance-critical changes
@@ -194,13 +194,20 @@ var results = engine.Rank(documents, scoringFunctions, new WeightedSumStrategy()
 
 - **Main solution file**: `AiContext.slnx` (use for solution-wide operations)
 - **Build entire solution**: `dotnet build AiContext.slnx --configuration Release`
-- **CI/CD**: GitHub Actions for SonarQube analysis, AppVeyor builds on Windows
+- **CI/CD**: GitHub Actions for automated builds, testing, SonarQube analysis, and NuGet publishing
 - **NuGet packaging**: `dotnet pack AiContext.slnx --configuration Release --no-build --output packages`
+- **Organized project structure**: Projects are grouped in folders (/benchmarks/, /examples/, /tests/)
 
 ## Important Development Notes
 
 - **Never cancel benchmarks**: They can take 2-10+ minutes and provide critical performance data
-- **Always run tests after changes**: Use `dotnet test` to verify all 146 tests pass
+- **Always run tests after changes**: Use `dotnet test` to verify all tests pass
 - **Use appropriate timeouts**: Build operations need 30-60s, benchmarks need 600+ seconds
 - **Follow existing patterns**: The codebase uses consistent naming and architectural patterns
 - **Documentation**: Update XML comments for public APIs, maintain comprehensive examples
+
+## Additional Resources
+
+- **[AGENTS.md](AGENTS.md)**: Specialized guidance for AI agents working with this codebase, including workflow patterns, validation checklists, and common pitfalls
+- **[Documentation](docs/)**: Comprehensive documentation including performance tuning, troubleshooting, and API references
+- **[Examples](examples/)**: Complete working examples including BasicChunking, MMRExample, ProductSearchDemo, and SupportTicketRouter
