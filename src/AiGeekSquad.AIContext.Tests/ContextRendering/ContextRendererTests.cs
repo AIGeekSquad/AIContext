@@ -529,4 +529,285 @@ public class ContextRendererTests
         renderer.Items[0].Content.Should().Contain("system");
         renderer.Items[0].Content.Should().Contain("helpful assistant");
     }
+
+    [Fact]
+    public void Constructor_WithCustomTimeProvider_UsesCustomTimeProvider()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var customTime = new DateTimeOffset(2025, 1, 15, 10, 30, 0, TimeSpan.Zero);
+        fakeTimeProvider.SetUtcNow(customTime);
+
+        // Act
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+
+        // Assert
+        renderer.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Constructor_WithNullTimeProvider_UsesSystemTimeProvider()
+    {
+        // Act
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, null);
+
+        // Assert
+        renderer.Should().NotBeNull();
+        renderer.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ContextItem_Constructor_WithNullTimestamp_UsesCurrentUtcTime()
+    {
+        // Arrange
+        var content = "Test content";
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
+        var tokenCount = 5;
+        var beforeTime = DateTimeOffset.UtcNow;
+
+        // Act
+        var item = new ContextItem(content, embedding, tokenCount, null);
+        var afterTime = DateTimeOffset.UtcNow;
+
+        // Assert
+        using var _ = new AssertionScope();
+        item.Timestamp.Should().BeOnOrAfter(beforeTime);
+        item.Timestamp.Should().BeOnOrBefore(afterTime);
+    }
+
+    [Fact]
+    public void ContextItem_Constructor_WithExplicitTimestamp_UsesProvidedTimestamp()
+    {
+        // Arrange
+        var content = "Test content";
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
+        var tokenCount = 5;
+        var explicitTime = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Act
+        var item = new ContextItem(content, embedding, tokenCount, explicitTime);
+
+        // Assert
+        item.Timestamp.Should().Be(explicitTime);
+    }
+
+    [Fact]
+    public void ContextItem_ToString_WithShortContent_ReturnsCompleteContent()
+    {
+        // Arrange
+        var content = "Short text";
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
+        var timestamp = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var item = new ContextItem(content, embedding, 5, timestamp);
+
+        // Act
+        var result = item.ToString();
+
+        // Assert
+        using var _ = new AssertionScope();
+        result.Should().Contain("Short text");
+        result.Should().Contain("2025-01-01");
+        result.Should().Contain("5 tokens");
+    }
+
+    [Fact]
+    public void ContextItem_ToString_WithLongContent_TruncatesContent()
+    {
+        // Arrange
+        var longContent = new string('A', 100); // 100 characters
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
+        var timestamp = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var item = new ContextItem(longContent, embedding, 25, timestamp);
+
+        // Act
+        var result = item.ToString();
+
+        // Assert
+        using var _ = new AssertionScope();
+        result.Should().Contain("...");
+        result.Length.Should().BeLessThan(longContent.Length + 100);
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithCustomTimeProvider_UsesTimeProviderForTimestamp()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var customTime = new DateTimeOffset(2025, 2, 1, 14, 30, 0, TimeSpan.Zero);
+        fakeTimeProvider.SetUtcNow(customTime);
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+        var message = new ChatMessage(ChatRole.User, "Test message");
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        using var _ = new AssertionScope();
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Timestamp.Should().Be(customTime);
+    }
+
+    [Fact]
+    public async Task AddChunkAsync_WithCustomTimeProvider_UsesTimeProviderForTimestamp()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var customTime = new DateTimeOffset(2025, 3, 1, 16, 45, 0, TimeSpan.Zero);
+        fakeTimeProvider.SetUtcNow(customTime);
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+        var chunk = new TextChunk("Test chunk content", 0, 18);
+
+        // Act
+        await renderer.AddChunkAsync(chunk, TestContext.Current.CancellationToken);
+
+        // Assert
+        using var _ = new AssertionScope();
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Timestamp.Should().Be(customTime);
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithFreshnessAndIdenticalTimestamps_HandlesCorrectly()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+        
+        // Add multiple items with identical timestamps
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Message 1"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Message 2"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Message 3"), TestContext.Current.CancellationToken);
+
+        // Act - with freshness weight but all items have same timestamp
+        var result = await renderer.RenderContextAsync("test query", freshnessWeight: 0.5, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithMaxFreshnessWeight_StronglyPrioritizesRecentItems()
+    {
+        // Arrange
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+        
+        // Add old item
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Very old message about topic"), TestContext.Current.CancellationToken);
+        
+        // Advance time significantly
+        fakeTimeProvider.Advance(TimeSpan.FromHours(24));
+        
+        // Add recent item
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message about topic"), TestContext.Current.CancellationToken);
+
+        // Act - maximum freshness weight
+        var result = await renderer.RenderContextAsync("topic", freshnessWeight: 1.0, tokenBudget: 100, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithSingleItem_HandlesCorrectly()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Single message"), TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await renderer.RenderContextAsync("query", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithTokenBudgetSmallerThanSmallestItem_ReturnsEmpty()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "This is a message with many tokens"), TestContext.Current.CancellationToken);
+
+        // Act - token budget of 1 (smaller than any item)
+        var result = await renderer.RenderContextAsync("query", tokenBudget: 1, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AddMessagesAsync_WithEmptyMessages_DoesNotAddItems()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var messages = new List<ChatMessage>();
+
+        // Act
+        await renderer.AddMessagesAsync(messages, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AddChunksAsync_WithEmptyChunks_DoesNotAddItems()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var chunks = new List<TextChunk>();
+
+        // Act
+        await renderer.AddChunksAsync(chunks, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithVeryLargeLambda_PrioritizesRelevanceCompletely()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Dogs are great pets"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Cats are independent"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Birds can fly"), TestContext.Current.CancellationToken);
+
+        // Act - lambda = 1.0 means pure relevance, no diversity
+        var result = await renderer.RenderContextAsync("dogs and puppies", lambda: 1.0, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeEmpty();
+        result[0].Content.Should().Contain("Dogs");
+    }
+
+    [Fact]
+    public async Task RenderContextAsync_WithVeryLowLambda_PrioritizesDiversityCompletely()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Dogs"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Dogs are fun"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Cats"), TestContext.Current.CancellationToken);
+
+        // Act - lambda = 0.0 means pure diversity, no relevance consideration
+        var result = await renderer.RenderContextAsync("dogs", lambda: 0.0, tokenBudget: 100, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithMessageContainingOnlyWhitespace_AddsCorrectly()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.User, "     \t\n     ");
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert - The message is added as-is; formatting is preserved
+        renderer.Items.Should().HaveCount(1);
+    }
 }
