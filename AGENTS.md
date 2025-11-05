@@ -74,7 +74,7 @@ Follow these essential workflow practices when working on the AIContext library:
 - **Stay informed** about the libraries and frameworks being used in the specific project context
 
 ### 3. Dependency Management
-- **FluentAssertions constraint**: Do not upgrade FluentAssertion package beyond version 7.2.0 due to license changes
+- **FluentAssertions package**: Do not upgrade FluentAssertions package beyond version 7.2.0 due to license changes
 - **Version compatibility**: Always verify compatibility with existing project dependencies before suggesting upgrades
 
 ### 4. Development Practices
