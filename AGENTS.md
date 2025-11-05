@@ -2,6 +2,23 @@
 
 This file provides specialized guidance for AI agents (Claude Code, GitHub Copilot, etc.) when working with the AIContext library codebase.
 
+## 💎 CRITICAL: Respect User Time - Test Before Presenting
+ 
+**The user's time is their most valuable resource.** When you present work as "ready" or "done", you must have:
+ 
+1. **Tested it yourself thoroughly** - Don't make the user your QA
+2. **Fixed obvious issues** - Syntax errors, import problems, broken logic
+3. **Verified it actually works** - Run tests, check structure, validate logic
+4. **Only then present it** - "This is ready for your review" means YOU'VE already validated it
+ 
+**User's role:** Strategic decisions, design approval, business context, stakeholder judgment
+**Your role:** Implementation, testing, debugging, fixing issues before engaging user
+ 
+**Anti-pattern**: "I've implemented X, can you test it and let me know if it works?"
+**Correct pattern**: "I've implemented and tested X. Tests pass, structure verified, logic validated. Ready for your review. Here is how you can verify."
+ 
+**Remember**: Every time you ask the user to debug something you could have caught, you're wasting their time on non-stakeholder work. Be thorough BEFORE engaging them.
+
 ## Agent Workflow Patterns
 
 ### Understanding the Codebase Architecture
@@ -41,6 +58,46 @@ Priority 3 - Testing and Examples:
 ├── src/AiGeekSquad.AIContext.Tests/Ranking/MaximumMarginalRelevanceTests.cs
 └── examples/BasicChunking.cs
 ```
+
+## Work Workflow Guidelines
+
+Follow these essential workflow practices when working on the AIContext library:
+
+### 1. Version Control Management
+- **Create baseline commits** before starting any relevant work to capture the current state and enable easy restoration
+- **Track progress with commits** as work progresses, ensuring code compiles at minimum before committing
+- **Use descriptive commit messages** that reflect the current state and are useful for analyzing progress and understanding changes
+
+### 2. Research and Context Gathering
+- **Leverage available tools** - When tools like Tavily, DeepWiki, Context7, and Perplexity are available, always ensure you have the right context and most up-to-date information
+- **Verify current library versions** used in the project before making recommendations or implementing changes
+- **Stay informed** about the libraries and frameworks being used in the specific project context
+
+### 3. Dependency Management
+- **FluentAssertions constraint**: Do not upgrade FluentAssertion package beyond version 7.2.0 due to license changes
+- **Version compatibility**: Always verify compatibility with existing project dependencies before suggesting upgrades
+
+### 4. Development Practices
+- **Test-Driven Development (TDD)**: Always create tests upfront and follow proper TDD practices
+- **Incremental changes**: Make proper and incremental changes following a minimalistic and simplicity-first approach
+- **Compile verification**: Ensure code compiles successfully before proceeding with further changes
+
+### 5. Workspace Organization
+- **Use `ai_working` folder** for any work that requires tracking state on disk, including:
+  - Plan documents
+  - Temporary work files
+  - Progress tracking documents
+  - Research notes and findings
+
+### 6. Project Maintenance
+- **Clean up thoroughly** at the end of tasks to keep the repository clean and focused
+- **Remove temporary files** and working documents that are no longer needed
+- **Maintain alignment** between code, documentation, and samples
+
+### 7. Documentation Standards
+- **Keep documentation current** - Ensure documentation is updated when tasks are completed
+- **Maintain consistency** between code comments, external documentation, and example code
+- **Verify examples work** with the current codebase implementation
 
 ## Code Generation Guidelines
 
