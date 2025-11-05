@@ -421,3 +421,5 @@ FodyWeavers.xsd
 .idea/.idea.AiContext/.idea/
 
 ai_working/
+
+.claude/settings.local.json
