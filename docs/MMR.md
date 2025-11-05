@@ -107,7 +107,33 @@ var finalContext = contextForLLM
     .ToList();
 ```
 
-### 3. Different Lambda Values
+### 3. Using ContextRenderer for Advanced RAG Systems
+
+The [`ContextRenderer`](ContextRendering.md) class provides a higher-level abstraction for RAG systems that combines MMR with time-based freshness weighting:
+
+```csharp
+using AiGeekSquad.AIContext.ContextRendering;
+
+// Initialize ContextRenderer with MMR-based selection
+var renderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Add messages over time
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Earlier question"));
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Earlier response"));
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Current question"));
+
+// Render context with MMR diversity and freshness weighting
+var context = await renderer.RenderContextAsync(
+    query: currentUserQuery,
+    maxTokens: 2000,
+    relevanceWeight: 0.6,    // MMR lambda for relevance vs diversity
+    freshnessWeight: 0.3     // Additional time-based weighting
+);
+```
+
+The ContextRenderer uses MMR internally to ensure diverse context selection while adding temporal awareness for more effective RAG implementations.
+
+### 4. Different Lambda Values
 
 ```csharp
 var vectors = GetDocumentVectors();
@@ -269,11 +295,14 @@ Results are ordered by selection priority according to the MMR algorithm.
 ## Common Use Cases
 
 - **Search Result Diversification**: Improve search engines by reducing redundant results
-- **Recommendation Systems**: Provide diverse product or content recommendations
+- **Recommendation Systems**: Provide diverse product or content recommendations (see [`ProductSearchDemo.cs`](../examples/ProductSearchDemo.cs))
 - **Document Summarization**: Select diverse sentences or paragraphs for summaries
 - **Content Curation**: Avoid redundant information in curated content feeds
-- **RAG Systems**: Select diverse context chunks for language model prompts
+- **RAG Systems**: Select diverse context chunks for language model prompts (see [`EnterpriseRAGServiceDemo.cs`](../examples/EnterpriseRAGServiceDemo.cs))
 - **Research Paper Recommendation**: Ensure topical diversity in academic recommendations
+- **Support Ticket Routing**: Intelligent routing using MMR for diverse category selection (see [`SupportTicketRouter.cs`](../examples/SupportTicketRouter.cs))
+- **Context Management**: Advanced RAG systems with time-based freshness weighting (see [`ContextRenderer`](ContextRendering.md))
+- **Clustering Analysis**: Understanding MMR limitations with cluster data (see [`MMRClusteringProblemDemo.cs`](../examples/MMRClusteringProblemDemo.cs))
 
 ## Benchmarks
 

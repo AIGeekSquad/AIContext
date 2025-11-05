@@ -593,6 +593,37 @@ var options = new SemanticChunkingOptions
 };
 ```
 
+### Context Management with ContextRenderer
+
+The [`ContextRenderer`](ContextRendering.md) class builds upon semantic chunking to provide intelligent context selection for RAG systems:
+
+```csharp
+using AiGeekSquad.AIContext.ContextRendering;
+
+// ContextRenderer uses SemanticTextChunker internally for processing chat messages
+var tokenCounter = MLTokenCounter.CreateTextEmbedding3Small(); // Align with your embedding model
+var embeddingGenerator = new YourEmbeddingProvider();
+var renderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Add conversation messages - they are automatically chunked if needed
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Long technical question..."));
+await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Detailed response..."));
+
+// Render context with semantic chunking and MMR diversity
+var context = await renderer.RenderContextAsync(
+    query: "Current user question",
+    maxTokens: 2000,
+    relevanceWeight: 0.7,    // MMR lambda parameter
+    freshnessWeight: 0.2     // Time-based weighting
+);
+```
+
+The ContextRenderer leverages semantic chunking to:
+- **Break down long messages** into semantically coherent pieces
+- **Preserve message boundaries** while respecting token limits
+- **Enable intelligent selection** using MMR with freshness weighting
+- **Maintain conversation flow** with proper metadata tracking
+
 ## Best Practices
 
 ### Choosing Parameters

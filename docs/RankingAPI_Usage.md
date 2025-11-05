@@ -598,6 +598,7 @@ public double[] ComputeScores(IReadOnlyList<T> items)
 - [Ranking API Architecture](./RankingAPI_Architecture.md) - Detailed architecture specification
 - [Maximum Marginal Relevance](./MMR.md) - MMR implementation for diversity
 - [Semantic Chunking](./SemanticChunking.md) - Text chunking for ranking
+- [Context Rendering](./ContextRendering.md) - Advanced RAG context management using ranking strategies
 
 ## Summary
 
