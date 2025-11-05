@@ -259,9 +259,9 @@ public class ContextRendererTests
 
         // Assert
         using var _ = new AssertionScope();
-        result.Should().HaveCountLessOrEqualTo(2);
+        result.Should().HaveCountLessThanOrEqualTo(2);
         var totalTokens = result.Sum(item => item.TokenCount);
-        totalTokens.Should().BeLessOrEqualTo(10);
+        totalTokens.Should().BeLessThanOrEqualTo(10);
     }
 
     [Fact]
