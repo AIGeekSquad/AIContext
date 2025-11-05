@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using AiGeekSquad.AIContext.ContextRendering;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using MathNet.Numerics.LinearAlgebra;
 using Microsoft.Extensions.AI;
-using Xunit;
+using Microsoft.Extensions.Time.Testing;
 using IEmbeddingGenerator = AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator;
 using ITokenCounter = AiGeekSquad.AIContext.Chunking.ITokenCounter;
 using TextChunk = AiGeekSquad.AIContext.Chunking.TextChunk;
@@ -18,14 +13,8 @@ namespace AiGeekSquad.AIContext.Tests.ContextRendering;
 
 public class ContextRendererTests
 {
-    private readonly FakeTokenCounter _tokenCounter;
-    private readonly FakeEmbeddingGenerator _embeddingGenerator;
-
-    public ContextRendererTests()
-    {
-        _tokenCounter = new FakeTokenCounter();
-        _embeddingGenerator = new FakeEmbeddingGenerator();
-    }
+    private readonly FakeTokenCounter _tokenCounter = new();
+    private readonly FakeEmbeddingGenerator _embeddingGenerator = new();
 
     // Fake implementations for testing
     private class FakeTokenCounter : ITokenCounter
@@ -46,7 +35,7 @@ public class ContextRendererTests
         {
             // Create a simple embedding based on text content
             var hash = text.GetHashCode();
-            var values = new double[]
+            var values = new[]
             {
                 Math.Abs((hash % 1000) / 1000.0),
                 Math.Abs(((hash / 1000) % 1000) / 1000.0),
@@ -280,7 +269,7 @@ public class ContextRendererTests
 
         // Assert
         result.Should().NotBeEmpty();
-        // First result should be most relevant (about dogs)
+        // The First result should be most relevant (about dogs)
         result[0].Content.Should().Contain("dogs");
     }
 
@@ -387,11 +376,12 @@ public class ContextRendererTests
     public async Task RenderContextAsync_WithFreshnessWeight_PrioritizesRecentItems()
     {
         // Arrange
-        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
         
-        // Add items with delays to ensure different timestamps
+        // Add items with time advancement to ensure different timestamps
         await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message about dogs"), TestContext.Current.CancellationToken);
-        await Task.Delay(100, TestContext.Current.CancellationToken); // Ensure different timestamp
+        fakeTimeProvider.Advance(TimeSpan.FromMilliseconds(100)); // Ensure different timestamp
         await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message about cats"), TestContext.Current.CancellationToken);
 
         // Act - high freshness weight should prioritize recent items
@@ -405,10 +395,11 @@ public class ContextRendererTests
     public async Task RenderContextAsync_WithZeroFreshnessWeight_IgnoresTimestamps()
     {
         // Arrange
-        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var fakeTimeProvider = new FakeTimeProvider();
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
         
         await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message"), TestContext.Current.CancellationToken);
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        fakeTimeProvider.Advance(TimeSpan.FromMilliseconds(100));
         await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"), TestContext.Current.CancellationToken);
 
         // Act - zero freshness weight should ignore timestamps
