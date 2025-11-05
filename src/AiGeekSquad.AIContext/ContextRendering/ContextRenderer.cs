@@ -20,7 +20,7 @@ public class ContextRenderer
     private readonly List<ContextItem> _items;
     private readonly ITokenCounter _tokenCounter;
     private readonly IEmbeddingGenerator _embeddingGenerator;
-    private TimeProvider _timeProvider;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ContextRenderer"/> class.
