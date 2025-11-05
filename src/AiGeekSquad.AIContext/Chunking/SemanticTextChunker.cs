@@ -581,6 +581,11 @@ public class SemanticTextChunker
     /// <summary>
     /// Processes breakpoints to create valid chunks.
     /// </summary>
+    /// <remarks>
+    /// Invariant: breakpoints are indices from IdentifyBreakpoints which processes distances between
+    /// consecutive segments. For N segments, there are N-1 distances, so breakpoints are in range [0, N-2].
+    /// We append segments.Count-1 (N-1) to ensure all segments are included, maintaining sorted order.
+    /// </remarks>
     private async Task<List<TextChunk>> ProcessBreakpointsToChunks(List<(string text, int startIndex, int endIndex)> segments,
         List<int> breakpoints,
         IDictionary<string, object>? metadata,
