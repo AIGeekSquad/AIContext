@@ -831,6 +831,72 @@ public async Task ChunkLargeDocument_NoTimeout()
 9. **Verify async enumerable behavior**: Test that streaming works correctly with cancellation
 10. **Integration test patterns**: Test complete workflows with realistic data
 
+### TimeProvider Testing Patterns (CRITICAL)
+
+**Use TimeProvider for testable time-dependent operations. Production code uses `TimeProvider.System`, tests use `FakeTimeProvider` for deterministic control.**
+
+#### 📦 Required Packages
+- **Production**: `Microsoft.Bcl.TimeProvider` (9.0.10)
+- **Testing**: `Microsoft.Extensions.TimeProvider.Testing` (9.10.0)
+
+#### ✅ Key Patterns
+
+```csharp
+// Production: Accept TimeProvider as optional parameter
+public class ContextRenderer
+{
+    private readonly TimeProvider _timeProvider;
+    
+    public ContextRenderer(ITokenCounter tokenCounter, IEmbeddingGenerator embeddingGenerator, TimeProvider? timeProvider = null)
+    {
+        _timeProvider = timeProvider ?? TimeProvider.System; // Default to system time
+    }
+    
+    public async Task AddMessageAsync(ChatMessage message, CancellationToken cancellationToken = default)
+    {
+        var timestamp = _timeProvider.GetUtcNow(); // Use TimeProvider for time
+        var item = new ContextItem(message.Content, embedding, tokenCount, timestamp);
+        _items.Add(item);
+    }
+}
+
+// Testing: Use FakeTimeProvider for control
+[Fact]
+public async Task RenderContextAsync_WithFreshnessWeight_PrioritizesRecentItems()
+{
+    var fakeTimeProvider = new FakeTimeProvider();
+    var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator, fakeTimeProvider);
+    
+    await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message"));
+    fakeTimeProvider.Advance(TimeSpan.FromMilliseconds(100)); // Control time
+    await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"));
+    
+    var result = await renderer.RenderContextAsync("query", freshnessWeight: 0.8);
+    result.First().Should().Contain("Recent"); // Verify time-based behavior
+}
+```
+
+#### ❌ Common Mistakes
+- Using `DateTime.UtcNow` directly → Not testable
+- Using `Task.Delay()` instead of `_timeProvider.Delay()` → Won't work with FakeTimeProvider
+- Not accepting TimeProvider in constructor → Can't inject test doubles
+- Forgetting to advance time in tests → Tests won't simulate time passage
+
+#### 🔑 Essential Rules
+1. **Accept TimeProvider?** in constructor, default to `TimeProvider.System`
+2. **Use _timeProvider.GetUtcNow()** not `DateTime.UtcNow`
+3. **Use _timeProvider.Delay()** not `Task.Delay()`
+4. **Use _timeProvider.CreateTimer()** for timers
+5. **Tests use FakeTimeProvider** and call `Advance()` to simulate time
+6. **Never use real delays** in tests (`Task.Delay`, `Thread.Sleep`)
+
+#### ✔️ Quick Checklist
+- [ ] Class accepts `TimeProvider?` in constructor
+- [ ] Defaults to `TimeProvider.System` when null
+- [ ] All time operations use TimeProvider methods
+- [ ] Tests use `FakeTimeProvider` with `Advance()`
+- [ ] No real delays in tests
+
 ## Agent Collaboration Patterns
 
 ### When Multiple Agents Work on This Codebase

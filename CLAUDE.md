@@ -45,6 +45,9 @@ dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Relea
 # Semantic chunking benchmarks (~3+ minutes, NEVER CANCEL)
 dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release semantic
 
+# Ranking engine benchmarks (timing varies, NEVER CANCEL)
+dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release ranking
+
 # All benchmarks (10+ minutes, NEVER CANCEL)
 dotnet run --project src/AiGeekSquad.AIContext.Benchmarks/ --configuration Release all
 
@@ -108,8 +111,10 @@ src/
 ### Key Dependencies
 
 - **MathNet.Numerics v5.0.0**: Vector operations and similarity calculations
-- **Microsoft.ML.Tokenizers v1.0.2**: Real tokenization for accurate token counting
-- **Markdig v0.42.0**: Markdown processing
+- **Microsoft.ML.Tokenizers v1.0.3**: Real tokenization for accurate token counting
+- **Markdig v0.43.0**: Markdown processing
+- **Microsoft.Extensions.AI.Abstractions v9.10.2**: AI integration abstractions
+- **Microsoft.Bcl.TimeProvider v9.0.10**: Time abstraction for testing
 - **.NET Standard 2.1**: Main library target for broad compatibility
 - **.NET 9.0**: Test and benchmark projects for latest performance optimizations
 
@@ -146,7 +151,7 @@ public interface ITextSplitter
 
 ### Testing Standards
 
-- **Comprehensive unit tests** with >90% coverage requirement
+- **Comprehensive unit tests** with >90% coverage requirement using xUnit v3
 - **Real implementation testing** (minimal mocks for core algorithms)
 - **Edge case handling** with robust fallback mechanisms
 - **Performance benchmarks** for all performance-critical changes
@@ -154,6 +159,7 @@ public interface ITextSplitter
   - `SemanticChunkingTests`: Core chunking logic
   - `SentenceTextSplitterTests`: Text splitting functionality
   - `MaximumMarginalRelevanceTests`: MMR algorithm validation
+- **Test execution**: Tests use .NET 9.0 and should complete in ~2.8 seconds for full suite
 
 ## Common Use Cases
 
@@ -206,8 +212,17 @@ var results = engine.Rank(documents, scoringFunctions, new WeightedSumStrategy()
 - **Follow existing patterns**: The codebase uses consistent naming and architectural patterns
 - **Documentation**: Update XML comments for public APIs, maintain comprehensive examples
 
+## Microsoft.Extensions.AI Integration
+
+The `AiGeekSquad.AIContext.MEAI` project provides integration with Microsoft's Extensions.AI framework:
+
+- **Purpose**: Seamless integration with Microsoft.Extensions.AI ecosystem
+- **Target Framework**: .NET Standard 2.1 for broad compatibility
+- **Usage**: Enables AIContext components to work with Microsoft's AI abstractions and dependency injection patterns
+
 ## Additional Resources
 
 - **[AGENTS.md](AGENTS.md)**: Specialized guidance for AI agents working with this codebase, including workflow patterns, validation checklists, and common pitfalls
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)**: Detailed instructions for GitHub Copilot users with additional development patterns and validation scenarios
 - **[Documentation](docs/)**: Comprehensive documentation including performance tuning, troubleshooting, and API references
 - **[Examples](examples/)**: Complete working examples including BasicChunking, MMRExample, ProductSearchDemo, and SupportTicketRouter
