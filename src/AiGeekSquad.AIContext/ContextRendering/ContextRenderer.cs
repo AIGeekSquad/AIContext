@@ -227,25 +227,28 @@ public class ContextRenderer
     /// </summary>
     private static string FormatChatMessage(ChatMessage message)
     {
-        // Use the Text property if available, otherwise combine contents
-        if (!string.IsNullOrEmpty(message.Text))
+        // Prefer Contents over Text for better formatting control
+        if (message.Contents != null)
+        {
+            var textContents = message.Contents
+                .OfType<TextContent>()
+                .Select(tc => tc.Text)
+                .Where(t => !string.IsNullOrWhiteSpace(t)); // Filter out whitespace-only content
+
+            var enumerable = (textContents as string[] ?? textContents.ToArray());
+            if (enumerable.Any())
+            {
+                return $"{message.Role}: {string.Join("\n", enumerable)}"; // Use newlines for better separation
+            }
+        }
+
+        // Fallback to Text property if Contents is null/empty
+        if (!string.IsNullOrWhiteSpace(message.Text))
         {
             return $"{message.Role}: {message.Text}";
         }
 
-        // If no text, try to extract text from contents
-        var textContents = message.Contents?
-            .OfType<TextContent>()
-            .Select(tc => tc.Text)
-            .Where(t => !string.IsNullOrEmpty(t));
-
-        var enumerable = (textContents as string[] ?? textContents?.ToArray()) ?? [];
-        if (textContents != null && enumerable.Any())
-        {
-            return $"{message.Role}: {string.Join(" ", enumerable)}";
-        }
-
-        // Fallback to role only
+        // Final fallback when no meaningful content exists
         return $"{message.Role}: [No text content]";
     }
 

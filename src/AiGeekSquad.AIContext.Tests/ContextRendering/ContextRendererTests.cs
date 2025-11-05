@@ -1007,4 +1007,174 @@ public class ContextRendererTests
         result[^1].Content.Should().Contain("Very recent message");
         result[0].Content.Should().Contain("Very old message");
     }
+
+    // FORMATCHATMESSAGE COVERAGE TESTS - Testing private method through AddMessageAsync
+
+    [Fact]
+    public async Task AddMessageAsync_WithTextProperty_FormatsCorrectly()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.User, "Hello world");
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("user: Hello world");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithMultipleTextContents_CombinesCorrectly()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.Assistant, new List<AIContent>
+        {
+            new TextContent("First part of response."),
+            new TextContent("Second part with more details."),
+            new TextContent("Final conclusion.")
+        });
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("assistant: First part of response.\nSecond part with more details.\nFinal conclusion.");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithEmptyTextContents_UsesNoTextContentFallback()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.System, new List<AIContent>
+        {
+            new TextContent(""), // Empty text content
+            new TextContent("   "), // Whitespace only
+            new TextContent(null!) // Null text
+        });
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("system: [No text content]");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithNullContents_UsesNoTextContentFallback()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.System, contents: null);
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("system: [No text content]");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithMixedContentTypes_ExtractsOnlyTextContent()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.User, new List<AIContent>
+        {
+            new TextContent("This is text content."),
+            // Simulate non-text content that should be ignored by OfType<TextContent>()
+            new TextContent("More text content.")
+        });
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("user: This is text content.\nMore text content.");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithDifferentRoles_FormatsRoleCorrectly()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+
+        // Act - Add messages with different roles
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.System, "System message"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "User message"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Assistant message"), TestContext.Current.CancellationToken);
+
+        // Assert
+        using AssertionScope _ = new();
+
+        renderer.Items.Should().HaveCount(3);
+        renderer.Items[0].Content.Should().Be("system: System message");
+        renderer.Items[1].Content.Should().Be("user: User message");
+        renderer.Items[2].Content.Should().Be("assistant: Assistant message");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithNullAndEmptyTextProperty_UsesContentsFallback()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+
+        // Create message with null Text but valid Contents
+        var message = new ChatMessage(ChatRole.User, new List<AIContent>
+        {
+            new TextContent("Content from Contents property")
+        });
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("user: Content from Contents property");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithWhitespaceOnlyTextContents_SkipsThem()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        var message = new ChatMessage(ChatRole.Assistant, new List<AIContent>
+        {
+            new TextContent("Valid content"),
+            new TextContent(""), // Should be skipped
+            new TextContent("   "), // Should be skipped
+            new TextContent("\t\n"), // Should be skipped
+            new TextContent("Another valid content")
+        });
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("assistant: Valid content\nAnother valid content");
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_WithEmptyTextProperty_FallsBackToContents()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+        // Create message with empty string text (should fallback to Contents)
+        var message = new ChatMessage(ChatRole.User, "");
+
+        // Act
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
+
+        // Assert
+        renderer.Items.Should().HaveCount(1);
+        renderer.Items[0].Content.Should().Be("user: [No text content]");
+    }
 }
