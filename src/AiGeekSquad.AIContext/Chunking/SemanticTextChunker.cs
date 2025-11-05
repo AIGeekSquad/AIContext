@@ -588,22 +588,20 @@ public class SemanticTextChunker
         CancellationToken cancellationToken)
     {
         var chunkStartIndex = 0;
-        var validChunks = new List<TextChunk>();
+        var allBreakpoints = breakpoints.Concat(new[] { segments.Count - 1 }).Where(bp => bp >= 0).ToList();
+        var chunks = new List<TextChunk?>();
 
-        foreach (var breakpoint in breakpoints.Concat(new[] { segments.Count - 1 }))
+        foreach (var breakpoint in allBreakpoints)
         {
             if (breakpoint >= chunkStartIndex)
             {
                 var chunk = await TryCreateChunkFromSegments(segments, chunkStartIndex, breakpoint, metadata, options, cancellationToken);
-                if (chunk != null)
-                {
-                    validChunks.Add(chunk);
-                }
+                chunks.Add(chunk);
                 chunkStartIndex = breakpoint + 1;
             }
         }
 
-        return validChunks;
+        return chunks.Where(c => c != null).Cast<TextChunk>().ToList();
     }
 
     /// <summary>
