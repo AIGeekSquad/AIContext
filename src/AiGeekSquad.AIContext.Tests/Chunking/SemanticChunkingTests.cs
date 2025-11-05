@@ -92,7 +92,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text))
+        await foreach (var chunk in chunker.ChunkAsync(text, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -133,7 +133,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text))
+        await foreach (var chunk in chunker.ChunkAsync(text, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -151,7 +151,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text))
+        await foreach (var chunk in chunker.ChunkAsync(text, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -167,7 +167,7 @@ public class SemanticChunkingTests
         var chunker = CreateChunker();
         var options = SemanticChunkingOptions.Default;
 
-        // Create a longer text that will likely exceed default chunk size
+        // Create a longer text that will likely exceed the default chunk size
         var sentences = new[]
         {
             "Technology has revolutionized the way we live and work in the modern era.",
@@ -184,7 +184,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -222,7 +222,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var textChunk in chunker.ChunkAsync(text, options))
+        await foreach (var textChunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(textChunk);
         }
@@ -266,7 +266,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -304,7 +304,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, metadata: originalMetadata))
+        await foreach (var chunk in chunker.ChunkAsync(text, metadata: originalMetadata, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -364,13 +364,13 @@ public class SemanticChunkingTests
 
         // Act
         var strictChunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, strictOptions))
+        await foreach (var chunk in chunker.ChunkAsync(text, strictOptions, cancellationToken: TestContext.Current.CancellationToken))
         {
             strictChunks.Add(chunk);
         }
 
         var relaxedChunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, relaxedOptions))
+        await foreach (var chunk in chunker.ChunkAsync(text, relaxedOptions, cancellationToken: TestContext.Current.CancellationToken))
         {
             relaxedChunks.Add(chunk);
         }
@@ -403,14 +403,14 @@ public class SemanticChunkingTests
 
         // Act - First pass
         var firstPassChunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             firstPassChunks.Add(chunk);
         }
 
         // Act - Second pass (should use cached embeddings)
         var secondPassChunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             secondPassChunks.Add(chunk);
         }
@@ -446,7 +446,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -472,7 +472,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -500,7 +500,7 @@ public class SemanticChunkingTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(longSentence, options))
+        await foreach (var chunk in chunker.ChunkAsync(longSentence, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }

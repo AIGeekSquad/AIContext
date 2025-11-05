@@ -81,7 +81,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -114,12 +114,12 @@ public class SemanticChunkerTokenValidationTests
             BreakpointPercentileThreshold = 0.80
         };
 
-        // Single sentence that exceeds token limit
+        // Single sentence that exceeds the token limit
         var oversizedText = "This is a very long single sentence that definitely exceeds the token limit and should be handled gracefully.";
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(oversizedText, options))
+        await foreach (var chunk in chunker.ChunkAsync(oversizedText, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -160,7 +160,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -198,7 +198,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -233,7 +233,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -268,7 +268,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -338,7 +338,7 @@ public class SemanticChunkerTokenValidationTests
 
         // Act
         var chunks = new List<TextChunk>();
-        await foreach (var chunk in chunker.ChunkAsync(text, options))
+        await foreach (var chunk in chunker.ChunkAsync(text, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }

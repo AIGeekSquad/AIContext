@@ -75,7 +75,7 @@ public class MLTokenCounterTests
         var tokenCounter = new MLTokenCounter();
 
         // Act
-        var result = await tokenCounter.CountTokensAsync("");
+        var result = await tokenCounter.CountTokensAsync("", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(0);
@@ -89,7 +89,7 @@ public class MLTokenCounterTests
         var text = "Hello world!";
 
         // Act
-        var result = await tokenCounter.CountTokensAsync(text);
+        var result = await tokenCounter.CountTokensAsync(text, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -348,20 +348,20 @@ public class MLTokenCounterTests
         // Arrange
         var text = "This is a longer text sample to test tokenization differences between models.";
         var gpt4Counter = MLTokenCounter.CreateGpt4();
-        var cl100kCounter = MLTokenCounter.CreateCl100kBase();
+        var cl100KCounter = MLTokenCounter.CreateCl100kBase();
 
         // Act
         var gpt4Count = gpt4Counter.CountTokens(text);
-        var cl100kCount = cl100kCounter.CountTokens(text);
+        var cl100KCount = cl100KCounter.CountTokens(text);
 
         // Assert
         using var _ = new AssertionScope();
         gpt4Count.Should().BeGreaterThan(0);
-        cl100kCount.Should().BeGreaterThan(0);
+        cl100KCount.Should().BeGreaterThan(0);
 
         // Note: GPT-4 and cl100k_base actually use the same encoding, so counts should be equal
         // This test verifies the tokenizers work correctly
-        gpt4Count.Should().Be(cl100kCount);
+        gpt4Count.Should().Be(cl100KCount);
     }
 
     [Fact]
@@ -373,7 +373,7 @@ public class MLTokenCounterTests
 
         // Act
         var syncCount = tokenCounter.CountTokens(text);
-        var asyncCount = await tokenCounter.CountTokensAsync(text);
+        var asyncCount = await tokenCounter.CountTokensAsync(text, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();

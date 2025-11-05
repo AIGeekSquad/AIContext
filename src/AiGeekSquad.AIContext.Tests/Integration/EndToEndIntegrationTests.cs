@@ -116,20 +116,20 @@ public class EndToEndIntegrationTests
         var chunker = SemanticTextChunker.Create(tokenCounter, embeddingGenerator);
         var chunks = new List<TextChunk>();
 
-        await foreach (var chunk in chunker.ChunkAsync(document, options))
+        await foreach (var chunk in chunker.ChunkAsync(document, options, cancellationToken: TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
 
         // Simulate a user query about AI and business
         var query = "How does artificial intelligence impact business operations?";
-        var queryEmbedding = await embeddingGenerator.GenerateEmbeddingAsync(query);
+        var queryEmbedding = await embeddingGenerator.GenerateEmbeddingAsync(query, TestContext.Current.CancellationToken);
 
         // Create embeddings for chunks to use with MMR
         var chunkEmbeddings = new List<Vector<double>>();
         foreach (var chunk in chunks)
         {
-            var embedding = await embeddingGenerator.GenerateEmbeddingAsync(chunk.Text);
+            var embedding = await embeddingGenerator.GenerateEmbeddingAsync(chunk.Text, TestContext.Current.CancellationToken);
             chunkEmbeddings.Add(embedding);
         }
 
@@ -157,23 +157,5 @@ public class EndToEndIntegrationTests
         // MMR results should be valid indices
         mmrResults.Should().OnlyContain(r => r.index >= 0 && r.index < chunks.Count,
             "all MMR indices should reference valid chunks");
-    }
-
-    /// <summary>
-    /// Scoring function that extracts relevance scores from chunk metadata.
-    /// </summary>
-    private class RelevanceScorer : IScoringFunction<TextChunk>
-    {
-        public string Name => "Relevance";
-
-        public double ComputeScore(TextChunk item)
-        {
-            return item.Metadata.TryGetValue("relevance", out var value) ? (double)value : 0.0;
-        }
-
-        public double[] ComputeScores(IReadOnlyList<TextChunk> items)
-        {
-            return items.Select(ComputeScore).ToArray();
-        }
     }
 }

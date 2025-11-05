@@ -253,7 +253,7 @@ public class SemanticTextChunker
     {
         // Single word that's too long - this is an edge case but we'll include it anyway
         // Log warning that this might cause embedding generation issues
-        return new List<(string text, int startIndex, int endIndex)> { segment };
+        return [segment];
     }
 
     /// <summary>
@@ -538,7 +538,7 @@ public class SemanticTextChunker
     {
         if (distances.Count == 0)
         {
-            return new List<int>();
+            return [];
         }
 
         var threshold = VectorExtensions.CalculatePercentile(distances, percentileThreshold);
@@ -593,7 +593,7 @@ public class SemanticTextChunker
         CancellationToken cancellationToken)
     {
         var chunkStartIndex = 0;
-        var allBreakpoints = breakpoints.Concat(new[] { segments.Count - 1 }).ToList();
+        var allBreakpoints = breakpoints.Concat([segments.Count - 1]).ToList();
         var chunks = new List<TextChunk?>();
 
         foreach (var breakpoint in allBreakpoints)
@@ -648,7 +648,7 @@ public class SemanticTextChunker
         var fallbackChunk = await TryCreateSingleFallbackChunk(segments, metadata, options, cancellationToken);
         if (fallbackChunk != null)
         {
-            return new List<TextChunk> { fallbackChunk };
+            return [fallbackChunk];
         }
 
         return await CreateSentenceByChunkFallback(segments, metadata, options, cancellationToken);

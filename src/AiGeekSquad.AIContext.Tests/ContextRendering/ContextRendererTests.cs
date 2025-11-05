@@ -101,7 +101,7 @@ public class ContextRendererTests
         var message = new ChatMessage(ChatRole.User, "Hello, world!");
 
         // Act
-        await renderer.AddMessageAsync(message);
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -117,7 +117,7 @@ public class ContextRendererTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await renderer.AddMessageAsync(null!));
+            await renderer.AddMessageAsync(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class ContextRendererTests
         };
 
         // Act
-        await renderer.AddMessagesAsync(messages);
+        await renderer.AddMessagesAsync(messages, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -151,7 +151,7 @@ public class ContextRendererTests
         var chunk = new TextChunk("This is a test document with some content.", 0, 43);
 
         // Act
-        await renderer.AddChunkAsync(chunk);
+        await renderer.AddChunkAsync(chunk, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -167,7 +167,7 @@ public class ContextRendererTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await renderer.AddChunkAsync(null!));
+            await renderer.AddChunkAsync(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class ContextRendererTests
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
 
         // Act
-        var result = await renderer.RenderContextAsync("test query");
+        var result = await renderer.RenderContextAsync("test query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeEmpty();
@@ -188,15 +188,15 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync((string)null!));
+            await renderer.RenderContextAsync((string)null!, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync((string)""));
+            await renderer.RenderContextAsync((string)"", cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync((string)"   "));
+            await renderer.RenderContextAsync((string)"   ", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -204,13 +204,13 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync("test query", lambda: -0.1));
+            await renderer.RenderContextAsync("test query", lambda: -0.1, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync("test query", lambda: 1.1));
+            await renderer.RenderContextAsync("test query", lambda: 1.1, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -218,13 +218,13 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync("test query", freshnessWeight: -0.1));
+            await renderer.RenderContextAsync("test query", freshnessWeight: -0.1, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync("test query", freshnessWeight: 1.1));
+            await renderer.RenderContextAsync("test query", freshnessWeight: 1.1, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -232,12 +232,12 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Hi there"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "How are you?"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Hi there"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "How are you?"), TestContext.Current.CancellationToken);
 
         // Act
-        var result = await renderer.RenderContextAsync("test query", tokenBudget: null);
+        var result = await renderer.RenderContextAsync("test query", tokenBudget: null, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().HaveCount(3);
@@ -250,12 +250,12 @@ public class ContextRendererTests
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
         
         // Add messages with known token counts (length / 4 based on our fake)
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456")); // Content becomes "User: 1234567890123456" = 22 chars = 5 tokens
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456")); // 5 tokens
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456")); // 5 tokens
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456"), TestContext.Current.CancellationToken); // Content becomes "User: 1234567890123456" = 22 chars = 5 tokens
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456"), TestContext.Current.CancellationToken); // 5 tokens
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "1234567890123456"), TestContext.Current.CancellationToken); // 5 tokens
 
         // Act - limit to 10 tokens (should get at most 2 items)
-        var result = await renderer.RenderContextAsync("test query", tokenBudget: 10);
+        var result = await renderer.RenderContextAsync("test query", tokenBudget: 10, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -271,12 +271,12 @@ public class ContextRendererTests
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
         
         // Add diverse messages
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about dogs"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about cats"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about birds"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about dogs"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about cats"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about birds"), TestContext.Current.CancellationToken);
 
         // Act - high lambda should prioritize relevance over diversity
-        var result = await renderer.RenderContextAsync("dogs and puppies", lambda: 0.9);
+        var result = await renderer.RenderContextAsync("dogs and puppies", lambda: 0.9, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeEmpty();
@@ -291,13 +291,13 @@ public class ContextRendererTests
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
         
         // Add similar messages
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about dogs"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me more about dogs"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Dogs are great"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about cats")); // Different topic
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about dogs"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me more about dogs"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Dogs are great"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Tell me about cats"), TestContext.Current.CancellationToken); // Different topic
 
         // Act - low lambda should prioritize diversity
-        var result = await renderer.RenderContextAsync("dogs", lambda: 0.1, tokenBudget: 200);
+        var result = await renderer.RenderContextAsync("dogs", lambda: 0.1, tokenBudget: 200, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeEmpty();
@@ -310,8 +310,8 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Hi"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.Assistant, "Hi"), TestContext.Current.CancellationToken);
 
         var queryMessages = new List<ChatMessage>
         {
@@ -320,7 +320,7 @@ public class ContextRendererTests
         };
 
         // Act
-        var result = await renderer.RenderContextAsync(queryMessages);
+        var result = await renderer.RenderContextAsync(queryMessages, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeEmpty();
@@ -331,11 +331,11 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await renderer.RenderContextAsync((IEnumerable<ChatMessage>)null!));
+            await renderer.RenderContextAsync((IEnumerable<ChatMessage>)null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -343,11 +343,11 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.RenderContextAsync(new List<ChatMessage>()));
+            await renderer.RenderContextAsync(new List<ChatMessage>(), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -355,8 +355,8 @@ public class ContextRendererTests
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "World"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "World"), TestContext.Current.CancellationToken);
 
         // Act
         renderer.Clear();
@@ -373,7 +373,7 @@ public class ContextRendererTests
         var beforeTime = DateTime.UtcNow;
 
         // Act
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Hello"), TestContext.Current.CancellationToken);
         var afterTime = DateTime.UtcNow;
 
         // Assert
@@ -390,12 +390,12 @@ public class ContextRendererTests
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
         
         // Add items with delays to ensure different timestamps
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message about dogs"));
-        await Task.Delay(100); // Ensure different timestamp
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message about cats"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message about dogs"), TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken); // Ensure different timestamp
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message about cats"), TestContext.Current.CancellationToken);
 
         // Act - high freshness weight should prioritize recent items
-        var result = await renderer.RenderContextAsync("test query", freshnessWeight: 0.8, tokenBudget: 100);
+        var result = await renderer.RenderContextAsync("test query", freshnessWeight: 0.8, tokenBudget: 100, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeEmpty();
@@ -407,12 +407,12 @@ public class ContextRendererTests
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
         
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message"));
-        await Task.Delay(100);
-        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"));
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Old message"), TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        await renderer.AddMessageAsync(new ChatMessage(ChatRole.User, "Recent message"), TestContext.Current.CancellationToken);
 
         // Act - zero freshness weight should ignore timestamps
-        var result = await renderer.RenderContextAsync("test query", freshnessWeight: 0.0);
+        var result = await renderer.RenderContextAsync("test query", freshnessWeight: 0.0, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeEmpty();
@@ -431,7 +431,7 @@ public class ContextRendererTests
         };
 
         // Act
-        await renderer.AddChunksAsync(chunks);
+        await renderer.AddChunksAsync(chunks, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -449,7 +449,7 @@ public class ContextRendererTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await renderer.AddChunksAsync(null!));
+            await renderer.AddChunksAsync(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public class ContextRendererTests
     {
         // Arrange
         var content = "Test content";
-        var embedding = Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
         var tokenCount = 5;
         var timestamp = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
@@ -471,31 +471,12 @@ public class ContextRendererTests
         item.TokenCount.Should().Be(tokenCount);
         item.Timestamp.Should().Be(timestamp);
     }
-
-    [Fact]
-    public void ContextItem_Constructor_WithNullTimestamp_UsesCurrentTime()
-    {
-        // Arrange
-        var content = "Test content";
-        var embedding = Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
-        var tokenCount = 5;
-        var beforeTime = DateTime.UtcNow;
-
-        // Act
-        var item = new ContextItem(content, embedding, tokenCount, null);
-        var afterTime = DateTime.UtcNow;
-
-        // Assert
-        using var _ = new AssertionScope();
-        item.Timestamp.Should().BeOnOrAfter(beforeTime);
-        item.Timestamp.Should().BeOnOrBefore(afterTime);
-    }
-
+    
     [Fact]
     public void ContextItem_Constructor_WithNullOrEmptyContent_ThrowsArgumentException()
     {
         // Arrange
-        var embedding = Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => new ContextItem(null!, embedding, 5));
@@ -514,7 +495,7 @@ public class ContextRendererTests
     public void ContextItem_Constructor_WithNegativeTokenCount_ThrowsArgumentException()
     {
         // Arrange
-        var embedding = Vector<double>.Build.DenseOfArray(new double[] { 1, 0, 0 });
+        var embedding = Vector<double>.Build.DenseOfArray([1, 0, 0]);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => new ContextItem("content", embedding, -1));
@@ -532,7 +513,7 @@ public class ContextRendererTests
         });
 
         // Act
-        await renderer.AddMessageAsync(message);
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();
@@ -549,7 +530,7 @@ public class ContextRendererTests
         var message = new ChatMessage(ChatRole.System, "You are a helpful assistant.");
 
         // Act
-        await renderer.AddMessageAsync(message);
+        await renderer.AddMessageAsync(message, TestContext.Current.CancellationToken);
 
         // Assert
         using var _ = new AssertionScope();

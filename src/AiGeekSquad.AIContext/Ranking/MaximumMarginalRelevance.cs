@@ -232,11 +232,11 @@ public static class MaximumMarginalRelevance
         ValidateMMRParameters(vectors, query, lambda);
 
         if (vectors == null || vectors.Count == 0)
-            return new List<(int, Vector<double>)>();
+            return [];
 
         var k = Math.Min(topK ?? vectors.Count, vectors.Count);
         if (k <= 0)
-            return new List<(int, Vector<double>)>();
+            return [];
         if (k >= vectors.Count)
             return vectors.Select((v, i) => (i, v)).ToList();
 
