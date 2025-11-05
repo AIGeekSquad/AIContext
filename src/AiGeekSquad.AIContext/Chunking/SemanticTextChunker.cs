@@ -593,12 +593,9 @@ public class SemanticTextChunker
 
         foreach (var breakpoint in allBreakpoints)
         {
-            if (breakpoint >= chunkStartIndex)
-            {
-                var chunk = await TryCreateChunkFromSegments(segments, chunkStartIndex, breakpoint, metadata, options, cancellationToken);
-                chunks.Add(chunk);
-                chunkStartIndex = breakpoint + 1;
-            }
+            var chunk = await TryCreateChunkFromSegments(segments, chunkStartIndex, breakpoint, metadata, options, cancellationToken);
+            chunks.Add(chunk);
+            chunkStartIndex = breakpoint + 1;
         }
 
         return chunks.OfType<TextChunk>().ToList();
