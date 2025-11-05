@@ -123,14 +123,14 @@ public static class RankingTestHelpers
     public static List<Document> CreateTestDocuments()
     {
         var baseDate = new DateTime(2024, 1, 1);
-        return new List<Document>
-        {
+        return
+        [
             new("Machine Learning Fundamentals", "Introduction to ML concepts", 0.95, 1, baseDate.AddDays(-30)),
             new("Advanced Neural Networks", "Deep learning techniques", 0.85, 3, baseDate.AddDays(-60)),
             new("Data Science Basics", "Getting started with data science", 0.75, 2, baseDate.AddDays(-10)),
             new("AI Ethics and Society", "Responsible AI development", 0.65, 5, baseDate.AddDays(-90)),
             new("Python Programming Guide", "Complete Python tutorial", 0.55, 4, baseDate.AddDays(-5))
-        };
+        ];
     }
 
     public static WeightedScoringFunction<Document> CreateSemanticFunction(double weight = 1.0, IScoreNormalizer? normalizer = null)

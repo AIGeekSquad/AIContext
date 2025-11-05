@@ -31,7 +31,7 @@ public class ContextRenderer
     {
         _tokenCounter = tokenCounter ?? throw new ArgumentNullException(nameof(tokenCounter));
         _embeddingGenerator = embeddingGenerator ?? throw new ArgumentNullException(nameof(embeddingGenerator));
-        _items = new List<ContextItem>();
+        _items = [];
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public class ContextRenderer
             throw new ArgumentException("Freshness weight must be between 0.0 and 1.0.", nameof(freshnessWeight));
 
         if (_items.Count == 0)
-            return new List<ContextItem>();
+            return [];
 
         // Generate query embedding
         var queryEmbedding = await _embeddingGenerator.GenerateEmbeddingAsync(query, cancellationToken);
@@ -252,7 +252,7 @@ public class ContextRenderer
     private static List<Vector<double>> ApplyFreshnessBoost(List<ContextItem> items, Vector<double> queryEmbedding, double freshnessWeight)
     {
         if (items.Count == 0)
-            return new List<Vector<double>>();
+            return [];
 
         // Find the time range
         var oldestTimestamp = items.Min(item => item.Timestamp);

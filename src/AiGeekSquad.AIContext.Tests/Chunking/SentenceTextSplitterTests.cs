@@ -15,7 +15,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -57,7 +57,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -75,7 +75,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -93,7 +93,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -115,7 +115,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -135,7 +135,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -157,7 +157,7 @@ public class SentenceTextSplitterTests
             var text = "First sentence. Second sentence. Third sentence.";
 
             using var cts = new CancellationTokenSource();
-            cts.Cancel(); // Cancel immediately
+            await cts.CancelAsync(); // Cancel immediately
 
             // Act & Assert
             var act = async () =>
@@ -180,7 +180,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -246,7 +246,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -282,7 +282,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -303,7 +303,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -334,7 +334,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -356,7 +356,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -378,7 +378,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -400,7 +400,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -422,7 +422,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -431,7 +431,7 @@ public class SentenceTextSplitterTests
             using var _ = new AssertionScope();
             // The updated default pattern now avoids splitting on common abbreviations
             segments.Should().HaveCount(3);
-            // Verify that abbreviations are NOT split (new behavior with improved pattern)
+            // Verify that abbreviations are NOT split (new behavior with the improved pattern)
             segments[0].Text.Should().Be("Dr. Smith works at the hospital.");
             segments[1].Text.Should().Be("Prof. Johnson teaches at the university.");
             segments[2].Text.Should().Be("Mr. Brown and Mrs. Green are attending the meeting.");
@@ -448,7 +448,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -470,7 +470,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -492,7 +492,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -514,7 +514,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -536,7 +536,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -562,7 +562,7 @@ public class SentenceTextSplitterTests
                        + Item three
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -578,7 +578,7 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             var text = "1. First item\n2. Second item\n3. Third item";
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -599,7 +599,7 @@ public class SentenceTextSplitterTests
                            * Grandchild
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -616,7 +616,7 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             var text = "- First item. Has two sentences!\n- Second item? Yes.";
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -631,7 +631,7 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             var text = "- List item\n\nParagraph one. Paragraph two!\n- Another item";
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -652,7 +652,7 @@ public class SentenceTextSplitterTests
                        ### Header 3
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             segments.Should().HaveCount(3);
@@ -672,7 +672,7 @@ public class SentenceTextSplitterTests
                            indented code
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             segments.Should().HaveCount(2);
@@ -690,7 +690,7 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             var text = "This is `inline code` in a sentence.";
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -704,7 +704,7 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             var text = "[Link](https://example.com) and ![Image](img.png)";
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             segments.Should().HaveCount(1);
@@ -720,7 +720,7 @@ public class SentenceTextSplitterTests
                        > Second line.
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -743,7 +743,7 @@ public class SentenceTextSplitterTests
                        [Link](url)
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -773,7 +773,7 @@ public class SentenceTextSplitterTests
 
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -796,7 +796,7 @@ public class SentenceTextSplitterTests
                        Another sentence!
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -816,7 +816,7 @@ public class SentenceTextSplitterTests
                        Paragraph.
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -836,7 +836,7 @@ public class SentenceTextSplitterTests
                        Paragraph two!
                        """;
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
                 segments.Add(segment);
 
             using var _ = new AssertionScope();
@@ -853,7 +853,7 @@ public class SentenceTextSplitterTests
             // Arrange
             var splitter = new SentenceTextSplitter(markdownMode: true);
 
-            // This markdown text is designed to trigger the specific bug where:
+            // This Markdown text is designed to trigger the specific bug where:
             // 1. Markdown preprocessing changes text length
             // 2. blockStart calculated from processedText.Length exceeds originalText.Length
             // 3. This causes ArgumentOutOfRangeException in ExtractParagraphSegments -> FindInOriginalText
@@ -951,7 +951,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithThematicBreak))
+            await foreach (var segment in splitter.SplitAsync(markdownWithThematicBreak, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -983,7 +983,7 @@ public class SentenceTextSplitterTests
             // Arrange
             var splitter = new SentenceTextSplitter(markdownMode: true);
 
-            // This markdown contains raw HTML which creates an HtmlBlock
+            // This Markdown contains raw HTML which creates an HtmlBlock
             // that is not explicitly handled in the switch statement and will trigger the default case (line 211)
             var markdownWithHtml = """
                 Regular paragraph.
@@ -997,7 +997,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithHtml))
+            await foreach (var segment in splitter.SplitAsync(markdownWithHtml, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1034,7 +1034,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1055,7 +1055,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1076,7 +1076,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1097,7 +1097,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1118,7 +1118,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1139,7 +1139,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1160,7 +1160,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1181,7 +1181,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1202,7 +1202,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1223,7 +1223,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1244,7 +1244,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1265,7 +1265,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1286,7 +1286,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1308,7 +1308,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1329,7 +1329,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1350,7 +1350,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1371,7 +1371,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1392,7 +1392,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1413,7 +1413,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1434,7 +1434,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1455,7 +1455,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1477,7 +1477,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1499,7 +1499,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1520,7 +1520,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1543,7 +1543,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1564,7 +1564,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1585,7 +1585,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1606,7 +1606,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1628,7 +1628,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1650,7 +1650,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(text))
+            await foreach (var segment in splitter.SplitAsync(text, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1705,7 +1705,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithEmptyBlocks))
+            await foreach (var segment in splitter.SplitAsync(markdownWithEmptyBlocks, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1726,7 +1726,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(problematicText))
+            await foreach (var segment in splitter.SplitAsync(problematicText, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1746,11 +1746,11 @@ public class SentenceTextSplitterTests
             var splitter = SentenceTextSplitter.ForMarkdown();
             
             // Test with different line endings to cover both reconstruction paths
-            var markdownWithCRLF = "```csharp\r\nvar x = 1;\r\n```";
+            var markdownWithCrlf = "```csharp\r\nvar x = 1;\r\n```";
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithCRLF))
+            await foreach (var segment in splitter.SplitAsync(markdownWithCrlf, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1778,7 +1778,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithIndentedCode))
+            await foreach (var segment in splitter.SplitAsync(markdownWithIndentedCode, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1806,7 +1806,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithQuote))
+            await foreach (var segment in splitter.SplitAsync(markdownWithQuote, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1834,7 +1834,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithList))
+            await foreach (var segment in splitter.SplitAsync(markdownWithList, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }
@@ -1864,7 +1864,7 @@ public class SentenceTextSplitterTests
 
             // Act
             var segments = new List<TextSegment>();
-            await foreach (var segment in splitter.SplitAsync(markdownWithTable))
+            await foreach (var segment in splitter.SplitAsync(markdownWithTable, TestContext.Current.CancellationToken))
             {
                 segments.Add(segment);
             }

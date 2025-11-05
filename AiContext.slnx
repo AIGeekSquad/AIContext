@@ -11,7 +11,12 @@
     <Project Path="examples/Examples.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="src/AiGeekSquad.AIContext.Tests/AiGeekSquad.AIContext.Tests.csproj" />
+    <Project Path="src\AiGeekSquad.AIContext.Tests\AiGeekSquad.AIContext.Tests.csproj" Type="Classic C#">
+      <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
+      <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
+      <Configuration Solution="Release|x64" Project="Release|Any CPU" />
+      <Configuration Solution="Release|x86" Project="Release|Any CPU" />
+    </Project>
   </Folder>
   <Project Path="src/AiGeekSquad.AIContext.MEAI/AiGeekSquad.AIContext.MEAI.csproj" />
   <Project Path="src/AiGeekSquad.AIContext/AiGeekSquad.AIContext.csproj" />

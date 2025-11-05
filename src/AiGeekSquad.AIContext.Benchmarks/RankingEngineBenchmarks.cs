@@ -96,31 +96,31 @@ public class RankingEngineBenchmarks
         { Normalizer = _minMaxNormalizer };
 
         // Multiple scoring functions (3-5 functions)
-        _multipleScoringFunctions = new List<WeightedScoringFunction<BenchmarkItem>>
-        {
+        _multipleScoringFunctions =
+        [
             new(new SimpleScoringFunction("Relevance"), 1.0) { Normalizer = _minMaxNormalizer },
             new(new PopularityScoringFunction(), 0.8) { Normalizer = _minMaxNormalizer },
             new(new RecencyScoringFunction(), 0.6) { Normalizer = _minMaxNormalizer },
             new(new QualityScoringFunction(), 0.9) { Normalizer = _minMaxNormalizer },
             new(new AuthorityScoringFunction(), 0.7) { Normalizer = _minMaxNormalizer }
-        };
+        ];
 
         // Mixed weight scoring functions (positive and negative weights)
-        _mixedWeightScoringFunctions = new List<WeightedScoringFunction<BenchmarkItem>>
-        {
+        _mixedWeightScoringFunctions =
+        [
             new(new SimpleScoringFunction("Similarity"), 1.0) { Normalizer = _minMaxNormalizer },
             new(new DissimilarityScoringFunction(), -0.3) { Normalizer = _minMaxNormalizer },
             new(new PopularityScoringFunction(), 0.5) { Normalizer = _minMaxNormalizer }
-        };
+        ];
 
         // Similarity + Dissimilarity mix
-        _similarityDissimilarityMix = new List<WeightedScoringFunction<BenchmarkItem>>
-        {
+        _similarityDissimilarityMix =
+        [
             new(new SimpleScoringFunction("Primary"), 1.0) { Normalizer = _minMaxNormalizer },
             new(new SimpleScoringFunction("Secondary"), 0.8) { Normalizer = _minMaxNormalizer },
             new(new DissimilarityScoringFunction("Noise"), -0.4) { Normalizer = _minMaxNormalizer },
             new(new DissimilarityScoringFunction("Spam"), -0.6) { Normalizer = _minMaxNormalizer }
-        };
+        ];
     }
 
     private List<BenchmarkItem> GenerateDataset(int size)
@@ -162,7 +162,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Baseline_SingleFunction_WeightedSum()
     {
         var dataset = GetDatasetBySize();
-        return _engine.Rank(dataset, new[] { _simpleScoringFunction }, _weightedSumStrategy);
+        return _engine.Rank(dataset, [_simpleScoringFunction], _weightedSumStrategy);
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Baseline_SingleFunction_TopK()
     {
         var dataset = GetDatasetBySize();
-        return _engine.RankTopK(dataset, new[] { _simpleScoringFunction }, TopK, _weightedSumStrategy);
+        return _engine.RankTopK(dataset, [_simpleScoringFunction], TopK, _weightedSumStrategy);
     }
 
     // MULTIPLE SCORING FUNCTIONS BENCHMARKS
@@ -299,7 +299,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Complexity_Simple()
     {
         var dataset = GetDatasetBySize();
-        return _engine.Rank(dataset, new[] { _simpleScoringFunction }, _weightedSumStrategy);
+        return _engine.Rank(dataset, [_simpleScoringFunction], _weightedSumStrategy);
     }
 
     /// <summary>
@@ -309,7 +309,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Complexity_Complex()
     {
         var dataset = GetDatasetBySize();
-        return _engine.Rank(dataset, new[] { _complexScoringFunction }, _weightedSumStrategy);
+        return _engine.Rank(dataset, [_complexScoringFunction], _weightedSumStrategy);
     }
 
     /// <summary>
@@ -319,7 +319,7 @@ public class RankingEngineBenchmarks
     public IList<RankedResult<BenchmarkItem>> Complexity_Expensive()
     {
         var dataset = GetDatasetBySize();
-        return _engine.Rank(dataset, new[] { _expensiveScoringFunction }, _weightedSumStrategy);
+        return _engine.Rank(dataset, [_expensiveScoringFunction], _weightedSumStrategy);
     }
 
     // TOP-K VS FULL RANKING BENCHMARKS
