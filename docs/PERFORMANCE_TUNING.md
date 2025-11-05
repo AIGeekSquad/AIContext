@@ -255,6 +255,136 @@ var qualityConfig = new List<WeightedScoringFunction<Document>>
 var results = engine.Rank(documents, qualityConfig, new HybridStrategy());
 ```
 
+## Context Rendering Performance Tuning
+
+The [`ContextRenderer`](ContextRendering.md) class combines semantic chunking, embedding generation, and MMR ranking with time-based weighting. Performance optimization requires careful consideration of all these components.
+
+### Configuration Optimization
+
+**Performance-Oriented Configuration:**
+
+```csharp
+using AiGeekSquad.AIContext.ContextRendering;
+
+// High-performance configuration for real-time chat applications
+var tokenCounter = MLTokenCounter.CreateTextEmbedding3Small(); // Fast, accurate tokenization
+var renderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Optimize for speed with acceptable context quality
+var context = await renderer.RenderContextAsync(
+    query: userQuery,
+    maxTokens: 1500,        // Smaller context for faster processing
+    relevanceWeight: 0.8,   // Favor relevance over diversity for speed
+    freshnessWeight: 0.2    // Minimal time weighting computation
+);
+```
+
+**Quality-Oriented Configuration:**
+
+```csharp
+// Quality-focused configuration for comprehensive RAG systems
+var context = await renderer.RenderContextAsync(
+    query: userQuery,
+    maxTokens: 3000,        // Larger context for better quality
+    relevanceWeight: 0.6,   // Balanced relevance and diversity
+    freshnessWeight: 0.4    // Significant time weighting for recency
+);
+```
+
+### Memory and Resource Management
+
+**Conversation Length Optimization:**
+
+| Conversation Length | Max Tokens | Recommended Settings | Performance Impact |
+|-------------------|------------|---------------------|-------------------|
+| **Short (<10 messages)** | 1000-2000 | relevanceWeight: 0.8, freshnessWeight: 0.2 | Minimal overhead |
+| **Medium (10-50 messages)** | 2000-3000 | relevanceWeight: 0.7, freshnessWeight: 0.3 | Moderate chunking cost |
+| **Long (50-200 messages)** | 2500-4000 | relevanceWeight: 0.6, freshnessWeight: 0.4 | Significant MMR computation |
+| **Very Long (>200 messages)** | 3000-5000 | Consider message pruning before rendering | High computational cost |
+
+**Memory Management for Large Conversations:**
+
+```csharp
+public class OptimizedContextService
+{
+    private readonly ContextRenderer _renderer;
+    private readonly int _maxConversationLength;
+    
+    public OptimizedContextService(ContextRenderer renderer, int maxConversationLength = 100)
+    {
+        _renderer = renderer;
+        _maxConversationLength = maxConversationLength;
+    }
+    
+    public async Task AddMessageAsync(ChatMessage message)
+    {
+        await _renderer.AddMessageAsync(message);
+        
+        // Prune old messages to maintain performance
+        if (_renderer.MessageCount > _maxConversationLength)
+        {
+            await _renderer.PruneOldestMessagesAsync(_maxConversationLength / 2);
+        }
+    }
+}
+```
+
+### Time-Based Performance Characteristics
+
+**Freshness Weight Impact on Performance:**
+
+```csharp
+// Benchmark different freshness weight configurations
+public class FreshnessWeightBenchmarks
+{
+    [Benchmark]
+    public async Task<string> NoFreshnessWeight()
+    {
+        return await renderer.RenderContextAsync(query, 2000, 0.7, 0.0);
+    }
+    
+    [Benchmark]
+    public async Task<string> LowFreshnessWeight()
+    {
+        return await renderer.RenderContextAsync(query, 2000, 0.7, 0.2);
+    }
+    
+    [Benchmark]
+    public async Task<string> HighFreshnessWeight()
+    {
+        return await renderer.RenderContextAsync(query, 2000, 0.7, 0.5);
+    }
+}
+```
+
+**Expected Performance Impact:**
+- **No freshness weight (0.0)**: Baseline performance, pure MMR computation
+- **Low freshness weight (0.1-0.2)**: ~5-10% performance overhead for time calculations
+- **Medium freshness weight (0.3-0.4)**: ~10-15% performance overhead
+- **High freshness weight (0.5+)**: ~15-25% performance overhead
+
+### TimeProvider Performance Considerations
+
+**Virtual Time Testing Benefits:**
+
+```csharp
+// Production: Uses real time, cannot be controlled
+var productionRenderer = new ContextRenderer(tokenCounter, embeddingGenerator);
+
+// Testing: Uses FakeTimeProvider - 10-40x faster tests
+var fakeTimeProvider = new FakeTimeProvider();
+var testRenderer = new ContextRenderer(tokenCounter, embeddingGenerator, fakeTimeProvider);
+
+// Fast test execution with controlled time
+fakeTimeProvider.Advance(TimeSpan.FromMinutes(5)); // Instant time advancement
+var context = await testRenderer.RenderContextAsync(query, 2000, 0.7, 0.3);
+```
+
+**TimeProvider Performance Guidelines:**
+- **Production**: Always use `TimeProvider.System` (null parameter) for real-time behavior
+- **Development/Testing**: Use `FakeTimeProvider` for fast, deterministic tests
+- **Avoid**: `DateTime.UtcNow` directly - not optimizable and prevents time virtualization
+
 ### Normalization Strategy Selection
 
 **Performance vs. Quality Trade-offs:**

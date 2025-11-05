@@ -172,6 +172,113 @@ catch (Exception ex)
    }
    ```
 
+### Microsoft.Extensions.AI (MEAI) Integration Issues
+
+#### MEAI Package Dependencies
+
+**Problem**: Missing or conflicting Microsoft.Extensions.AI packages
+
+**Solution**: Ensure proper package references for MEAI integration:
+```bash
+# Add MEAI integration package
+dotnet add package AiGeekSquad.AIContext.MEAI
+
+# Verify Microsoft.Extensions.AI packages are included
+dotnet list package | grep Microsoft.Extensions.AI
+```
+
+#### Dependency Injection Setup Issues
+
+**Problem**: MEAI integration not working with dependency injection
+
+**Solution**: Configure services correctly:
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.AI;
+using AiGeekSquad.AIContext.MEAI;
+
+// Register Microsoft.Extensions.AI services
+services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(provider =>
+   new OpenAIEmbeddingGenerator("your-api-key"));
+
+// Register AIContext services with MEAI bridge
+services.AddSingleton<AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator>(provider =>
+{
+   var meaiGenerator = provider.GetService<IEmbeddingGenerator<string, Embedding<float>>>();
+   return new MicrosoftExtensionsAiEmbeddingGenerator(meaiGenerator);
+});
+
+services.AddSingleton<SemanticTextChunker>();
+```
+
+#### Type Conversion Issues
+
+**Problem**: Embedding type mismatches between MEAI and AIContext
+
+**Common Issues & Solutions**:
+
+1. **Float vs Double Conversion**:
+  ```csharp
+  // Handle float to double conversion properly
+  public class SafeEmbeddingConverter : IEmbeddingGenerator
+  {
+      private readonly IEmbeddingGenerator<string, Embedding<float>> _meaiGenerator;
+      
+      public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
+          IEnumerable<string> texts,
+          [EnumeratorCancellation] CancellationToken cancellationToken = default)
+      {
+          await foreach (var embedding in _meaiGenerator.GenerateAsync(texts, cancellationToken))
+          {
+              // Safely convert float[] to double[]
+              var doubleValues = embedding.Vector.ToArray().Select(f => (double)f).ToArray();
+              yield return Vector<double>.Build.DenseOfArray(doubleValues);
+          }
+      }
+  }
+  ```
+
+2. **Null Embedding Handling**:
+  ```csharp
+  public async IAsyncEnumerable<Vector<double>> GenerateBatchEmbeddingsAsync(
+      IEnumerable<string> texts,
+      [EnumeratorCancellation] CancellationToken cancellationToken = default)
+  {
+      foreach (var text in texts)
+      {
+          var result = await _meaiGenerator.GenerateAsync(text, cancellationToken);
+          
+          if (result?.Vector == null || result.Vector.Length == 0)
+          {
+              throw new InvalidOperationException($"MEAI generator returned null or empty embedding for text: {text[..Math.Min(50, text.Length)]}...");
+          }
+          
+          yield return Vector<double>.Build.DenseOfArray(
+              result.Vector.ToArray().Select(f => (double)f).ToArray());
+      }
+  }
+  ```
+
+#### Version Compatibility Issues
+
+**Problem**: Microsoft.Extensions.AI version conflicts
+
+**Solution**: Use compatible versions:
+```xml
+<!-- Ensure compatible versions in your project file -->
+<PackageReference Include="Microsoft.Extensions.AI" Version="9.0.0-preview.9.24525.1" />
+<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.0.0-preview.9.24525.1" />
+<PackageReference Include="AiGeekSquad.AIContext.MEAI" Version="latest" />
+```
+
+**Diagnostic Commands**:
+```bash
+# Check for version conflicts
+dotnet list package --vulnerable
+dotnet list package --deprecated
+dotnet list package --include-transitive | grep Microsoft.Extensions.AI
+```
+
 ### Testing Issues
 
 #### Test Failures in Different Environments
