@@ -11,9 +11,8 @@ using MathNet.Numerics.LinearAlgebra;
 using Microsoft.Extensions.AI;
 using Xunit;
 using IEmbeddingGenerator = AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator;
-using ITextSplitter = AiGeekSquad.AIContext.Chunking.ITextSplitter;
 using ITokenCounter = AiGeekSquad.AIContext.Chunking.ITokenCounter;
-using TextSegment = AiGeekSquad.AIContext.Chunking.TextSegment;
+using TextChunk = AiGeekSquad.AIContext.Chunking.TextChunk;
 
 namespace AiGeekSquad.AIContext.Tests.ContextRendering;
 
@@ -67,24 +66,7 @@ public class ContextRendererTests
         }
     }
 
-    private class FakeTextSplitter : ITextSplitter
-    {
-        private readonly List<TextSegment> _segments;
 
-        public FakeTextSplitter(List<TextSegment> segments)
-        {
-            _segments = segments;
-        }
-
-        public async IAsyncEnumerable<TextSegment> SplitAsync(string text, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            foreach (var segment in _segments)
-            {
-                yield return segment;
-            }
-            await Task.CompletedTask;
-        }
-    }
 
     [Fact]
     public void Constructor_WithNullTokenCounter_ThrowsArgumentNullException()
@@ -162,34 +144,30 @@ public class ContextRendererTests
     }
 
     [Fact]
-    public async Task AddDocumentAsync_WithoutSplitter_AddsEntireDocument()
+    public async Task AddChunkAsync_WithValidChunk_AddsToContext()
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        var document = "This is a test document with some content.";
+        var chunk = new TextChunk("This is a test document with some content.", 0, 43);
 
         // Act
-        await renderer.AddDocumentAsync(document);
+        await renderer.AddChunkAsync(chunk);
 
         // Assert
         using var _ = new AssertionScope();
         renderer.Items.Should().HaveCount(1);
-        renderer.Items[0].Content.Should().Be(document);
+        renderer.Items[0].Content.Should().Be(chunk.Text);
     }
 
     [Fact]
-    public async Task AddDocumentAsync_WithNullOrEmptyDocument_ThrowsArgumentException()
+    public async Task AddChunkAsync_WithNullChunk_ThrowsArgumentNullException()
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.AddDocumentAsync(null!));
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.AddDocumentAsync(""));
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await renderer.AddDocumentAsync("   "));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+            await renderer.AddChunkAsync(null!));
     }
 
     [Fact]
@@ -441,22 +419,19 @@ public class ContextRendererTests
     }
 
     [Fact]
-    public async Task AddDocumentAsync_WithTextSplitter_SplitsIntoChunks()
+    public async Task AddChunksAsync_WithMultipleChunks_AddsAllToContext()
     {
         // Arrange
         var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
-        var document = "This is a test document. It has multiple sentences. Each sentence is important.";
-
-        var segments = new List<TextSegment>
+        var chunks = new List<TextChunk>
         {
-            new TextSegment("This is a test document.", 0, 24),
-            new TextSegment("It has multiple sentences.", 25, 51),
-            new TextSegment("Each sentence is important.", 52, 79)
+            new TextChunk("This is a test document.", 0, 24),
+            new TextChunk("It has multiple sentences.", 25, 51),
+            new TextChunk("Each sentence is important.", 52, 79)
         };
-        var fakeSplitter = new FakeTextSplitter(segments);
 
         // Act
-        await renderer.AddDocumentAsync(document, fakeSplitter);
+        await renderer.AddChunksAsync(chunks);
 
         // Assert
         using var _ = new AssertionScope();
@@ -464,6 +439,17 @@ public class ContextRendererTests
         renderer.Items[0].Content.Should().Be("This is a test document.");
         renderer.Items[1].Content.Should().Be("It has multiple sentences.");
         renderer.Items[2].Content.Should().Be("Each sentence is important.");
+    }
+
+    [Fact]
+    public async Task AddChunksAsync_WithNullChunks_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var renderer = new ContextRenderer(_tokenCounter, _embeddingGenerator);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+            await renderer.AddChunksAsync(null!));
     }
 
     [Fact]

@@ -7,7 +7,6 @@ using AiGeekSquad.AIContext.Ranking;
 using MathNet.Numerics.LinearAlgebra;
 using Microsoft.Extensions.AI;
 using IEmbeddingGenerator = AiGeekSquad.AIContext.Chunking.IEmbeddingGenerator;
-using ITextSplitter = AiGeekSquad.AIContext.Chunking.ITextSplitter;
 using ITokenCounter = AiGeekSquad.AIContext.Chunking.ITokenCounter;
 
 namespace AiGeekSquad.AIContext.ContextRendering;
@@ -80,36 +79,38 @@ public class ContextRenderer
     }
 
     /// <summary>
-    /// Adds a document to the context, chunking it if necessary.
+    /// Adds a text chunk to the context.
     /// </summary>
-    /// <param name="document">The document text to add.</param>
-    /// <param name="textSplitter">Optional text splitter for chunking. If null, adds the entire document as one item.</param>
+    /// <param name="chunk">The text chunk to add.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown when document is null or empty.</exception>
-    public async Task AddDocumentAsync(string document, ITextSplitter? textSplitter = null, CancellationToken cancellationToken = default)
+    /// <exception cref="ArgumentNullException">Thrown when chunk is null.</exception>
+    public async Task AddChunkAsync(Chunking.TextChunk chunk, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(document))
-            throw new ArgumentException("Document cannot be null or empty.", nameof(document));
+        if (chunk == null)
+            throw new ArgumentNullException(nameof(chunk));
 
-        if (textSplitter == null)
+        var tokenCount = await _tokenCounter.CountTokensAsync(chunk.Text, cancellationToken);
+        var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(chunk.Text, cancellationToken);
+        var item = new ContextItem(chunk.Text, embedding, tokenCount);
+        _items.Add(item);
+    }
+
+    /// <summary>
+    /// Adds multiple text chunks to the context.
+    /// </summary>
+    /// <param name="chunks">The text chunks to add.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when chunks is null.</exception>
+    public async Task AddChunksAsync(IEnumerable<Chunking.TextChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        if (chunks == null)
+            throw new ArgumentNullException(nameof(chunks));
+
+        foreach (var chunk in chunks)
         {
-            // Add entire document as one item
-            var tokenCount = await _tokenCounter.CountTokensAsync(document, cancellationToken);
-            var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(document, cancellationToken);
-            var item = new ContextItem(document, embedding, tokenCount);
-            _items.Add(item);
-        }
-        else
-        {
-            // Split document into chunks
-            await foreach (var segment in textSplitter.SplitAsync(document, cancellationToken))
-            {
-                var tokenCount = await _tokenCounter.CountTokensAsync(segment.Text, cancellationToken);
-                var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(segment.Text, cancellationToken);
-                var item = new ContextItem(segment.Text, embedding, tokenCount);
-                _items.Add(item);
-            }
+            await AddChunkAsync(chunk, cancellationToken);
         }
     }
 
