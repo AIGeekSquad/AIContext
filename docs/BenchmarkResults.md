@@ -216,6 +216,22 @@ This document presents the complete benchmark results for the AiGeekSquad.AICont
 - **Edge Cases**: Comprehensive testing of boundary conditions
 - **Error Handling**: Validation of error paths and fallbacks
 
+## Context Rendering Performance
+
+The [`ContextRenderer`](ContextRendering.md) class combines multiple benchmarked components (Semantic Chunking, MMR, and Ranking strategies) with time-based freshness weighting. Its performance characteristics can be derived from the individual component benchmarks:
+
+- **Base Performance**: Inherits performance characteristics from Semantic Chunking + MMR + Ranking Engine
+- **Freshness Weight Impact**: 5-25% additional overhead for time-based calculations
+- **Memory Usage**: Accumulates context items in memory; scales with conversation length
+- **Optimization**: Uses FakeTimeProvider in testing for 10-40x faster test execution
+
+**Expected Performance for Typical RAG Scenarios:**
+- **Short conversations (<10 messages)**: Minimal overhead beyond component benchmarks
+- **Medium conversations (10-50 messages)**: 10-20% additional processing time for MMR selection
+- **Long conversations (>50 messages)**: Consider message pruning strategies for optimal performance
+
+Detailed ContextRenderer benchmarks can be found in the benchmarking project alongside the component benchmarks documented above.
+
 ## Conclusion
 
 The comprehensive benchmark results demonstrate that the AiGeekSquad.AIContext library provides:
