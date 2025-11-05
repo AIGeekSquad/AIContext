@@ -1,5 +1,42 @@
 {
   "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "DEFAULT_MINIMUM_TOKENS": "6000"
+      },
+      "timeout": 60,
+      "alwaysAllow": [
+        "resolve-library-id"
+      ]
+    },
+    "deepwiki": {
+      "type": "streamable-http",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "disabled": false,
+      "alwaysAllow": [
+        "read_wiki_structure",
+        "read_wiki_contents",
+        "ask_question"
+      ]
+    },
+    "wikidata": {
+      "type": "streamable-http",
+      "url": "https://wd-mcp.wmcloud.org/mcp",
+      "alwaysAllow": [
+        "execute_sparql",
+        "get_claim_values",
+        "vector_search_items",
+        "get_entity_claims",
+        "vector_search_properties",
+        "keyword_search_items",
+        "keyword_search_properties"
+      ]
+    },
     "sonarqube": {
       "command": "docker",
       "args": [
@@ -24,4 +61,4 @@
       ]
     }
   }
-}    
+}
