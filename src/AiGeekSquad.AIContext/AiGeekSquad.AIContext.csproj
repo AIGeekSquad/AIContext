@@ -21,7 +21,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Markdig" Version="0.43.0" />
+		<PackageReference Include="Markdig.Signed" Version="0.43.0" />
 		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
 		<PackageReference Include="Microsoft.Bcl.TimeProvider" Version="9.0.10" />
 		<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.10.2" />
